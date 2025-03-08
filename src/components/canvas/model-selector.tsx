@@ -1,11 +1,6 @@
 "use client";
 
-import {
-	FormControl,
-	FormField,
-	FormItem,
-	FormLabel,
-} from "@/components/ui/form";
+import { Label } from "@/components/ui/label";
 import {
 	Select,
 	SelectContent,
@@ -15,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { MODELS, type ModelId } from "@/lib/models";
 import type { Control } from "react-hook-form";
+import { useController } from "react-hook-form";
 
 interface ModelSelectorProps {
 	control: Control<{
@@ -24,29 +20,26 @@ interface ModelSelectorProps {
 }
 
 export function ModelSelector({ control }: ModelSelectorProps) {
+	const { field } = useController({
+		name: "model",
+		control,
+	});
+
 	return (
-		<FormField
-			control={control}
-			name="model"
-			render={({ field }) => (
-				<FormItem>
-					<FormLabel>Model</FormLabel>
-					<Select value={field.value} onValueChange={field.onChange}>
-						<FormControl>
-							<SelectTrigger>
-								<SelectValue placeholder="Select a model" />
-							</SelectTrigger>
-						</FormControl>
-						<SelectContent>
-							{MODELS.map((model) => (
-								<SelectItem key={model.id} value={model.id}>
-									{model.name}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
-				</FormItem>
-			)}
-		/>
+		<div className="space-y-2">
+			<Label htmlFor="model">Model</Label>
+			<Select value={field.value} onValueChange={field.onChange}>
+				<SelectTrigger id="model">
+					<SelectValue placeholder="Select a model" />
+				</SelectTrigger>
+				<SelectContent>
+					{MODELS.map((model) => (
+						<SelectItem key={model.id} value={model.id}>
+							{model.name}
+						</SelectItem>
+					))}
+				</SelectContent>
+			</Select>
+		</div>
 	);
 }

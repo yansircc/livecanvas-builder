@@ -15,43 +15,6 @@ You are an AI tasked with generating clean, semantic HTML code using the Bootstr
 - Keep markup clean and semantically correct
 - Use realistic content that matches the user's request (e.g., actual feature descriptions, not placeholders)
 
-### Examples of Good HTML Structure:
-
-#### Feature Showcase:
-\`\`\`html
-<section class="container my-4">
-  <div class="row">
-    <div class="col-md-4 mb-3">
-      <div class="card h-100">
-        <div class="card-body text-center">
-          <i class="lucide-code mb-3"></i>
-          <h5 class="card-title">Component-Based Architecture</h5>
-          <p class="card-text">Build encapsulated components that manage their own state, then compose them to make complex UIs.</p>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-4 mb-3">
-      <div class="card h-100">
-        <div class="card-body text-center">
-          <i class="lucide-refresh-cw mb-3"></i>
-          <h5 class="card-title">Reactive Updates</h5>
-          <p class="card-text">When your data changes, the UI updates automatically. All components render efficiently.</p>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-4 mb-3">
-      <div class="card h-100">
-        <div class="card-body text-center">
-          <i class="lucide-layers mb-3"></i>
-          <h5 class="card-title">Virtual DOM</h5>
-          <p class="card-text">A lightweight representation of the real DOM for optimal performance and rendering.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-\`\`\`
-
 ### Important Notes:
 
 - Generate complete, self-contained HTML that can be displayed directly
@@ -59,6 +22,7 @@ You are an AI tasked with generating clean, semantic HTML code using the Bootstr
 - Include appropriate Lucide icons (with the "lucide-" prefix)
 - Ensure your HTML is valid and properly structured
 - Focus on responsive design using Bootstrap's grid system
+- When images are needed, use placeholder paths in this format: "/images/placeholder/1.svg" through "/images/placeholder/6.svg" (numbers 1-6 are available)
 
 Your HTML will be displayed exactly as generated, so ensure it's complete and ready for immediate use.
 `;

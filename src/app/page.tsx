@@ -1,23 +1,26 @@
 "use client";
 
-import { AdviceList } from "@/components/canvas/advice-list";
+import { codeSchema } from "@/app/api/chat/schema";
 import { CodeOutput } from "@/components/canvas/code-output";
 import { ModelSelector } from "@/components/canvas/model-selector";
 import { PromptInput } from "@/components/canvas/prompt-input";
+import { VersionHistory } from "@/components/canvas/version-history";
 import { SettingsDialog } from "@/components/settings-dialog";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { Form } from "@/components/ui/form";
+import { Form } from "@/components/ui/form-simple";
 import type { ModelId } from "@/lib/models";
 import { useAppStore } from "@/store/use-app-store";
 import { processHtml } from "@/utils/process-html";
-import "@/styles/bootstrap-preview.css";
 import { experimental_useObject as useObject } from "@ai-sdk/react";
-import { Code2, Loader2 } from "lucide-react";
 import { useCallback, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { type CodeResponse, codeSchema } from "./api/chat/schema";
+
+interface CodeResponse {
+	code: string;
+	advices?: string[];
+}
 
 interface FormValues {
 	message: string;
@@ -46,7 +49,17 @@ export default function Page() {
 		validationResult,
 		setValidationResult,
 		resetResults,
+		addVersion,
+		currentVersionIndex,
+		versions,
+		setVersions,
+		clearVersions,
 	} = useAppStore();
+
+	// Clear version history when the page loads
+	useEffect(() => {
+		clearVersions();
+	}, [clearVersions]);
 
 	const form = useForm<FormValues>({
 		defaultValues: {
@@ -55,7 +68,7 @@ export default function Page() {
 		},
 	});
 
-	// Render template to HTML using Mustache
+	// Render template to HTML
 	const renderTemplateToHtml = useCallback(
 		(htmlCode: string) => {
 			try {
@@ -63,40 +76,22 @@ export default function Page() {
 				try {
 					const processedHtmlWithIcons = processHtml(htmlCode);
 					setProcessedHtml(processedHtmlWithIcons);
+					return processedHtmlWithIcons;
 				} catch (iconError) {
 					console.error("Error processing icons:", iconError);
 					setProcessedHtml(htmlCode);
-				}
-
-				setValidationResult({
-					valid: true,
-					errors: [],
-				});
-
-				if (processedHtml) {
-					openPreview(processedHtml);
+					return htmlCode;
 				}
 			} catch (error) {
 				console.error("Error displaying HTML:", error);
-				setProcessedHtml(`
-				<div class="bg-red-100 text-red-800 p-4 rounded-md border border-red-300">
-					<h3 class="font-semibold text-lg mb-2">Display Error</h3>
-					<p>Unable to display the HTML code: ${
-						error instanceof Error ? error.message : "Unknown error"
-					}</p>
-				</div>
-			`);
 				setValidationResult({
 					valid: false,
-					errors: [
-						`Failed to display HTML: ${
-							error instanceof Error ? error.message : "Unknown error"
-						}`,
-					],
+					errors: ["Failed to process HTML"],
 				});
+				return null;
 			}
 		},
-		[setProcessedHtml, setValidationResult, processedHtml],
+		[setProcessedHtml, setValidationResult],
 	);
 
 	const { object, submit } = useObject<CodeResponse>({
@@ -109,14 +104,31 @@ export default function Page() {
 
 				// Process the code once generation is complete
 				if (object.code) {
-					setCode(object.code);
-					setAdvices(
-						object.advices?.filter((advice): advice is string => !!advice) ||
-							[],
-					);
+					// Convert to HTML and process
+					const processedHtml = renderTemplateToHtml(object.code);
 
-					// Convert EJS to HTML and process
-					renderTemplateToHtml(object.code);
+					// Add to version history, but first truncate any versions after the current one
+					const prompt = form.getValues("message");
+
+					// If creating a new version from a previous version, remove all versions after it
+					if (
+						currentVersionIndex >= 0 &&
+						currentVersionIndex < versions.length - 1
+					) {
+						// Keep versions up to and including currentVersionIndex
+						setVersions(versions.slice(0, currentVersionIndex + 1));
+					}
+
+					// Now add the new version (addVersion function will set parent ID)
+					addVersion(prompt);
+
+					// Reset form after successful generation
+					form.reset({ message: "", model: form.getValues("model") });
+
+					// Open preview with the current version's HTML
+					if (processedHtml) {
+						openPreview(processedHtml);
+					}
 				}
 			} else if (error) {
 				console.log("Schema validation error:", error);
@@ -125,8 +137,10 @@ export default function Page() {
 		},
 		onError(error) {
 			setIsLoading(false);
-			console.error("An error occurred:", error);
-			toast.error("An error occurred while connecting to the API");
+			console.error("API error:", error);
+			toast.error(
+				error?.message || "An error occurred while generating the template",
+			);
 		},
 	});
 
@@ -134,12 +148,14 @@ export default function Page() {
 	useEffect(() => {
 		if (object?.code) {
 			setCode(object.code);
-			setAdvices(
-				object.advices?.filter((advice): advice is string => !!advice) || [],
-			);
+			if (object.advices) {
+				const filteredAdvices = object.advices.filter(
+					(advice): advice is string => !!advice,
+				);
+				setAdvices(filteredAdvices);
+			}
 
-			// Only update the code display, don't render until finished
-			// renderTemplateToHtml(object.code);
+			// We don't render HTML or create versions until streaming is complete
 		}
 	}, [object, setCode, setAdvices]);
 
@@ -154,7 +170,7 @@ export default function Page() {
 		setModel(data.model);
 
 		// Display loading message in the rendered output
-		setProcessedHtml(`
+		const loadingHtml = `
 			<div class="flex items-center justify-center p-8 text-gray-500">
 				<div class="text-center">
 					<div class="inline-block mb-4">
@@ -167,10 +183,44 @@ export default function Page() {
 					<p class="text-sm mt-2">Please wait while we create your content</p>
 				</div>
 			</div>
-		`);
+		`;
+		setProcessedHtml(loadingHtml);
+
+		// Build conversation history based on the current version
+		const conversationHistory = [];
+
+		// If we're on a specific version, build history from its ancestors
+		if (currentVersionIndex >= 0 && versions.length > 0) {
+			// First, create a map of versions by ID for easy lookup
+			const versionsMap = new Map();
+			for (const version of versions) {
+				versionsMap.set(version.id, version);
+			}
+
+			// Start with the current version
+			let version = versions[currentVersionIndex];
+
+			// Traverse the parent chain to build history in chronological order
+			const historyStack = [];
+			while (version) {
+				historyStack.unshift({
+					prompt: version.prompt,
+					response: version.code,
+				});
+
+				// Move to parent version if it exists
+				version = version.parentId ? versionsMap.get(version.parentId) : null;
+			}
+
+			// Add all history items except the current version (we're modifying it)
+			if (historyStack.length > 0) {
+				conversationHistory.push(...historyStack);
+			}
+		}
 
 		submit({
 			message: data.message,
+			history: conversationHistory,
 			apiKey: apiKey || undefined,
 			model: data.model,
 		});
@@ -178,60 +228,50 @@ export default function Page() {
 
 	const handleAdviceClick = (advice: string) => {
 		const currentMessage = form.getValues("message");
-		form.setValue(
-			"message",
-			currentMessage ? `${currentMessage}\n${advice}` : advice,
-		);
+		const newMessage = currentMessage
+			? `${currentMessage}\n${advice}` // Add on new line if there's existing content
+			: advice; // Use advice directly if empty
+		form.setValue("message", newMessage);
 	};
 
 	return (
-		<main className="container mx-auto p-4 md:p-8">
-			<div className="flex items-center justify-between mb-8">
+		<div className="container mx-auto py-8 space-y-8">
+			<header className="flex justify-between items-center">
 				<h1 className="text-3xl font-bold">Canvas Builder</h1>
-				<div className="flex items-center gap-2">
-					<SettingsDialog />
+				<div className="flex items-center gap-4">
 					<ThemeToggle />
+					<SettingsDialog />
+				</div>
+			</header>
+
+			<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+				<div className="md:col-span-2 space-y-6">
+					<Form {...form}>
+						<form onSubmit={handleSubmit} className="space-y-4">
+							<PromptInput
+								control={form.control}
+								isLoading={isLoading}
+								advices={advices}
+								onAdviceClick={handleAdviceClick}
+							/>
+							<div className="flex justify-between items-center">
+								<ModelSelector control={form.control} />
+								<Button type="submit" disabled={isLoading}>
+									{isLoading ? "Generating..." : "Generate"}
+								</Button>
+							</div>
+						</form>
+					</Form>
+
+					<section className="space-y-6">
+						<CodeOutput code={code || ""} validationResult={validationResult} />
+					</section>
+				</div>
+
+				<div className="space-y-6">
+					<VersionHistory />
 				</div>
 			</div>
-
-			<div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-				{/* Input Section */}
-				<section className="space-y-6">
-					<div className="rounded-lg border bg-card text-card-foreground shadow">
-						<div className="p-6 space-y-4">
-							<h2 className="text-2xl font-semibold">Configuration</h2>
-
-							<Form {...form}>
-								<form onSubmit={handleSubmit} className="space-y-4">
-									<ModelSelector control={form.control} />
-									<PromptInput control={form.control} />
-
-									<Button type="submit" className="w-full" disabled={isLoading}>
-										{isLoading ? (
-											<>
-												<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-												Generating...
-											</>
-										) : (
-											<>
-												<Code2 className="mr-2 h-4 w-4" />
-												Generate Code
-											</>
-										)}
-									</Button>
-								</form>
-							</Form>
-						</div>
-					</div>
-
-					<AdviceList advices={advices} onAdviceClick={handleAdviceClick} />
-				</section>
-
-				{/* Output Section */}
-				<section className="space-y-6">
-					<CodeOutput code={code} validationResult={validationResult} />
-				</section>
-			</div>
-		</main>
+		</div>
 	);
 }
