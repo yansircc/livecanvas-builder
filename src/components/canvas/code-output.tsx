@@ -1,5 +1,6 @@
 "use client";
 
+import { VersionSelector } from "@/components/canvas/version-selector";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Check, Copy, Eye } from "lucide-react";
@@ -35,32 +36,35 @@ export function CodeOutput({ code, validationResult }: CodeOutputProps) {
 	};
 
 	return (
-		<Card className="overflow-hidden">
-			<div className="flex items-center justify-between p-4 bg-muted/50">
+		<Card className="overflow-hidden h-full">
+			<div className="flex items-center justify-between p-4 bg-muted/50 border-b">
 				<h2 className="text-lg font-semibold">Generated Code</h2>
-				<div className="flex gap-2">
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={openPreview}
-						disabled={!code}
-						title="Open Preview"
-					>
-						<Eye className="h-4 w-4" />
-					</Button>
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={copyToClipboard}
-						disabled={!code}
-						title={copied ? "Copied!" : "Copy Code"}
-					>
-						{copied ? (
-							<Check className="h-4 w-4 text-green-500" />
-						) : (
-							<Copy className="h-4 w-4" />
-						)}
-					</Button>
+				<div className="flex items-center gap-4">
+					<VersionSelector />
+					<div className="flex gap-2">
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={openPreview}
+							disabled={!code}
+							title="Open Preview"
+						>
+							<Eye className="h-4 w-4" />
+						</Button>
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={copyToClipboard}
+							disabled={!code}
+							title={copied ? "Copied!" : "Copy Code"}
+						>
+							{copied ? (
+								<Check className="h-4 w-4 text-green-500" />
+							) : (
+								<Copy className="h-4 w-4" />
+							)}
+						</Button>
+					</div>
 				</div>
 			</div>
 
@@ -78,7 +82,7 @@ export function CodeOutput({ code, validationResult }: CodeOutputProps) {
 					</div>
 				)}
 
-				<pre className="p-4 overflow-auto max-h-[600px] text-sm">
+				<pre className="p-4 overflow-auto max-h-[calc(100vh-270px)] text-sm">
 					<code>{code || "No code generated yet..."}</code>
 				</pre>
 			</div>

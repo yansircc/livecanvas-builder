@@ -4,7 +4,6 @@ import { codeSchema } from "@/app/api/chat/schema";
 import { CodeOutput } from "@/components/canvas/code-output";
 import { ModelSelector } from "@/components/canvas/model-selector";
 import { PromptInput } from "@/components/canvas/prompt-input";
-import { VersionHistory } from "@/components/canvas/version-history";
 import { SettingsDialog } from "@/components/settings-dialog";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -19,7 +18,7 @@ import { toast } from "sonner";
 
 interface CodeResponse {
 	code: string;
-	advices?: string[];
+	advices?: string[] | null;
 }
 
 interface FormValues {
@@ -104,6 +103,19 @@ export default function Page() {
 
 				// Process the code once generation is complete
 				if (object.code) {
+					setCode(object.code);
+
+					// Handle advices with proper type checking
+					if (object.advices && Array.isArray(object.advices)) {
+						const filteredAdvices = object.advices.filter(
+							(advice): advice is string =>
+								typeof advice === "string" && !!advice,
+						);
+						setAdvices(filteredAdvices);
+					} else {
+						setAdvices([]);
+					}
+
 					// Convert to HTML and process
 					const processedHtml = renderTemplateToHtml(object.code);
 
@@ -148,14 +160,16 @@ export default function Page() {
 	useEffect(() => {
 		if (object?.code) {
 			setCode(object.code);
-			if (object.advices) {
+
+			// Add better type checking for advices
+			if (object.advices && Array.isArray(object.advices)) {
 				const filteredAdvices = object.advices.filter(
-					(advice): advice is string => !!advice,
+					(advice): advice is string => typeof advice === "string" && !!advice,
 				);
 				setAdvices(filteredAdvices);
+			} else {
+				setAdvices([]);
 			}
-
-			// We don't render HTML or create versions until streaming is complete
 		}
 	}, [object, setCode, setAdvices]);
 
@@ -235,43 +249,61 @@ export default function Page() {
 	};
 
 	return (
-		<div className="container mx-auto py-8 space-y-8">
-			<header className="flex justify-between items-center">
-				<h1 className="text-3xl font-bold">Canvas Builder</h1>
-				<div className="flex items-center gap-4">
-					<ThemeToggle />
-					<SettingsDialog />
+		<div className="min-h-screen bg-background flex flex-col">
+			{/* Header */}
+			<header className="border-b bg-card">
+				<div className="container py-4 flex items-center justify-between">
+					<h1 className="text-2xl font-bold text-primary">Canvas Builder</h1>
+					<div className="flex items-center gap-4">
+						<ThemeToggle />
+						<SettingsDialog />
+					</div>
 				</div>
 			</header>
 
-			<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-				<div className="md:col-span-2 space-y-6">
-					<Form {...form}>
-						<form onSubmit={handleSubmit} className="space-y-4">
-							<PromptInput
-								control={form.control}
-								isLoading={isLoading}
-								advices={advices}
-								onAdviceClick={handleAdviceClick}
+			{/* Main Content */}
+			<main className="flex-1 py-6">
+				<div className="container h-full">
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-full">
+						{/* Left: Form Panel */}
+						<div className="p-6 rounded-lg border bg-card">
+							<h2 className="text-xl font-medium mb-4">HTML Generator</h2>
+							<Form {...form}>
+								<form onSubmit={handleSubmit} className="space-y-6">
+									<PromptInput
+										control={form.control}
+										isLoading={isLoading}
+										advices={advices}
+										onAdviceClick={handleAdviceClick}
+									/>
+
+									<div className="flex flex-col sm:flex-row gap-4 items-center">
+										<div className="w-full sm:w-auto">
+											<ModelSelector control={form.control} />
+										</div>
+										<Button
+											type="submit"
+											className="w-full sm:w-auto"
+											disabled={isLoading}
+											size="lg"
+										>
+											{isLoading ? "Generating..." : "Generate HTML"}
+										</Button>
+									</div>
+								</form>
+							</Form>
+						</div>
+
+						{/* Right: Output Panel */}
+						<div className="h-full">
+							<CodeOutput
+								code={code || ""}
+								validationResult={validationResult}
 							/>
-							<div className="flex justify-between items-center">
-								<ModelSelector control={form.control} />
-								<Button type="submit" disabled={isLoading}>
-									{isLoading ? "Generating..." : "Generate"}
-								</Button>
-							</div>
-						</form>
-					</Form>
-
-					<section className="space-y-6">
-						<CodeOutput code={code || ""} validationResult={validationResult} />
-					</section>
+						</div>
+					</div>
 				</div>
-
-				<div className="space-y-6">
-					<VersionHistory />
-				</div>
-			</div>
+			</main>
 		</div>
 	);
 }
