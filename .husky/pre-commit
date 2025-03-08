@@ -4,5 +4,8 @@ bun install --dry-run --frozen-lockfile >/dev/null 2>&1 || (
   exit 1
 )
 
-# Run lint-staged without debug info
-bunx lint-staged --quiet
+# Run Biome format check
+bun format:check || (
+  echo "❌ Biome format check failed"
+  exit 1
+)
