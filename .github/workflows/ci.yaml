@@ -1,0 +1,83 @@
+name: 🚀 CI
+
+on:
+  push:
+    branches: [main, develop]
+    # Only trigger on relevant file changes
+    paths:
+      - '**.js'
+      - '**.jsx'
+      - '**.ts'
+      - '**.tsx'
+      - 'package.json'
+      - 'bun.lockb'
+      - '.github/workflows/**'
+  pull_request:
+    branches: [main, develop]
+
+# Prevent concurrent builds and cancel outdated ones
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🎯 Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: 📦 Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            **/node_modules
+            ~/.bun/install/cache
+            ~/.bun/bin
+            .next/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb', 'package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: 📥 Install Dependencies
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            bun install --frozen-lockfile
+          else
+            bun install
+          fi
+
+      - name: 🔍 Run Checks
+        run: |
+          bun run lint &
+          bun run typecheck &
+          wait
+
+      - name: 🏗️ Build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+        run: bun run build
+
+      - name: 📊 Generate build report
+        if: always()
+        run: |
+          echo "📋 Build Summary:" > build-report.txt
+          echo "⏱️ Build completed at: $(date)" >> build-report.txt
+          echo "🔄 Branch: ${{ github.ref }}" >> build-report.txt
+          echo "📍 Commit: ${{ github.sha }}" >> build-report.txt
+
+      - name: 📤 Upload build report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-report
+          path: build-report.txt

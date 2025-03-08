@@ -1,0 +1,8 @@
+# Check lockfile consistency
+bun install --dry-run --frozen-lockfile >/dev/null 2>&1 || (
+  echo "❌ Lockfile is out of sync" 
+  exit 1
+)
+
+# Run lint-staged without debug info
+bunx lint-staged --quiet
