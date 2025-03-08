@@ -2,18 +2,13 @@
 
 import { codeSchema } from "@/app/api/chat/schema";
 import { CodeOutput } from "@/components/canvas/code-output";
-import { ModelSelector } from "@/components/canvas/model-selector";
-import { PromptInput } from "@/components/canvas/prompt-input";
-import { SettingsDialog } from "@/components/settings-dialog";
+import { EnhancedForm } from "@/components/canvas/enhanced-form";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Button } from "@/components/ui/button";
-import { Form } from "@/components/ui/form-simple";
 import type { ModelId } from "@/lib/models";
 import { useAppStore } from "@/store/use-app-store";
 import { processHtml } from "@/utils/process-html";
 import { experimental_useObject as useObject } from "@ai-sdk/react";
-import { useCallback, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 interface CodeResponse {
@@ -24,6 +19,8 @@ interface CodeResponse {
 interface FormValues {
 	message: string;
 	model: ModelId;
+	apiKey: string;
+	context: string;
 }
 
 function openPreview(html: string) {
@@ -36,36 +33,32 @@ export default function Page() {
 	const {
 		apiKey,
 		model,
-		setModel,
+		context,
 		isLoading,
-		setIsLoading,
 		code,
-		setCode,
 		advices,
-		setAdvices,
 		processedHtml,
-		setProcessedHtml,
 		validationResult,
-		setValidationResult,
-		resetResults,
-		addVersion,
-		currentVersionIndex,
 		versions,
-		setVersions,
-		clearVersions,
+		currentVersionIndex,
+		setState,
+		addVersion,
+		switchToVersion,
+		resetState,
 	} = useAppStore();
+
+	// Add a state variable to store the current message
+	const [currentMessage, setCurrentMessage] = useState("");
 
 	// Clear version history when the page loads
 	useEffect(() => {
-		clearVersions();
-	}, [clearVersions]);
+		resetState({ keepUserSettings: true, keepVersions: false });
+	}, [resetState]);
 
-	const form = useForm<FormValues>({
-		defaultValues: {
-			message: "",
-			model,
-		},
-	});
+	// Add a debug log to check if the persistence is working
+	useEffect(() => {
+		console.log("Stored values:", { apiKey, model, context });
+	}, [apiKey, model, context]);
 
 	// Render template to HTML
 	const renderTemplateToHtml = useCallback(
@@ -74,68 +67,81 @@ export default function Page() {
 				// Process HTML to replace Lucide icons with SVGs where possible
 				try {
 					const processedHtmlWithIcons = processHtml(htmlCode);
-					setProcessedHtml(processedHtmlWithIcons);
+					setState("processedHtml", processedHtmlWithIcons);
 					return processedHtmlWithIcons;
 				} catch (iconError) {
 					console.error("Error processing icons:", iconError);
-					setProcessedHtml(htmlCode);
+					setState("processedHtml", htmlCode);
 					return htmlCode;
 				}
 			} catch (error) {
 				console.error("Error displaying HTML:", error);
-				setValidationResult({
+				setState("validationResult", {
 					valid: false,
 					errors: ["Failed to process HTML"],
 				});
 				return null;
 			}
 		},
-		[setProcessedHtml, setValidationResult],
+		[setState],
 	);
 
 	const { object, submit } = useObject<CodeResponse>({
 		schema: codeSchema,
 		api: "/api/chat",
 		onFinish({ object, error }) {
-			setIsLoading(false);
+			setState("isLoading", false);
 			if (object) {
 				console.log("Object generation completed:", object);
 
 				// Process the code once generation is complete
 				if (object.code) {
-					setCode(object.code);
+					setState("code", object.code);
 
-					// Handle advices with proper type checking
-					if (object.advices && Array.isArray(object.advices)) {
-						const filteredAdvices = object.advices.filter(
-							(advice): advice is string =>
-								typeof advice === "string" && !!advice,
-						);
-						setAdvices(filteredAdvices);
+					// Handle advices with robust type checking and conversion
+					if (object.advices) {
+						let processedAdvices: string[] = [];
+						if (Array.isArray(object.advices)) {
+							processedAdvices = object.advices.map((advice) =>
+								typeof advice === "string" ? advice : String(advice),
+							);
+						} else if (typeof object.advices === "string") {
+							try {
+								const parsed = JSON.parse(object.advices);
+								processedAdvices = Array.isArray(parsed)
+									? parsed.map((item) => String(item))
+									: [object.advices];
+							} catch (e) {
+								processedAdvices = [object.advices];
+							}
+						}
+
+						setState("advices", processedAdvices);
 					} else {
-						setAdvices([]);
+						setState("advices", []);
 					}
 
-					// Convert to HTML and process
+					// Process the HTML
 					const processedHtml = renderTemplateToHtml(object.code);
 
-					// Add to version history, but first truncate any versions after the current one
-					const prompt = form.getValues("message");
+					// Add a new version with the current form data
+					const formData = {
+						message: currentMessage,
+						model: model,
+						apiKey: apiKey,
+						context: context,
+					};
 
-					// If creating a new version from a previous version, remove all versions after it
+					// If we're not at the latest version, we need to handle version history differently
 					if (
 						currentVersionIndex >= 0 &&
 						currentVersionIndex < versions.length - 1
 					) {
-						// Keep versions up to and including currentVersionIndex
-						setVersions(versions.slice(0, currentVersionIndex + 1));
+						// Instead of modifying versions directly, we'll handle this in the addVersion function
+						// The addVersion function will take care of truncating the versions array
 					}
 
-					// Now add the new version (addVersion function will set parent ID)
-					addVersion(prompt);
-
-					// Reset form after successful generation
-					form.reset({ message: "", model: form.getValues("model") });
+					addVersion(currentMessage, formData);
 
 					// Open preview with the current version's HTML
 					if (processedHtml) {
@@ -148,7 +154,7 @@ export default function Page() {
 			}
 		},
 		onError(error) {
-			setIsLoading(false);
+			setState("isLoading", false);
 			console.error("API error:", error);
 			toast.error(
 				error?.message || "An error occurred while generating the template",
@@ -159,29 +165,54 @@ export default function Page() {
 	// Update state as the stream comes in
 	useEffect(() => {
 		if (object?.code) {
-			setCode(object.code);
+			setState("code", object.code);
 
-			// Add better type checking for advices
-			if (object.advices && Array.isArray(object.advices)) {
-				const filteredAdvices = object.advices.filter(
-					(advice): advice is string => typeof advice === "string" && !!advice,
-				);
-				setAdvices(filteredAdvices);
+			// Add robust type checking and conversion for advices
+			if (object.advices) {
+				let processedAdvices: string[] = [];
+
+				if (Array.isArray(object.advices)) {
+					// If it's already an array, filter out non-string values
+					processedAdvices = object.advices.filter(
+						(advice): advice is string =>
+							typeof advice === "string" && !!advice,
+					);
+				} else if (typeof object.advices === "string") {
+					// If it's a string, try to parse it as JSON
+					try {
+						const parsed = JSON.parse(object.advices);
+						if (Array.isArray(parsed)) {
+							processedAdvices = parsed.filter(
+								(item): item is string => typeof item === "string" && !!item,
+							);
+						} else if (typeof parsed === "string") {
+							// If parsed result is a string, use it as a single advice
+							processedAdvices = [parsed];
+						}
+					} catch (e) {
+						// If parsing fails, use the string as a single advice
+						processedAdvices = [object.advices];
+					}
+				}
+
+				setState("advices", processedAdvices);
 			} else {
-				setAdvices([]);
+				setState("advices", []);
 			}
 		}
-	}, [object, setCode, setAdvices]);
+	}, [object, setState]);
 
-	const handleSubmit = form.handleSubmit((data) => {
+	const handleSubmit = (data: FormValues) => {
 		if (!data.message.trim()) {
 			toast.error("Please enter a prompt");
 			return;
 		}
 
-		resetResults();
-		setIsLoading(true);
-		setModel(data.model);
+		// Store the current message for later use
+		setCurrentMessage(data.message);
+
+		resetState({ keepUserSettings: true, keepVersions: true });
+		setState("isLoading", true);
 
 		// Display loading message in the rendered output
 		const loadingHtml = `
@@ -198,7 +229,7 @@ export default function Page() {
 				</div>
 			</div>
 		`;
-		setProcessedHtml(loadingHtml);
+		setState("processedHtml", loadingHtml);
 
 		// Build conversation history based on the current version
 		const conversationHistory = [];
@@ -234,18 +265,16 @@ export default function Page() {
 
 		submit({
 			message: data.message,
+			context: data.context || context,
 			history: conversationHistory,
-			apiKey: apiKey || undefined,
-			model: data.model,
+			apiKey: data.apiKey || apiKey || undefined,
+			model: data.model || model,
 		});
-	});
+	};
 
 	const handleAdviceClick = (advice: string) => {
-		const currentMessage = form.getValues("message");
-		const newMessage = currentMessage
-			? `${currentMessage}\n${advice}` // Add on new line if there's existing content
-			: advice; // Use advice directly if empty
-		form.setValue("message", newMessage);
+		// This is now just a placeholder since the form handles it internally
+		console.log("Advice clicked:", advice);
 	};
 
 	return (
@@ -256,7 +285,6 @@ export default function Page() {
 					<h1 className="text-2xl font-bold text-primary">Canvas Builder</h1>
 					<div className="flex items-center gap-4">
 						<ThemeToggle />
-						<SettingsDialog />
 					</div>
 				</div>
 			</header>
@@ -266,32 +294,14 @@ export default function Page() {
 				<div className="container h-full">
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-full">
 						{/* Left: Form Panel */}
-						<div className="p-6 rounded-lg border bg-card">
-							<h2 className="text-xl font-medium mb-4">HTML Generator</h2>
-							<Form {...form}>
-								<form onSubmit={handleSubmit} className="space-y-6">
-									<PromptInput
-										control={form.control}
-										isLoading={isLoading}
-										advices={advices}
-										onAdviceClick={handleAdviceClick}
-									/>
-
-									<div className="flex flex-col sm:flex-row gap-4 items-center">
-										<div className="w-full sm:w-auto">
-											<ModelSelector control={form.control} />
-										</div>
-										<Button
-											type="submit"
-											className="w-full sm:w-auto"
-											disabled={isLoading}
-											size="lg"
-										>
-											{isLoading ? "Generating..." : "Generate HTML"}
-										</Button>
-									</div>
-								</form>
-							</Form>
+						<div>
+							<EnhancedForm
+								onSubmit={handleSubmit}
+								isLoading={isLoading}
+								advices={advices}
+								onAdviceClick={handleAdviceClick}
+								initialMessage={currentMessage}
+							/>
 						</div>
 
 						{/* Right: Output Panel */}

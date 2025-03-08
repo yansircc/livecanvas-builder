@@ -10,8 +10,8 @@ export const maxDuration = 30;
 export async function POST(req: Request) {
 	const body = await req.json();
 
-	// Extract message, history, and optional API key and model from the request
-	const { message, history, apiKey, model } = body;
+	// Extract message, context, history, and optional API key and model from the request
+	const { message, context, history, apiKey, model } = body;
 
 	// Use provided API key or fall back to environment variable
 	const openrouter = createOpenRouter({
@@ -23,6 +23,11 @@ export async function POST(req: Request) {
 
 	// Create a context-aware prompt that includes conversation history
 	let contextualPrompt = PROMPT;
+
+	// Add user context if available
+	if (context?.trim()) {
+		contextualPrompt += `\n\n### User Context:\n${context}`;
+	}
 
 	// Add conversation history if available
 	if (history && history.length > 0) {

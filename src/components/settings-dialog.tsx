@@ -17,12 +17,12 @@ import { Settings } from "lucide-react";
 import { useState } from "react";
 
 export function SettingsDialog() {
-	const { apiKey, setApiKey } = useAppStore();
+	const { apiKey, setState } = useAppStore();
 	const [tempApiKey, setTempApiKey] = useState(apiKey);
 	const [open, setOpen] = useState(false);
 
 	const handleSave = () => {
-		setApiKey(tempApiKey);
+		setState("apiKey", tempApiKey);
 		setOpen(false);
 	};
 
