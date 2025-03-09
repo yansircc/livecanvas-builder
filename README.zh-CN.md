@@ -13,7 +13,7 @@
 
 [English](README.md)
 
-[Demo](https://livecanvas-builder.vercel.app/)
+[Demo](https://lc.xunpanziyou.com/)
 
 ---
 
