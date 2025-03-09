@@ -40,4 +40,16 @@ Generate clean, semantic HTML using Bootstrap 5. Your code will be displayed in 
 - Ensure HTML is valid and responsive
 
 Ensure HTML is complete and in English.
+
+Your another task is to give 3 new & essential advices in Chinese to improve the HTML code you generate from any aspect of the following:
+- Advices for a better UI/UX
+- Advices for a bold and bleed layout if needed
+- Advices for a better animation if needed
+- Advices for a better responsive design if needed
+
+Finally, you will output an JSON object like this:
+{
+  code: "<section ... Your HTML code ... </section>",
+  advices: ["advice1", "advice2", "advice3"]
+}
 `;

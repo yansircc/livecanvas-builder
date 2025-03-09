@@ -73,8 +73,8 @@ export default function PreviewPage() {
 			{/* Header with title, device selector, and copy button */}
 			<div className="flex justify-between items-center px-6 py-3 border-b bg-white shadow-sm">
 				<div className="flex items-center gap-4">
-					<h1 className="text-2xl font-playfair tracking-tight font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-						HTML Preview
+					<h1 className="text-2xl font-playfair tracking-tight font-bold bg-clip-text">
+						HTML 预览
 					</h1>
 					<div className="ml-4">
 						<DeviceSelector

@@ -3,6 +3,7 @@
 import { codeSchema } from "@/app/api/chat/schema";
 import { CodeOutput } from "@/components/canvas/code-output";
 import { EnhancedForm } from "@/components/canvas/enhanced-form";
+import { MAX_CONTEXT_LENGTH } from "@/components/canvas/enhanced-form";
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { ModelId } from "@/lib/models";
 import { useAppStore } from "@/store/use-app-store";
@@ -203,8 +204,20 @@ export default function Page() {
 	}, [object, setState]);
 
 	const handleSubmit = (data: FormValues) => {
+		// Context Optimization:
+		// Instead of sending the entire conversation history, we only send:
+		// 1. The most recent AI response (from the current version)
+		// 2. The current user message
+		// This significantly reduces token usage while maintaining enough context
+		// for the AI to generate a coherent response.
+
 		if (!data.message.trim()) {
 			toast.error("Please enter a prompt");
+			return;
+		}
+
+		if (data.context && data.context.length > MAX_CONTEXT_LENGTH) {
+			toast.error(`Context must be ${MAX_CONTEXT_LENGTH} characters or less`);
 			return;
 		}
 
@@ -214,58 +227,31 @@ export default function Page() {
 		resetState({ keepUserSettings: true, keepVersions: true });
 		setState("isLoading", true);
 
-		// Display loading message in the rendered output
-		const loadingHtml = `
-			<div class="flex items-center justify-center p-8 text-gray-500">
-				<div class="text-center">
-					<div class="inline-block mb-4">
-						<svg class="animate-spin h-8 w-8" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-						</svg>
-					</div>
-					<p class="text-lg font-medium">Generating template...</p>
-					<p class="text-sm mt-2">Please wait while we create your content</p>
-				</div>
-			</div>
-		`;
-		setState("processedHtml", loadingHtml);
-
 		// Build conversation history based on the current version
 		const conversationHistory = [];
 
-		// If we're on a specific version, build history from its ancestors
+		// If we're on a specific version, get only the most recent AI response
 		if (currentVersionIndex >= 0 && versions.length > 0) {
-			// First, create a map of versions by ID for easy lookup
-			const versionsMap = new Map();
-			for (const version of versions) {
-				versionsMap.set(version.id, version);
-			}
+			// Get the current version (most recent AI response)
+			const currentVersion = versions[currentVersionIndex];
 
-			// Start with the current version
-			let version = versions[currentVersionIndex];
-
-			// Traverse the parent chain to build history in chronological order
-			const historyStack = [];
-			while (version) {
-				historyStack.unshift({
-					prompt: version.prompt,
-					response: version.code,
+			// Only add the most recent AI response to the history
+			if (currentVersion) {
+				conversationHistory.push({
+					prompt: currentVersion.prompt,
+					response: currentVersion.code,
 				});
-
-				// Move to parent version if it exists
-				version = version.parentId ? versionsMap.get(version.parentId) : null;
 			}
 
-			// Add all history items except the current version (we're modifying it)
-			if (historyStack.length > 0) {
-				conversationHistory.push(...historyStack);
-			}
+			// Log the optimized context for debugging
+			console.log(
+				"Optimized context: Only sending the most recent AI response",
+			);
 		}
 
 		submit({
 			message: data.message,
-			context: data.context || context,
+			context: (data.context || context || "").substring(0, 1200),
 			history: conversationHistory,
 			apiKey: data.apiKey || apiKey || undefined,
 			model: data.model || model,
@@ -281,7 +267,7 @@ export default function Page() {
 		<div className="min-h-screen bg-background flex flex-col">
 			{/* Header */}
 			<header className="border-b bg-card">
-				<div className="container py-4 flex items-center justify-between">
+				<div className="container py-4 flex items-center justify-between mx-auto">
 					<h1 className="text-2xl font-bold text-primary">Canvas Builder</h1>
 					<div className="flex items-center gap-4">
 						<ThemeToggle />
@@ -291,7 +277,7 @@ export default function Page() {
 
 			{/* Main Content */}
 			<main className="flex-1 py-6">
-				<div className="container h-full">
+				<div className="container h-full mx-auto">
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-full">
 						{/* Left: Form Panel */}
 						<div>

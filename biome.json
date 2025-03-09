@@ -2,7 +2,7 @@
 	"linter": {
 		"rules": {
 			"suspicious": {
-				"noExplicitAny": "error"
+				"noExplicitAny": "warn"
 			}
 		}
 	}

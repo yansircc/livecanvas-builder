@@ -45,7 +45,7 @@ export const codeSchema = z.object({
 				.transform((val) => (Array.isArray(val) ? val : [val])),
 		)
 		.describe(
-			"Always give 3 essential advices in Chinese to improve from any aspect of the following: - Make the UI more beautiful - Make the UI more bold - Make the animation more vivid and smooth - Improve user experience - Improve responsive design",
+			"Advices for improving the HTML code, in Chinese, 3 unique & essential advices",
 		),
 });
 

@@ -15,8 +15,8 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-	title: "HTML Preview",
-	description: "Preview HTML template with Bootstrap",
+	title: "HTML 预览",
+	description: "预览 HTML 模板",
 };
 
 export default function PreviewLayout({

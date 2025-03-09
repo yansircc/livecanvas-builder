@@ -34,18 +34,18 @@ export function CopyButton({ getContentToCopy }: CopyButtonProps) {
 		<button
 			type="button"
 			onClick={handleCopy}
-			className="px-4 py-2 text-sm bg-secondary hover:bg-secondary/80 rounded-md font-medium flex items-center gap-2"
-			title={copied ? "Copied!" : "Copy HTML Code"}
+			className="px-4 py-2 text-sm bg-secondary hover:bg-secondary/80 rounded-md font-medium flex items-center gap-2 cursor-pointer"
+			title={copied ? "已复制！" : "复制HTML代码"}
 		>
 			{copied ? (
 				<>
 					<Check className="h-4 w-4 text-green-500" />
-					<span>Copied!</span>
+					<span>已复制！</span>
 				</>
 			) : (
 				<>
 					<Copy className="h-4 w-4" />
-					<span>Copy Code</span>
+					<span>复制代码</span>
 				</>
 			)}
 		</button>

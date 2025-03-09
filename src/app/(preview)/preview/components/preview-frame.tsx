@@ -24,7 +24,7 @@ export function PreviewFrame({ content, deviceConfig }: PreviewFrameProps) {
 					ref={iframeRef}
 					srcDoc={content}
 					className="w-full h-full border-0"
-					title="HTML Preview"
+					title="HTML 预览"
 				/>
 			</div>
 		</div>
