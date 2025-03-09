@@ -4,20 +4,12 @@ export const MODELS = [
 		name: "Claude 3.7 Sonnet",
 	},
 	{
-		id: "anthropic/claude-3-opus",
-		name: "Claude 3 Opus",
-	},
-	{
-		id: "anthropic/claude-3-5-sonnet",
-		name: "Claude 3.5 Sonnet",
-	},
-	{
 		id: "openai/gpt-4o",
 		name: "GPT-4o",
 	},
 	{
-		id: "openai/gpt-4o-mini",
-		name: "GPT-4o Mini",
+		id: "google/gemini-2.0-flash-001",
+		name: "Gemini 2.0 Flash",
 	},
 ] as const;
 

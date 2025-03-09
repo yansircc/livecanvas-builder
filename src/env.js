@@ -18,6 +18,7 @@ export const env = createEnv({
 	 */
 	client: {
 		// NEXT_PUBLIC_CLIENTVAR: z.string(),
+		NEXT_PUBLIC_IMAGE_PLACEHOLDER_PREFIX: z.string(),
 	},
 
 	/**
@@ -27,7 +28,8 @@ export const env = createEnv({
 	runtimeEnv: {
 		NODE_ENV: process.env.NODE_ENV,
 		OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
-		// NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
+		NEXT_PUBLIC_IMAGE_PLACEHOLDER_PREFIX:
+			process.env.NEXT_PUBLIC_IMAGE_PLACEHOLDER_PREFIX,
 	},
 	/**
 	 * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

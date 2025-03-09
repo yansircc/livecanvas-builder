@@ -3,7 +3,9 @@
 import { VersionSelector } from "@/components/canvas/version-selector";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { env } from "@/env";
 import { useAppStore } from "@/store/use-app-store";
+import { replaceImagePlaceholders } from "@/utils/replace-image-placeholders";
 import { Check, Copy, Eye } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -23,7 +25,13 @@ export function CodeOutput({ code, validationResult }: CodeOutputProps) {
 
 	const copyToClipboard = async () => {
 		try {
-			await navigator.clipboard.writeText(processedHtml || code);
+			// Get the code to copy
+			let codeToCopy = processedHtml || code;
+
+			// Replace image placeholder paths with CDN URLs
+			codeToCopy = replaceImagePlaceholders(codeToCopy);
+
+			await navigator.clipboard.writeText(codeToCopy);
 			setCopied(true);
 			setTimeout(() => setCopied(false), 2000);
 		} catch (err) {
