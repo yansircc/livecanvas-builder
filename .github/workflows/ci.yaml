@@ -65,6 +65,8 @@ jobs:
       - name: 🏗️ Build
         env:
           NEXT_TELEMETRY_DISABLED: 1
+          OPENROUTER_API_KEY: "CI_PLACEHOLDER"
+          NEXT_PUBLIC_IMAGE_PLACEHOLDER_PREFIX: "CI_PLACEHOLDER"
         run: bun run build
 
       - name: 📊 Generate build report
