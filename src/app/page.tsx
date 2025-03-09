@@ -268,7 +268,9 @@ export default function Page() {
 			{/* Header */}
 			<header className="border-b bg-card">
 				<div className="container py-4 flex items-center justify-between mx-auto">
-					<h1 className="text-2xl font-bold text-primary">Canvas Builder</h1>
+					<h1 className="text-2xl font-bold text-primary">
+						LiveCanvas Builder
+					</h1>
 					<div className="flex items-center gap-4">
 						<ThemeToggle />
 					</div>

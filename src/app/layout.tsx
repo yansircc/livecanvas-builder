@@ -6,7 +6,7 @@ import { GeistSans } from "geist/font/sans";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-	title: "Canvas Builder",
+	title: "LiveCanvas Builder",
 	description: "Generate beautiful UI with AI",
 	icons: [{ rel: "icon", url: "/favicon.ico" }],
 };

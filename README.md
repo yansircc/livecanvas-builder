@@ -1,4 +1,4 @@
-# Canvas Builder
+# LiveCanvas Builder
 
 <p align="center">
   <img src="https://img.shields.io/badge/Next.js-15.x-black" alt="Next.js">
@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <img src="screenshot.png" alt="Canvas Builder Screenshot" width="800">
+  <img src="screenshot.png" alt="LiveCanvas Builder Screenshot" width="800">
 </p>
 
 [中文](README.zh-CN.md)
@@ -19,11 +19,11 @@
 
 ## 🌟 Overview
 
-Canvas Builder is a powerful tool that leverages OpenRouter AI to generate Bootstrap 4 compatible HTML code for LiveCanvas. With a simple prompt, you can create beautiful, responsive web components ready to use in your LiveCanvas projects.
+LiveCanvas Builder is a powerful tool that leverages OpenRouter AI to generate Bootstrap 5 compatible HTML code for LiveCanvas. With a simple prompt, you can create beautiful, responsive web components ready to use in your LiveCanvas projects.
 
 ## ✨ Features
 
-- **AI-Powered HTML Generation**: Uses OpenRouter AI to create Bootstrap 4 compatible HTML
+- **AI-Powered HTML Generation**: Uses OpenRouter AI to create Bootstrap 5 compatible HTML
 - **SVG Icon Integration**: Automatically converts Lucide icons to inline SVG
 - **Animation Support**: Built-in AOS (Animate On Scroll) integration
 - **Version Management**: Track and switch between different generated code versions

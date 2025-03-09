@@ -1,4 +1,4 @@
-# Canvas Builder
+# LiveCanvas Builder
 
 <p align="center">
   <img src="https://img.shields.io/badge/Next.js-15.x-black" alt="Next.js">
@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <img src="screenshot.png" alt="Canvas Builder Screenshot" width="800">
+  <img src="screenshot.png" alt="LiveCanvas Builder Screenshot" width="800">
 </p>
 
 [English](README.md)
@@ -19,11 +19,11 @@
 
 ## 🌟 概述
 
-Canvas Builder 是一个强大的工具，利用 OpenRouter AI 为 LiveCanvas 生成兼容 Bootstrap 4 的 HTML 代码。通过简单的提示，您可以创建美观、响应式的网页组件，随时可用于您的 LiveCanvas 项目。
+LiveCanvas Builder 是一个强大的工具，利用 OpenRouter AI 为 LiveCanvas 生成兼容 Bootstrap 5 的 HTML 代码。通过简单的提示，您可以创建美观、响应式的网页组件，随时可用于您的 LiveCanvas 项目。
 
 ## ✨ 特点
 
-- **AI 驱动的 HTML 生成**：使用 OpenRouter AI 创建兼容 Bootstrap 4 的 HTML
+- **AI 驱动的 HTML 生成**：使用 OpenRouter AI 创建兼容 Bootstrap 5 的 HTML
 - **SVG 图标集成**：自动将 Lucide 图标转换为内联 SVG
 - **动画支持**：内置 AOS（滚动时动画）集成
 - **版本管理**：跟踪并切换不同的生成代码版本
