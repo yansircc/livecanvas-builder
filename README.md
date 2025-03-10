@@ -4,7 +4,6 @@
   <img src="https://img.shields.io/badge/Next.js-15.x-black" alt="Next.js">
   <img src="https://img.shields.io/badge/TypeScript-5.x-blue" alt="TypeScript">
   <img src="https://img.shields.io/badge/Bootstrap-4.x-purple" alt="Bootstrap">
-  <img src="https://img.shields.io/badge/OpenRouter-AI-green" alt="OpenRouter">
 </p>
 
 <p align="center">
@@ -19,11 +18,11 @@
 
 ## 🌟 Overview
 
-LiveCanvas Builder is a powerful tool that leverages OpenRouter AI to generate Bootstrap 5 compatible HTML code for LiveCanvas. With a simple prompt, you can create beautiful, responsive web components ready to use in your LiveCanvas projects.
+LiveCanvas Builder is a powerful tool that leverages [Aihubmax](https://aihubmix.com/) to generate Bootstrap 5 compatible HTML code for LiveCanvas. With a simple prompt, you can create beautiful, responsive web components ready to use in your LiveCanvas projects.
 
 ## ✨ Features
 
-- **AI-Powered HTML Generation**: Uses OpenRouter AI to create Bootstrap 5 compatible HTML
+- **AI-Powered HTML Generation**: Uses [Aihubmax](https://aihubmix.com/) to create Bootstrap 5 compatible HTML
 - **SVG Icon Integration**: Automatically converts Lucide icons to inline SVG
 - **Animation Support**: Built-in AOS (Animate On Scroll) integration
 - **Version Management**: Track and switch between different generated code versions
@@ -36,7 +35,7 @@ LiveCanvas Builder is a powerful tool that leverages OpenRouter AI to generate B
 
 - Node.js 18.x or higher
 - Bun or npm
-- OpenRouter API key ([Get one here](https://openrouter.ai/keys))
+- Aihubmax API key ([Get one here](https://aihubmix.com/token))
 
 ### Installation
 
@@ -58,9 +57,10 @@ LiveCanvas Builder is a powerful tool that leverages OpenRouter AI to generate B
    cp .env.example .env
    ```
 
-4. Add your OpenRouter API key to the `.env` file:
+4. Add your Aihubmax API key to the `.env` file:
    ```
-   OPENROUTER_API_KEY=your_api_key_here
+   AI_HUB_MIX_API_KEY=your_api_key_here
+   AI_HUB_MIX_ENDPOINT="https://aihubmix.com/v1"
    ```
 
 5. Start the development server:
