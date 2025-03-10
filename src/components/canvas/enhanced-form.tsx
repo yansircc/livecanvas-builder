@@ -270,7 +270,8 @@ export function EnhancedForm({
 															<span>{model.name}</span>
 															{model.price && (
 																<span className="text-xs text-muted-foreground">
-																	输入: ${model.price.input}/M tokens | 输出: ${model.price.output}/M tokens
+																	输入: ${model.price.input}/M tokens | 输出: $
+																	{model.price.output}/M tokens
 																</span>
 															)}
 														</div>
@@ -280,7 +281,8 @@ export function EnhancedForm({
 										</Select>
 										{currentModelPrice && (
 											<FormDescription>
-												当前模型价格: 输入 ${currentModelPrice.input}/M tokens, 输出 ${currentModelPrice.output}/M tokens
+												当前模型价格: 输入 ${currentModelPrice.input}/M tokens,
+												输出 ${currentModelPrice.output}/M tokens
 											</FormDescription>
 										)}
 									</FormItem>

@@ -1,7 +1,7 @@
+import { LLM_LIST, parseModelId } from "@/lib/models";
 import { streamObject } from "ai";
 import { PROMPT } from "./prompt";
 import { codeSchema } from "./schema";
-import { LLM_LIST, parseModelId } from "@/lib/models";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -14,17 +14,17 @@ export async function POST(req: Request) {
 
 	// Default model if none provided
 	const selectedModelId = model || "anthropic/claude-3-7-sonnet-20250219";
-	
+
 	// Parse the model ID to get provider and model value
 	const { providerId, modelValue } = parseModelId(selectedModelId);
-	
+
 	// Get the provider from LLM_LIST
 	const provider = LLM_LIST[providerId];
-	
+
 	if (!provider) {
 		return new Response(
 			JSON.stringify({ error: `Provider ${providerId} not found` }),
-			{ status: 400 }
+			{ status: 400 },
 		);
 	}
 
