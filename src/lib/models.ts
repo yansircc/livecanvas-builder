@@ -225,12 +225,41 @@ export function parseModelId(modelId: ModelId): {
 
 // Helper function to get price information for a model
 export function getModelPrice(modelId: ModelId): { input: number; output: number } | undefined {
-  const model = MODELS.find((m) => m.id === modelId)
-  return model?.price
+  if (!modelId) return undefined
+
+  try {
+    const model = MODELS.find((m) => m.id === modelId)
+
+    if (!model || !model.price) return undefined
+
+    // Ensure we return a new object to avoid reference issues
+    return {
+      input: Number(model.price.input) || 0,
+      output: Number(model.price.output) || 0,
+    }
+  } catch (error) {
+    console.error('Error getting model price:', error)
+    return undefined
+  }
 }
 
 // Helper function to check if a model can output structured data
 export function canModelOutputStructuredData(modelId: ModelId): boolean {
   const model = MODELS.find((m) => m.id === modelId)
   return model?.canOutputStructuredData ?? false
+}
+
+// Helper function to get the default model
+export function getDefaultModel(): ModelId {
+  // 如果有可用模型，使用第一个模型作为默认值
+  if (MODELS && MODELS.length > 0 && MODELS[0]?.id) {
+    return MODELS[0].id
+  }
+  // 如果没有可用模型，使用一个固定的默认值
+  return 'anthropic/claude-3-7-sonnet-20250219'
+}
+
+// Helper function to validate a model ID
+export function isValidModelId(modelId: ModelId): boolean {
+  return MODELS.some((m) => m.id === modelId)
 }

@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import { useCallback, useEffect, useState } from 'react'
 import { CodeOutput } from '@/components/canvas/code-output'
 import { EnhancedForm, MAX_CONTEXT_LENGTH } from '@/components/canvas/enhanced-form'
-import { ThemeToggle } from '@/components/theme-toggle'
+import Header from '@/components/header'
 import type { ModelId } from '@/lib/models'
 import { useAppStore } from '@/store/use-app-store'
 import { processHtml } from '@/utils/process-html'
@@ -51,10 +51,12 @@ export default function Page() {
     resetState({ keepUserSettings: true, keepVersions: false })
   }, [resetState])
 
-  // Add a debug log to check if the persistence is working
+  // Reset current message when code is reset
   useEffect(() => {
-    console.log('Stored values:', { apiKey, model, context })
-  }, [apiKey, model, context])
+    if (code === null) {
+      setCurrentMessage('')
+    }
+  }, [code])
 
   // Render template to HTML
   const renderTemplateToHtml = useCallback(
@@ -201,21 +203,14 @@ export default function Page() {
   }
 
   return (
-    <div className="bg-background flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950">
       {/* Header */}
-      <header className="bg-card border-b">
-        <div className="container mx-auto flex items-center justify-between py-4">
-          <h1 className="text-primary text-2xl font-bold">LiveCanvas Builder</h1>
-          <div className="flex items-center gap-4">
-            <ThemeToggle />
-          </div>
-        </div>
-      </header>
+      <Header />
 
       {/* Main Content */}
-      <main className="flex-1 py-6">
-        <div className="container mx-auto h-full">
-          <div className="grid h-full grid-cols-1 gap-6 md:grid-cols-2">
+      <main className="flex-1 py-8">
+        <div className="container mx-auto h-full px-4">
+          <div className="grid h-full grid-cols-1 gap-8 md:grid-cols-2">
             {/* Left: Form Panel */}
             <div>
               <EnhancedForm
@@ -238,6 +233,18 @@ export default function Page() {
           </div>
         </div>
       </main>
+
+      {/* Footer */}
+      <footer className="border-t border-zinc-200 bg-white py-4 dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              © {new Date().getFullYear()} LiveCanvas Builder
+            </p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">使用 AI 构建美观的 HTML 组件</p>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }

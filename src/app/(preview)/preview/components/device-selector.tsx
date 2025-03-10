@@ -2,6 +2,7 @@
 
 import { Laptop, Smartphone, Tablet } from 'lucide-react'
 import { useState } from 'react'
+import { cn } from '@/lib/utils'
 
 export type DeviceType = 'mobile' | 'tablet' | 'desktop'
 
@@ -16,19 +17,19 @@ export const deviceConfigs: Record<DeviceType, DeviceConfig> = {
   mobile: {
     width: '375px',
     height: '667px',
-    label: 'Mobile',
+    label: '手机',
     icon: Smartphone,
   },
   tablet: {
     width: '768px',
     height: '1024px',
-    label: 'Tablet',
+    label: '平板',
     icon: Tablet,
   },
   desktop: {
     width: '100%',
     height: '100%',
-    label: 'Desktop',
+    label: '桌面',
     icon: Laptop,
   },
 }
@@ -47,22 +48,26 @@ export function DeviceSelector({ onDeviceChange, initialDevice = 'desktop' }: De
   }
 
   return (
-    <div className="flex items-center gap-2 rounded-lg border p-1">
+    <div className="flex items-center gap-1 rounded-xl border border-zinc-200 bg-white p-1 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
       {(Object.entries(deviceConfigs) as [DeviceType, DeviceConfig][]).map(([key, config]) => {
         const Icon = config.icon
+        const isSelected = selectedDevice === key
+
         return (
           <button
             key={key}
             type="button"
             onClick={() => handleDeviceChange(key)}
-            className={`rounded-md p-2 transition-colors ${
-              selectedDevice === key
-                ? 'bg-secondary text-secondary-foreground'
-                : 'hover:bg-secondary/50'
-            }`}
+            className={cn(
+              'flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition-all',
+              isSelected
+                ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
+                : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-700 dark:hover:text-zinc-100',
+            )}
             title={config.label}
           >
-            <Icon className="h-4 w-4" />
+            <Icon className={cn('h-4 w-4', isSelected && 'text-current')} />
+            <span className="hidden sm:inline">{config.label}</span>
           </button>
         )
       })}

@@ -1,6 +1,7 @@
 import { create, type StateCreator } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import type { ModelId } from '@/lib/models'
+import { getDefaultModel, isValidModelId } from '@/lib/models'
 
 interface ValidationResult {
   valid: boolean
@@ -57,17 +58,114 @@ interface AppState extends SettableState {
   switchToVersion: (index: number) => void
 
   // 重置方法
-  resetState: (options?: { keepVersions?: boolean; keepUserSettings?: boolean }) => void
+  resetState: (options?: {
+    keepVersions?: boolean
+    keepUserSettings?: boolean
+    keepContext?: boolean
+  }) => void
 }
 
 // 更新持久化配置
 type AppPersist = Pick<AppState, 'apiKey' | 'model' | 'context'>
 
+// 获取默认模型 - 使用models.ts中的函数
+const getDefaultModelValue = (): ModelId => {
+  return getDefaultModel()
+}
+
+// 创建自定义存储，添加更好的错误处理
+const customStorage = {
+  getItem: (name: string): string | null => {
+    try {
+      if (typeof window === 'undefined') return null
+      return localStorage.getItem(name)
+    } catch (error) {
+      console.error('Error getting item from localStorage:', error)
+      return null
+    }
+  },
+  setItem: (name: string, value: string): void => {
+    try {
+      if (typeof window === 'undefined') return
+      localStorage.setItem(name, value)
+    } catch (error) {
+      console.error('Error setting item in localStorage:', error)
+    }
+  },
+  removeItem: (name: string): void => {
+    try {
+      if (typeof window === 'undefined') return
+      localStorage.removeItem(name)
+    } catch (error) {
+      console.error('Error removing item from localStorage:', error)
+    }
+  },
+}
+
+// 获取初始状态
+const getInitialState = (): {
+  apiKey: string | null
+  model: ModelId
+  context: string
+} => {
+  const defaultModel = getDefaultModelValue()
+
+  // 在服务器端渲染时返回默认值
+  if (typeof window === 'undefined') {
+    return {
+      apiKey: null,
+      model: defaultModel,
+      context: '',
+    }
+  }
+
+  try {
+    // 尝试从localStorage获取持久化的数据
+    const storedData = localStorage.getItem('canvas-builder-storage')
+    if (!storedData) {
+      return {
+        apiKey: null,
+        model: defaultModel,
+        context: '',
+      }
+    }
+
+    const parsedData = JSON.parse(storedData)
+    const state = parsedData.state || {}
+
+    // 验证持久化的模型ID是否有效
+    let modelValue: ModelId = defaultModel
+    if (state.model && typeof state.model === 'string') {
+      if (isValidModelId(state.model)) {
+        modelValue = state.model
+      } else {
+        console.warn('Persisted model ID is invalid, using default model')
+      }
+    }
+
+    return {
+      apiKey: state.apiKey ?? null,
+      model: modelValue,
+      context: state.context ?? '',
+    }
+  } catch (error) {
+    console.error('Failed to parse persisted state:', error)
+    return {
+      apiKey: null,
+      model: defaultModel,
+      context: '',
+    }
+  }
+}
+
+// 获取初始状态
+const initialState = getInitialState()
+
 const stateCreator: StateCreator<AppState, [], [], AppState> = (set, get) => ({
   // 初始状态
-  apiKey: null,
-  model: 'anthropic/claude-3-7-sonnet',
-  context: '',
+  apiKey: initialState.apiKey,
+  model: initialState.model,
+  context: initialState.context,
   isLoading: false,
   code: null,
   advices: [],
@@ -142,7 +240,7 @@ const stateCreator: StateCreator<AppState, [], [], AppState> = (set, get) => ({
 
   // 重置方法
   resetState: (options = {}) => {
-    const { keepVersions = false, keepUserSettings = true } = options
+    const { keepVersions = false, keepUserSettings = true, keepContext = true } = options
 
     // 创建新状态对象
     const newState: Partial<AppState> = {
@@ -165,7 +263,12 @@ const stateCreator: StateCreator<AppState, [], [], AppState> = (set, get) => ({
     // 如果不保留用户设置，则重置用户设置
     if (!keepUserSettings) {
       newState.apiKey = null
-      newState.model = 'anthropic/claude-3-7-sonnet'
+      newState.model = getDefaultModelValue()
+      newState.context = ''
+    }
+
+    // 确保重置上下文，即使保留用户设置
+    if (!keepContext) {
       newState.context = ''
     }
 
@@ -175,11 +278,16 @@ const stateCreator: StateCreator<AppState, [], [], AppState> = (set, get) => ({
 
 const persistConfig = {
   name: 'canvas-builder-storage',
-  storage: createJSONStorage(() => localStorage),
+  storage: createJSONStorage(() => customStorage),
   partialize: (state: AppState) =>
     Object.fromEntries(
       Object.entries(state).filter(([key]) => ['apiKey', 'model', 'context'].includes(key)),
     ) as AppPersist,
+  // 添加版本号，以便将来可以处理迁移
+  version: 1,
+  // 仅在客户端环境中启用持久化
+  skipHydration: typeof window === 'undefined',
 }
 
+// 创建存储
 export const useAppStore = create<AppState>()(persist(stateCreator, persistConfig))

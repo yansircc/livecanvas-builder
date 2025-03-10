@@ -1,5 +1,6 @@
 'use client'
 
+import { FileCode } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { getOriginalContent, loadContentFromStorage } from '../utils/content-loader'
@@ -61,22 +62,48 @@ export function PreviewContent() {
   const currentDevice = deviceConfigs[device]
 
   return (
-    <div key={urlKey} className="bg-background flex h-screen flex-col">
+    <div key={urlKey} className="flex min-h-screen flex-col bg-zinc-100 dark:bg-zinc-900">
       {/* Header with title, device selector, and copy button */}
-      <div className="flex items-center justify-between border-b bg-white px-6 py-3 shadow-sm">
-        <div className="flex items-center gap-4">
-          <h1 className="font-playfair bg-clip-text text-2xl font-bold tracking-tight">
-            HTML 预览
-          </h1>
-          <div className="ml-4">
+      <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white px-6 py-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+        <div className="container mx-auto flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
+                <FileCode className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+              </div>
+              <div>
+                <h1 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">HTML 预览</h1>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">查看生成的组件</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex w-full items-center justify-between gap-4 sm:w-auto">
             <DeviceSelector onDeviceChange={handleDeviceChange} initialDevice={device} />
+            <CopyButton getContentToCopy={getContentToCopy} />
           </div>
         </div>
-        <CopyButton getContentToCopy={getContentToCopy} />
-      </div>
+      </header>
 
       {/* Preview frame */}
-      <PreviewFrame content={iframeContent} deviceConfig={currentDevice} />
+      <main className="flex-1 overflow-auto bg-zinc-100 dark:bg-zinc-900">
+        <div className="container mx-auto min-h-[800px] px-4 py-8">
+          <div className="h-full min-h-[800px]">
+            <PreviewFrame
+              content={iframeContent}
+              deviceConfig={currentDevice}
+              deviceType={device}
+            />
+          </div>
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-zinc-200 bg-white py-4 dark:border-zinc-800 dark:bg-zinc-950">
+        <div className="container mx-auto px-6 text-center text-xs text-zinc-500 dark:text-zinc-400">
+          <p>LiveCanvas Builder Preview</p>
+        </div>
+      </footer>
 
       {/* Hash navigation handler */}
       <HashNavigationHandler />
