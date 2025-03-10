@@ -48,9 +48,11 @@ Your another task is to give 3 new & essential advices in Chinese to improve the
 - Advices for a better animation if needed
 - Advices for a better responsive design if needed
 
-Finally, you will output an JSON object like this:
+Finally, you will output a JSON object like this:
 {
   code: "<section ... Your HTML code ... </section>",
   advices: ["advice1", "advice2", "advice3"]
 }
-`;
+
+Ensure that the output is always in JSON format, without using Markdown or any other formatting styles.
+`

@@ -4,8 +4,8 @@ bun install --dry-run --frozen-lockfile >/dev/null 2>&1 || (
   exit 1
 )
 
-# Run Biome format check
+# Run typecheck
 bun format:check || (
-  echo "❌ Biome format check failed"
+  echo "❌ typecheck failed" 
   exit 1
 )

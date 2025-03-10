@@ -1,4 +1,4 @@
-import { processHtml } from "@/utils/process-html";
+import { processHtml } from '@/utils/process-html'
 
 /**
  * Loads HTML content from localStorage based on the content ID
@@ -6,22 +6,22 @@ import { processHtml } from "@/utils/process-html";
  * @returns The processed HTML content or an error message
  */
 export function loadContentFromStorage(contentId: string | null): string {
-	if (!contentId) {
-		return '<div class="error-container"><h3>Invalid Request</h3><p>No preview content ID specified</p></div>';
-	}
+  if (!contentId) {
+    return '<div class="error-container"><h3>Invalid Request</h3><p>No preview content ID specified</p></div>'
+  }
 
-	const savedContent = localStorage.getItem(`preview_content_${contentId}`);
+  const savedContent = localStorage.getItem(`preview_content_${contentId}`)
 
-	if (!savedContent) {
-		return '<div class="error-container"><h3>Content Not Found</h3><p>The preview content is unavailable or has expired</p></div>';
-	}
+  if (!savedContent) {
+    return '<div class="error-container"><h3>Content Not Found</h3><p>The preview content is unavailable or has expired</p></div>'
+  }
 
-	try {
-		return processHtml(savedContent);
-	} catch (error) {
-		console.error("Error processing HTML content:", error);
-		return savedContent;
-	}
+  try {
+    return processHtml(savedContent)
+  } catch (error) {
+    console.error('Error processing HTML content:', error)
+    return savedContent
+  }
 }
 
 /**
@@ -30,9 +30,9 @@ export function loadContentFromStorage(contentId: string | null): string {
  * @returns The original unprocessed content or empty string
  */
 export function getOriginalContent(contentId: string | null): string {
-	if (!contentId) {
-		return "";
-	}
+  if (!contentId) {
+    return ''
+  }
 
-	return localStorage.getItem(`preview_content_${contentId}`) || "";
+  return localStorage.getItem(`preview_content_${contentId}`) ?? ''
 }

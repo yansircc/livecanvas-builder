@@ -1,5 +1,5 @@
 export function IframeWrapper(content: string) {
-	return `
+  return `
     <!DOCTYPE html>
     <html>
       <head>
@@ -37,5 +37,5 @@ export function IframeWrapper(content: string) {
         </script>
       </body>
     </html>
-  `;
+  `
 }

@@ -1,0 +1,33 @@
+# Build and Output
+.next
+dist
+build
+out
+
+# Dependencies
+node_modules
+
+# Cache and Temporary
+.cache
+.tmp
+.vercel
+coverage
+
+# Version Control
+.git
+
+# Package Manager Files
+package-lock.json
+yarn.lock
+bun.lockb
+
+# Environment and Config
+.env*
+tsconfig.json
+
+# Generated Types
+**/payload-types.ts
+
+# Assets and Public
+public
+*.log
