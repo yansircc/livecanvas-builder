@@ -1,8 +1,7 @@
-import { env } from "@/env";
-import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { streamObject } from "ai";
 import { PROMPT } from "./prompt";
 import { codeSchema } from "./schema";
+import { LLM_LIST, parseModelId } from "@/lib/models";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -13,13 +12,21 @@ export async function POST(req: Request) {
 	// Extract message, context, history, and optional API key and model from the request
 	const { message, context, history, apiKey, model } = body;
 
-	// Use provided API key or fall back to environment variable
-	const openrouter = createOpenRouter({
-		apiKey: apiKey || env.OPENROUTER_API_KEY,
-	});
-
-	// Use provided model or default to Claude 3.7 Sonnet
-	const selectedModel = model || "openai/gpt-4o-mini";
+	// Default model if none provided
+	const selectedModelId = model || "anthropic/claude-3-7-sonnet-20250219";
+	
+	// Parse the model ID to get provider and model value
+	const { providerId, modelValue } = parseModelId(selectedModelId);
+	
+	// Get the provider from LLM_LIST
+	const provider = LLM_LIST[providerId];
+	
+	if (!provider) {
+		return new Response(
+			JSON.stringify({ error: `Provider ${providerId} not found` }),
+			{ status: 400 }
+		);
+	}
 
 	// Create a context-aware prompt that includes conversation history
 	let contextualPrompt = PROMPT;
@@ -48,7 +55,7 @@ export async function POST(req: Request) {
 
 	// Stream the AI response as an object
 	const result = streamObject({
-		model: openrouter(selectedModel),
+		model: provider.model(modelValue),
 		schema: codeSchema,
 		prompt: contextualPrompt,
 	});

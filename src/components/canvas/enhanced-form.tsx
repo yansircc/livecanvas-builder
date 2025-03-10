@@ -2,13 +2,6 @@
 
 import { Button } from "@/components/ui/button";
 import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
-import {
 	Form,
 	FormControl,
 	FormDescription,
@@ -26,7 +19,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { MODELS, type ModelId } from "@/lib/models";
+import { MODELS, type ModelId, getModelPrice } from "@/lib/models";
 import { useAppStore } from "@/store/use-app-store";
 import { Sparkles } from "lucide-react";
 import { useEffect } from "react";
@@ -62,7 +55,7 @@ export function EnhancedForm({
 	const form = useForm<FormValues>({
 		defaultValues: {
 			message: initialMessage,
-			model: model || "anthropic/claude-3-7-sonnet",
+			model: model || (MODELS?.[0]?.id ?? "anthropic/claude-3-7-sonnet"),
 			apiKey: apiKey || "",
 			context: context || "",
 		},
@@ -123,6 +116,10 @@ export function EnhancedForm({
 			onAdviceClick(advice);
 		}
 	};
+
+	// Get the current model's price information
+	const currentModelId = form.watch("model");
+	const currentModelPrice = getModelPrice(currentModelId);
 
 	return (
 		<div className="w-full border p-8 rounded-lg">
@@ -238,11 +235,11 @@ export function EnhancedForm({
 								name="apiKey"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>OpenRouter API秘钥</FormLabel>
+										<FormLabel>AI Hub Max API秘钥</FormLabel>
 										<FormControl>
 											<Input
 												type="password"
-												placeholder="输入你的OpenRouter API秘钥..."
+												placeholder="输入你的AI Hub Max API秘钥..."
 												{...field}
 											/>
 										</FormControl>
@@ -269,12 +266,23 @@ export function EnhancedForm({
 											<SelectContent>
 												{MODELS.map((model) => (
 													<SelectItem key={model.id} value={model.id}>
-														{model.name}
+														<div className="flex flex-col">
+															<span>{model.name}</span>
+															{model.price && (
+																<span className="text-xs text-muted-foreground">
+																	输入: ${model.price.input}/M tokens | 输出: ${model.price.output}/M tokens
+																</span>
+															)}
+														</div>
 													</SelectItem>
 												))}
 											</SelectContent>
 										</Select>
-										<FormDescription>选择用于生成的AI模型</FormDescription>
+										{currentModelPrice && (
+											<FormDescription>
+												当前模型价格: 输入 ${currentModelPrice.input}/M tokens, 输出 ${currentModelPrice.output}/M tokens
+											</FormDescription>
+										)}
 									</FormItem>
 								)}
 							/>

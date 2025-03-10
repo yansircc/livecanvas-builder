@@ -8,7 +8,8 @@ export const env = createEnv({
 	 */
 	server: {
 		NODE_ENV: z.enum(["development", "test", "production"]),
-		OPENROUTER_API_KEY: z.string(),
+		AI_HUB_MIX_API_KEY: z.string(),
+		AI_HUB_MIX_ENDPOINT: z.string(),
 	},
 
 	/**
@@ -27,7 +28,8 @@ export const env = createEnv({
 	 */
 	runtimeEnv: {
 		NODE_ENV: process.env.NODE_ENV,
-		OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
+		AI_HUB_MIX_API_KEY: process.env.AI_HUB_MIX_API_KEY,
+		AI_HUB_MIX_ENDPOINT: process.env.AI_HUB_MIX_ENDPOINT,
 		NEXT_PUBLIC_IMAGE_PLACEHOLDER_PREFIX:
 			process.env.NEXT_PUBLIC_IMAGE_PLACEHOLDER_PREFIX,
 	},
