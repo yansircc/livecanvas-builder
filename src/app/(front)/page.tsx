@@ -4,12 +4,12 @@ import { toast } from 'sonner'
 import { useCallback, useEffect, useState } from 'react'
 import { CodeOutput } from '@/components/canvas/code-output'
 import { EnhancedForm, MAX_CONTEXT_LENGTH } from '@/components/canvas/enhanced-form'
-import Header from '@/components/header'
 import Footer from '@/components/footer'
+import Header from '@/components/header'
 import type { ModelId } from '@/lib/models'
+import { getModelPrice } from '@/lib/models'
 import { useAppStore } from '@/store/use-app-store'
 import { processHtml } from '@/utils/process-html'
-import { getModelPrice } from '@/lib/models'
 
 interface CodeResponse {
   code: string
@@ -31,7 +31,7 @@ interface FormValues {
 // 计算成本的函数，汇率固定为 7.3
 function calculateCost(
   usage: { promptTokens: number; completionTokens: number; totalTokens: number },
-  modelId: ModelId
+  modelId: ModelId,
 ): { usd: number; cny: number } | undefined {
   const price = getModelPrice(modelId)
   if (!price || !usage) return undefined
@@ -52,36 +52,36 @@ function calculateCost(
 }
 
 // Token usage display component
-function TokenUsage({ 
+function TokenUsage({
   usage,
-  modelId
-}: { 
-  usage?: { 
+  modelId,
+}: {
+  usage?: {
     promptTokens: number
     completionTokens: number
-    totalTokens: number 
-  },
+    totalTokens: number
+  }
   modelId: ModelId
 }) {
-  if (!usage) return null;
-  
+  if (!usage) return null
+
   const cost = calculateCost(usage, modelId)
-  
+
   return (
-    <div className="mt-2 p-3 bg-zinc-100 rounded-lg dark:bg-zinc-800">
-      <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-1">Token 使用情况</h3>
-      <div className="text-xs text-zinc-600 dark:text-zinc-400 space-y-1">
+    <div className="mt-2 rounded-lg bg-zinc-100 p-3 dark:bg-zinc-800">
+      <h3 className="mb-1 text-sm font-medium text-zinc-900 dark:text-zinc-100">Token 使用情况</h3>
+      <div className="space-y-1 text-xs text-zinc-600 dark:text-zinc-400">
         <p>总计: {usage.totalTokens.toLocaleString()} tokens</p>
         <p>提示: {usage.promptTokens.toLocaleString()} tokens</p>
         <p>补全: {usage.completionTokens.toLocaleString()} tokens</p>
         {cost && (
-          <p className="pt-1 border-t border-zinc-200 dark:border-zinc-700 mt-1">
+          <p className="mt-1 border-t border-zinc-200 pt-1 dark:border-zinc-700">
             估计费用: {cost.cny.toFixed(4)} 元 (${cost.usd.toFixed(4)})
           </p>
         )}
       </div>
     </div>
-  );
+  )
 }
 
 function openPreview(html: string) {

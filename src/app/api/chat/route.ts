@@ -86,11 +86,13 @@ export async function POST(req: Request) {
       // 创建包含 usage 信息的响应
       const responseWithUsage: ApiResponse = {
         ...object,
-        usage: usage ? {
-          promptTokens: usage.promptTokens,
-          completionTokens: usage.completionTokens,
-          totalTokens: usage.totalTokens
-        } : undefined
+        usage: usage
+          ? {
+              promptTokens: usage.promptTokens,
+              completionTokens: usage.completionTokens,
+              totalTokens: usage.totalTokens,
+            }
+          : undefined,
       }
 
       // Return the object as a proper Response
@@ -118,11 +120,13 @@ export async function POST(req: Request) {
         // 添加 usage 信息到响应
         const responseWithUsage: ApiResponse = {
           ...parsedObject,
-          usage: usage ? {
-            promptTokens: usage.promptTokens,
-            completionTokens: usage.completionTokens,
-            totalTokens: usage.totalTokens
-          } : undefined
+          usage: usage
+            ? {
+                promptTokens: usage.promptTokens,
+                completionTokens: usage.completionTokens,
+                totalTokens: usage.totalTokens,
+              }
+            : undefined,
         }
 
         return new Response(JSON.stringify(responseWithUsage), {
@@ -166,11 +170,13 @@ export async function POST(req: Request) {
         // 添加 usage 信息到响应
         const responseWithUsage: ApiResponse = {
           ...parsedObject,
-          usage: usage ? {
-            promptTokens: usage.promptTokens,
-            completionTokens: usage.completionTokens,
-            totalTokens: usage.totalTokens
-          } : undefined
+          usage: usage
+            ? {
+                promptTokens: usage.promptTokens,
+                completionTokens: usage.completionTokens,
+                totalTokens: usage.totalTokens,
+              }
+            : undefined,
         }
 
         return new Response(JSON.stringify(responseWithUsage), {
