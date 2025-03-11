@@ -3,6 +3,7 @@
 import { FileCode } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { PublishProjectDialog } from '@/components/publish-project-dialog'
 import { getOriginalContent, loadContentFromStorage } from '../utils/content-loader'
 import { IframeWrapper } from '../utils/iframe-wrapper'
 import { CopyButton } from './copy-button'
@@ -79,7 +80,10 @@ export function PreviewContent() {
           </div>
 
           <DeviceSelector onDeviceChange={handleDeviceChange} initialDevice={device} />
-          <CopyButton getContentToCopy={getContentToCopy} />
+          <div className="flex items-center gap-2">
+            <CopyButton getContentToCopy={getContentToCopy} />
+            <PublishProjectDialog htmlContent={content} />
+          </div>
         </div>
       </header>
 

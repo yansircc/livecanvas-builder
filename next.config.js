@@ -12,7 +12,10 @@ const config = {
   images: {
     remotePatterns: [
       {
-        hostname: 'images.unsplash.com',
+        hostname: '*.unsplash.com',
+      },
+      {
+        hostname: 'assets.lummi.ai',
       },
     ],
   },
