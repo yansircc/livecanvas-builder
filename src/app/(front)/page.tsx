@@ -5,13 +5,20 @@ import { useCallback, useEffect, useState } from 'react'
 import { CodeOutput } from '@/components/canvas/code-output'
 import { EnhancedForm, MAX_CONTEXT_LENGTH } from '@/components/canvas/enhanced-form'
 import Header from '@/components/header'
+import Footer from '@/components/footer'
 import type { ModelId } from '@/lib/models'
 import { useAppStore } from '@/store/use-app-store'
 import { processHtml } from '@/utils/process-html'
+import { getModelPrice } from '@/lib/models'
 
 interface CodeResponse {
   code: string
   advices?: string[] | null
+  usage?: {
+    promptTokens: number
+    completionTokens: number
+    totalTokens: number
+  }
 }
 
 interface FormValues {
@@ -19,6 +26,62 @@ interface FormValues {
   model: ModelId
   apiKey: string
   context: string
+}
+
+// 计算成本的函数，汇率固定为 7.3
+function calculateCost(
+  usage: { promptTokens: number; completionTokens: number; totalTokens: number },
+  modelId: ModelId
+): { usd: number; cny: number } | undefined {
+  const price = getModelPrice(modelId)
+  if (!price || !usage) return undefined
+
+  // 价格是按每百万 token 计算的，所以需要除以 1,000,000
+  const inputCostUSD = (usage.promptTokens / 1000000) * price.input
+  const outputCostUSD = (usage.completionTokens / 1000000) * price.output
+  const totalCostUSD = inputCostUSD + outputCostUSD
+
+  // 汇率固定为 7.3
+  const exchangeRate = 7.3
+  const totalCostCNY = totalCostUSD * exchangeRate
+
+  return {
+    usd: totalCostUSD,
+    cny: totalCostCNY,
+  }
+}
+
+// Token usage display component
+function TokenUsage({ 
+  usage,
+  modelId
+}: { 
+  usage?: { 
+    promptTokens: number
+    completionTokens: number
+    totalTokens: number 
+  },
+  modelId: ModelId
+}) {
+  if (!usage) return null;
+  
+  const cost = calculateCost(usage, modelId)
+  
+  return (
+    <div className="mt-2 p-3 bg-zinc-100 rounded-lg dark:bg-zinc-800">
+      <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-1">Token 使用情况</h3>
+      <div className="text-xs text-zinc-600 dark:text-zinc-400 space-y-1">
+        <p>总计: {usage.totalTokens.toLocaleString()} tokens</p>
+        <p>提示: {usage.promptTokens.toLocaleString()} tokens</p>
+        <p>补全: {usage.completionTokens.toLocaleString()} tokens</p>
+        {cost && (
+          <p className="pt-1 border-t border-zinc-200 dark:border-zinc-700 mt-1">
+            估计费用: {cost.cny.toFixed(4)} 元 (${cost.usd.toFixed(4)})
+          </p>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function openPreview(html: string) {
@@ -38,6 +101,7 @@ export default function Page() {
     validationResult,
     versions,
     currentVersionIndex,
+    usage,
     setState,
     addVersion,
     resetState,
@@ -169,6 +233,11 @@ export default function Page() {
           setState('advices', [])
         }
 
+        // Save token usage information
+        if (object.usage) {
+          setState('usage', object.usage)
+        }
+
         // Process the HTML
         const processedHtml = renderTemplateToHtml(object.code)
 
@@ -220,6 +289,7 @@ export default function Page() {
                 onAdviceClick={handleAdviceClick}
                 initialMessage={currentMessage}
               />
+              {usage && <TokenUsage usage={usage} modelId={model} />}
             </div>
 
             {/* Right: Output Panel */}
@@ -235,16 +305,7 @@ export default function Page() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-zinc-200 bg-white py-4 dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              © {new Date().getFullYear()} LiveCanvas Builder
-            </p>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">使用 AI 构建美观的 HTML 组件</p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   )
 }

@@ -15,6 +15,15 @@ interface ChatRequestBody {
   model?: string
 }
 
+// 定义包含 usage 信息的响应接口
+interface ApiResponse extends CodeResponse {
+  usage?: {
+    promptTokens: number
+    completionTokens: number
+    totalTokens: number
+  }
+}
+
 export async function POST(req: Request) {
   const body = (await req.json()) as ChatRequestBody
 
@@ -68,14 +77,24 @@ export async function POST(req: Request) {
     // If the model can output structured data, use generateObject
     if (canOutputStructuredData) {
       // First try with generateObject
-      const { object } = await generateObject({
+      const { object, usage } = await generateObject({
         model: provider.model(modelValue),
         schema: codeSchema,
         prompt: contextualPrompt,
       })
 
+      // 创建包含 usage 信息的响应
+      const responseWithUsage: ApiResponse = {
+        ...object,
+        usage: usage ? {
+          promptTokens: usage.promptTokens,
+          completionTokens: usage.completionTokens,
+          totalTokens: usage.totalTokens
+        } : undefined
+      }
+
       // Return the object as a proper Response
-      return new Response(JSON.stringify(object), {
+      return new Response(JSON.stringify(responseWithUsage), {
         headers: {
           'Content-Type': 'application/json',
         },
@@ -85,7 +104,7 @@ export async function POST(req: Request) {
       console.log(
         `Model ${selectedModelId} doesn't support structured data output, using generateText`,
       )
-      const { text } = await generateText({
+      const { text, usage } = await generateText({
         model: provider.model(modelValue),
         prompt:
           contextualPrompt +
@@ -96,7 +115,17 @@ export async function POST(req: Request) {
       const parsedObject = extractAndParseJSON<CodeResponse>(text)
 
       if (parsedObject && parsedObject.code) {
-        return new Response(JSON.stringify(parsedObject), {
+        // 添加 usage 信息到响应
+        const responseWithUsage: ApiResponse = {
+          ...parsedObject,
+          usage: usage ? {
+            promptTokens: usage.promptTokens,
+            completionTokens: usage.completionTokens,
+            totalTokens: usage.totalTokens
+          } : undefined
+        }
+
+        return new Response(JSON.stringify(responseWithUsage), {
           headers: {
             'Content-Type': 'application/json',
           },
@@ -123,7 +152,7 @@ export async function POST(req: Request) {
 
     // If generateObject fails or for models that don't support structured data, fall back to generateText
     try {
-      const { text } = await generateText({
+      const { text, usage } = await generateText({
         model: provider.model(modelValue),
         prompt:
           contextualPrompt +
@@ -134,7 +163,17 @@ export async function POST(req: Request) {
       const parsedObject = extractAndParseJSON<CodeResponse>(text)
 
       if (parsedObject && parsedObject.code) {
-        return new Response(JSON.stringify(parsedObject), {
+        // 添加 usage 信息到响应
+        const responseWithUsage: ApiResponse = {
+          ...parsedObject,
+          usage: usage ? {
+            promptTokens: usage.promptTokens,
+            completionTokens: usage.completionTokens,
+            totalTokens: usage.totalTokens
+          } : undefined
+        }
+
+        return new Response(JSON.stringify(responseWithUsage), {
           headers: {
             'Content-Type': 'application/json',
           },

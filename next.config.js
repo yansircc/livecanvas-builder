@@ -6,10 +6,9 @@ import './src/env.js'
 
 /** @type {import("next").NextConfig} */
 const config = {
-  // Disable Next.js' built-in ESLint configuration since we're using a flat config
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  // eslint: {
+  //   ignoreDuringBuilds: true,
+  // },
 }
 
 export default config

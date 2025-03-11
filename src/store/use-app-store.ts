@@ -23,6 +23,12 @@ export interface Version {
     apiKey: string | null
     context: string
   }
+  // Token usage information
+  usage?: {
+    promptTokens: number
+    completionTokens: number
+    totalTokens: number
+  }
 }
 
 // 定义可以通过 setState 设置的状态类型
@@ -35,6 +41,11 @@ type SettableState = {
   advices: string[]
   processedHtml: string
   validationResult: ValidationResult
+  usage?: {
+    promptTokens: number
+    completionTokens: number
+    totalTokens: number
+  }
 }
 
 interface AppState extends SettableState {
@@ -174,6 +185,7 @@ const stateCreator: StateCreator<AppState, [], [], AppState> = (set, get) => ({
     valid: true,
     errors: [],
   },
+  usage: undefined,
   versions: [],
   currentVersionIndex: -1,
 
@@ -182,7 +194,7 @@ const stateCreator: StateCreator<AppState, [], [], AppState> = (set, get) => ({
 
   // 版本控制方法
   addVersion: (prompt, formData) => {
-    const { code, processedHtml, advices, currentVersionIndex, versions } = get()
+    const { code, processedHtml, advices, currentVersionIndex, versions, usage } = get()
     if (!code) return // Don't add version if no code was generated
 
     // Determine the parent version based on the current index
@@ -201,6 +213,7 @@ const stateCreator: StateCreator<AppState, [], [], AppState> = (set, get) => ({
       advices,
       prompt,
       parentId, // Add parent reference
+      usage, // Add usage information
       formData: formData ?? {
         message: prompt,
         model: get().model,
@@ -227,6 +240,7 @@ const stateCreator: StateCreator<AppState, [], [], AppState> = (set, get) => ({
           code: version.code,
           processedHtml: version.processedHtml,
           advices: version.advices,
+          usage: version.usage,
           // Restore form data if available
           ...(version.formData && {
             model: version.formData.model,
@@ -248,6 +262,7 @@ const stateCreator: StateCreator<AppState, [], [], AppState> = (set, get) => ({
       code: null,
       advices: [],
       processedHtml: '',
+      usage: undefined,
       validationResult: {
         valid: true,
         errors: [],

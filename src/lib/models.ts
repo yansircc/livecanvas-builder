@@ -180,8 +180,8 @@ export const LLM_LIST: Record<string, LLM> = {
         name: 'Qwen 32B',
         value: 'qwen-qwq-32b',
         price: {
-          input: 0.14,
-          output: 0.56,
+          input: 0.4,
+          output: 0.8,
         },
         canOutputStructuredData: false,
       },
