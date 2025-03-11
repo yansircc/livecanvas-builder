@@ -5,6 +5,7 @@ import { useAppStore } from '@/store/use-app-store'
 import Logo from './logo'
 import { ThemeToggle } from './theme-toggle'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
+import { UserAuthMenu } from './user-auth-menu'
 
 export default function Header() {
   const { resetState } = useAppStore()
@@ -41,6 +42,7 @@ export default function Header() {
           </TooltipProvider>
         </div>
         <div className="flex items-center gap-4">
+          <UserAuthMenu />
           <ThemeToggle />
         </div>
       </div>
