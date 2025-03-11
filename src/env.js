@@ -10,6 +10,8 @@ export const env = createEnv({
     NODE_ENV: z.enum(['development', 'test', 'production']),
     AI_HUB_MIX_API_KEY: z.string(),
     AI_HUB_MIX_ENDPOINT: z.string(),
+    BETTER_AUTH_SECRET: z.string(),
+    DATABASE_URL: z.string(),
   },
 
   /**
@@ -30,6 +32,8 @@ export const env = createEnv({
     NODE_ENV: process.env.NODE_ENV,
     AI_HUB_MIX_API_KEY: process.env.AI_HUB_MIX_API_KEY,
     AI_HUB_MIX_ENDPOINT: process.env.AI_HUB_MIX_ENDPOINT,
+    BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
+    DATABASE_URL: process.env.DATABASE_URL,
     NEXT_PUBLIC_IMAGE_PLACEHOLDER_PREFIX: process.env.NEXT_PUBLIC_IMAGE_PLACEHOLDER_PREFIX,
   },
   /**
