@@ -55,7 +55,22 @@ export const auth = betterAuth({
   emailVerification: {
     sendOnSignUp: true, // Send verification email on signup
     verificationCallbackURL: '/verify-success', // Redirect to this URL after verification
+    autoSignInAfterVerification: false, // 不要在验证后自动登录
     sendVerificationEmail: async ({ user, url, token }, request) => {
+      // 确保 URL 包含正确的回调地址
+      // 如果 URL 已经包含 callbackURL 参数，则替换它
+      const urlObj = new URL(url)
+      const hasCallbackParam = urlObj.searchParams.has('callbackURL')
+
+      if (hasCallbackParam) {
+        urlObj.searchParams.set('callbackURL', '/verify-success')
+      } else {
+        // 如果没有 callbackURL 参数，则添加它
+        urlObj.searchParams.append('callbackURL', '/verify-success')
+      }
+
+      const finalUrl = urlObj.toString()
+
       // Use the sendEmail function to send verification email
       await sendEmail({
         to: user.email,
@@ -63,9 +78,9 @@ export const auth = betterAuth({
         body: `
           <h1>Verify your email address</h1>
           <p>Thank you for signing up! Please click the link below to verify your email address:</p>
-          <p><a href="${url}" style="padding: 10px 15px; background-color: #4F46E5; color: white; text-decoration: none; border-radius: 5px;">Verify Email</a></p>
+          <p><a href="${finalUrl}" style="padding: 10px 15px; background-color: #4F46E5; color: white; text-decoration: none; border-radius: 5px;">Verify Email</a></p>
           <p>Or copy and paste this URL into your browser:</p>
-          <p>${url}</p>
+          <p>${finalUrl}</p>
           <p>This link will expire in 24 hours.</p>
         `,
       })

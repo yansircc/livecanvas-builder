@@ -5,14 +5,7 @@ import { useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { resendVerificationEmail } from '@/lib/auth-client'
 
 export default function VerifyEmailPage() {
@@ -28,7 +21,7 @@ export default function VerifyEmailPage() {
     setResendStatus('idle')
 
     try {
-      const result = await resendVerificationEmail(email, '/verify-email')
+      const result = await resendVerificationEmail(email, '/verify-success')
       if (result.success) {
         setResendStatus('success')
       } else {
@@ -49,37 +42,28 @@ export default function VerifyEmailPage() {
             <Mail className="h-6 w-6 text-blue-600 dark:text-blue-300" />
           </div>
           <div className="space-y-2 text-center">
-            <CardTitle className="text-2xl font-bold">Verify your email</CardTitle>
-            <CardDescription className="text-base text-zinc-500 dark:text-zinc-400">
-              We&apos;ve sent a verification link to{' '}
-              <span className="font-medium text-zinc-900 dark:text-zinc-100">{email}</span>
-            </CardDescription>
+            <CardTitle className="text-2xl font-bold">验证您的邮箱</CardTitle>
           </div>
         </CardHeader>
         <CardContent className="px-8">
           <div className="space-y-4">
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
-              Please check your email and click the verification link to complete your registration.
-              If you don&apos;t see the email, check your spam folder.
+            <p className="text-center text-sm text-zinc-500 dark:text-zinc-400">
+              如果没有看到邮件，请检查垃圾邮件文件夹
             </p>
 
             {resendStatus === 'success' && (
               <Alert className="bg-green-50 text-green-800 dark:bg-green-900/30 dark:text-green-300">
                 <CheckCircle className="h-4 w-4" />
-                <AlertTitle>Email sent</AlertTitle>
-                <AlertDescription>
-                  We&apos;ve sent a new verification email to your inbox.
-                </AlertDescription>
+                <AlertTitle>邮箱已发送</AlertTitle>
+                <AlertDescription>我们已向您的邮箱发送了新的验证邮件</AlertDescription>
               </Alert>
             )}
 
             {resendStatus === 'error' && (
               <Alert className="bg-red-50 text-red-800 dark:bg-red-900/30 dark:text-red-300">
                 <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Something went wrong</AlertTitle>
-                <AlertDescription>
-                  We couldn&apos;t send the verification email. Please try again later.
-                </AlertDescription>
+                <AlertTitle>发生了错误</AlertTitle>
+                <AlertDescription>我们无法发送验证邮件。请稍后再试。</AlertDescription>
               </Alert>
             )}
           </div>
@@ -91,15 +75,15 @@ export default function VerifyEmailPage() {
             onClick={handleResendVerification}
             disabled={isResending || !email}
           >
-            {isResending ? 'Sending...' : 'Resend verification email'}
+            {isResending ? '发送中...' : '重新发送验证邮件'}
           </Button>
           <p className="text-center text-xs text-zinc-500 dark:text-zinc-400">
-            Already verified?{' '}
+            已验证？{' '}
             <a
               href="/signin"
               className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
             >
-              Sign in
+              登录
             </a>
           </p>
         </CardFooter>

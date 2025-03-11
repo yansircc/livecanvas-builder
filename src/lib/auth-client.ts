@@ -31,7 +31,7 @@ export const {
  * @param email - The email address to send verification to
  * @param callbackURL - The URL to redirect to after verification
  */
-export async function resendVerificationEmail(email: string, callbackURL = '/') {
+export async function resendVerificationEmail(email: string, callbackURL = '/verify-success') {
   try {
     await sendVerificationEmail({
       email,
