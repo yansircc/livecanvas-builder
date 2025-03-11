@@ -2,6 +2,7 @@ import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { nextCookies } from 'better-auth/next-js'
 import { env } from '@/env'
+import { sendEmail } from '@/lib/send-email'
 import { db } from '@/server/db/'
 import { account, session, user, verification } from '@/server/db/schema'
 
@@ -27,7 +28,8 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     autoSignIn: true,
-    verifyEmail: false, // Set to true in production for email verification
+    verifyEmail: true, // Enable email verification
+    requireEmailVerification: true, // Require email verification before login
 
     // Custom validation for password
     passwordValidation: {
@@ -46,6 +48,27 @@ export const auth = betterAuth({
         ...userData,
         emailVerified: null,
       }
+    },
+  },
+
+  // Email verification configuration
+  emailVerification: {
+    sendOnSignUp: true, // Send verification email on signup
+    verificationCallbackURL: '/verify-success', // Redirect to this URL after verification
+    sendVerificationEmail: async ({ user, url, token }, request) => {
+      // Use the sendEmail function to send verification email
+      await sendEmail({
+        to: user.email,
+        subject: 'Verify your email address',
+        body: `
+          <h1>Verify your email address</h1>
+          <p>Thank you for signing up! Please click the link below to verify your email address:</p>
+          <p><a href="${url}" style="padding: 10px 15px; background-color: #4F46E5; color: white; text-decoration: none; border-radius: 5px;">Verify Email</a></p>
+          <p>Or copy and paste this URL into your browser:</p>
+          <p>${url}</p>
+          <p>This link will expire in 24 hours.</p>
+        `,
+      })
     },
   },
 

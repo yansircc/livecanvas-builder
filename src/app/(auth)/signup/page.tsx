@@ -14,66 +14,60 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { signIn } from '@/lib/auth-client'
+import { signUp } from '@/lib/auth-client'
 import { cn } from '@/lib/utils'
 
-interface AuthCardProps extends React.HTMLAttributes<HTMLDivElement> {
+interface SignUpCardProps extends React.HTMLAttributes<HTMLDivElement> {
   showGithub?: boolean
   showGoogle?: boolean
 }
 
-export default function SignInCard({
+export default function SignUpCard({
   showGithub = false,
   showGoogle = false,
   className,
   ...props
-}: AuthCardProps) {
+}: SignUpCardProps) {
   const router = useRouter()
   const [email, setEmail] = useState('')
+  const [name, setName] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const handleSignIn = async (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
 
     // Reset error state
     setError(null)
 
     // Basic validation
-    if (!email || !password) {
+    if (!email || !name || !password || !confirmPassword) {
       setError('Please fill in all fields')
+      return
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match')
       return
     }
 
     setIsLoading(true)
 
     try {
-      // Call the signIn function from auth-client.ts
-      await signIn.email(
-        {
-          email,
-          password,
-        },
-        {
-          onError: (ctx) => {
-            // Handle email verification error
-            if (ctx.error.status === 403) {
-              // Redirect to verify-email page if email is not verified
-              router.push(`/verify-email?email=${encodeURIComponent(email)}`)
-            } else {
-              setError(ctx.error.message || 'Failed to sign in. Please try again.')
-            }
-          },
-          onSuccess: () => {
-            // Redirect to dashboard or home page on successful login
-            router.push('/')
-          },
-        },
-      )
+      // Call the signUp function from auth-client.ts
+      await signUp.email({
+        email,
+        password,
+        name,
+      })
+
+      // Redirect to verify-email page with email parameter
+      router.push(`/verify-email?email=${encodeURIComponent(email)}`)
     } catch (err: any) {
-      console.error('Signin error:', err)
-      setError(err?.message || 'Failed to sign in. Please try again.')
+      console.error('Signup error:', err)
+      setError(err?.message || 'Failed to sign up. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -93,16 +87,16 @@ export default function SignInCard({
       <CardHeader className="space-y-4 px-8 pt-10">
         <div className="space-y-2 text-center">
           <CardTitle className="bg-linear-to-r from-zinc-800 to-zinc-600 bg-clip-text text-2xl font-bold text-transparent dark:from-white dark:to-zinc-400">
-            Welcome back
+            Create an account
           </CardTitle>
           <CardDescription className="text-base text-zinc-500 dark:text-zinc-400">
-            Sign in to your account
+            Sign up to get started
           </CardDescription>
         </div>
       </CardHeader>
 
       <CardContent className="space-y-6 p-8 pt-4">
-        <form onSubmit={handleSignIn} className="grid grid-cols-1 gap-4">
+        <form onSubmit={handleSignUp} className="grid grid-cols-1 gap-4">
           {error && (
             <Alert className="bg-red-50 text-red-800 dark:bg-red-900/30 dark:text-red-300">
               <AlertDescription>{error}</AlertDescription>
@@ -119,10 +113,26 @@ export default function SignInCard({
               required
             />
             <Input
+              type="text"
+              placeholder="Full name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="h-12 border-zinc-200 bg-zinc-50 dark:border-zinc-800/50 dark:bg-[#1a1a1a]"
+              required
+            />
+            <Input
               type="password"
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              className="h-12 border-zinc-200 bg-zinc-50 dark:border-zinc-800/50 dark:bg-[#1a1a1a]"
+              required
+            />
+            <Input
+              type="password"
+              placeholder="Confirm password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
               className="h-12 border-zinc-200 bg-zinc-50 dark:border-zinc-800/50 dark:bg-[#1a1a1a]"
               required
             />
@@ -131,7 +141,7 @@ export default function SignInCard({
               disabled={isLoading}
               className="group relative h-12 w-full overflow-hidden bg-linear-to-r from-zinc-900 to-zinc-800 font-medium text-white shadow-lg shadow-zinc-200/20 transition-all duration-300 hover:from-indigo-500 hover:to-indigo-700 dark:from-white dark:to-zinc-200 dark:text-[#121212] dark:shadow-black/20 dark:hover:from-indigo-400 dark:hover:to-indigo-600"
             >
-              {isLoading ? 'Signing in...' : 'Sign in'}
+              {isLoading ? 'Signing up...' : 'Sign up'}
             </Button>
           </div>
 
@@ -193,12 +203,12 @@ export default function SignInCard({
 
       <CardFooter className="px-8 pt-2 pb-10">
         <div className="text-center text-sm text-zinc-500 dark:text-zinc-400">
-          Don&apos;t have an account?{' '}
+          Already have an account?{' '}
           <a
-            href="/signup"
+            href="/signin"
             className="font-medium text-zinc-800 underline decoration-zinc-200 underline-offset-4 transition-colors hover:text-zinc-600 dark:text-white dark:decoration-zinc-700 dark:hover:text-zinc-200"
           >
-            Sign up
+            Sign in
           </a>
         </div>
       </CardFooter>
