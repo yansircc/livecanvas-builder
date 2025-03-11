@@ -1,9 +1,12 @@
 'use client'
 
-import { FileCode } from 'lucide-react'
+import { Camera, FileCode } from 'lucide-react'
+import { toast } from 'sonner'
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { PublishProjectDialog } from '@/components/publish-project-dialog'
+import { Button } from '@/components/ui/button'
+import { captureIframeScreenshot, testScreenshotCapture } from '@/lib/screenshot'
 import { getOriginalContent, loadContentFromStorage } from '../utils/content-loader'
 import { IframeWrapper } from '../utils/iframe-wrapper'
 import { CopyButton } from './copy-button'
@@ -18,6 +21,7 @@ export function PreviewContent() {
   const [content, setContent] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [device, setDevice] = useState<DeviceType>('desktop')
+  const [isCapturing, setIsCapturing] = useState(false)
 
   // Create a unique key based on the full URL including hash
   const urlKey = typeof window !== 'undefined' ? window.location.href : ''
@@ -55,6 +59,79 @@ export function PreviewContent() {
     return IframeWrapper(content)
   }
 
+  // Get screenshot for publishing
+  const getScreenshot = async (): Promise<string | null> => {
+    try {
+      // Force desktop view for screenshot
+      const currentDevice = device
+      if (currentDevice !== 'desktop') {
+        // Temporarily switch to desktop for screenshot
+        setDevice('desktop')
+        // Wait for the device change to take effect
+        await new Promise((resolve) => setTimeout(resolve, 500))
+      }
+
+      // Capture the screenshot
+      const screenshot = await captureIframeScreenshot('iframe')
+
+      // Restore original device if changed
+      if (currentDevice !== 'desktop') {
+        setDevice(currentDevice)
+      }
+
+      return screenshot
+    } catch (error) {
+      console.error('Failed to capture screenshot:', error)
+      return null
+    }
+  }
+
+  // Test screenshot capture
+  const handleTestScreenshot = async () => {
+    setIsCapturing(true)
+    toast.info('正在截取屏幕...')
+
+    try {
+      const screenshot = await testScreenshotCapture('iframe', true)
+
+      if (screenshot) {
+        toast.success('截图成功！预览将显示 10 秒')
+
+        // Create a download link
+        const link = document.createElement('a')
+        link.href = screenshot
+        link.download = `screenshot-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.jpg`
+        link.style.position = 'fixed'
+        link.style.bottom = '10px'
+        link.style.right = '10px'
+        link.style.zIndex = '9999'
+        link.style.background = '#0070f3'
+        link.style.color = 'white'
+        link.style.padding = '8px 16px'
+        link.style.borderRadius = '4px'
+        link.style.textDecoration = 'none'
+        link.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)'
+        link.textContent = '下载截图'
+
+        document.body.appendChild(link)
+
+        // Auto-remove after 10 seconds
+        setTimeout(() => {
+          if (document.body.contains(link)) {
+            document.body.removeChild(link)
+          }
+        }, 10000)
+      } else {
+        toast.error('截图失败，请查看控制台获取详细信息')
+      }
+    } catch (error) {
+      console.error('Screenshot error:', error)
+      toast.error('截图过程中发生错误')
+    } finally {
+      setIsCapturing(false)
+    }
+  }
+
   if (loading) {
     return <LoadingSpinner />
   }
@@ -81,8 +158,20 @@ export function PreviewContent() {
 
           <DeviceSelector onDeviceChange={handleDeviceChange} initialDevice={device} />
           <div className="flex items-center gap-2">
+            {process.env.NODE_ENV === 'development' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleTestScreenshot}
+                disabled={isCapturing}
+                className="flex items-center gap-1"
+              >
+                <Camera className="h-4 w-4" />
+                <span>测试截图</span>
+              </Button>
+            )}
             <CopyButton getContentToCopy={getContentToCopy} />
-            <PublishProjectDialog htmlContent={content} />
+            <PublishProjectDialog htmlContent={content} getScreenshot={getScreenshot} />
           </div>
         </div>
       </header>

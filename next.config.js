@@ -17,6 +17,9 @@ const config = {
       {
         hostname: 'assets.lummi.ai',
       },
+      {
+        hostname: 'livecanvas-builder.b-cdn.net',
+      },
     ],
   },
 }

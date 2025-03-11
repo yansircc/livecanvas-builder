@@ -14,6 +14,7 @@ export const env = createEnv({
     DATABASE_URL: z.string(),
     PLUNK_API_KEY: z.string(),
     PLUNK_API_URL: z.string(),
+    BUNNY_STORAGE_API_KEY: z.string(),
   },
 
   /**
@@ -43,6 +44,7 @@ export const env = createEnv({
     NEXT_PUBLIC_PLUNK_API_KEY: process.env.NEXT_PUBLIC_PLUNK_API_KEY,
     PLUNK_API_KEY: process.env.PLUNK_API_KEY,
     PLUNK_API_URL: process.env.PLUNK_API_URL,
+    BUNNY_STORAGE_API_KEY: process.env.BUNNY_STORAGE_API_KEY,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
