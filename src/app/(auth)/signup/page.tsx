@@ -40,30 +40,44 @@ export default function SignUpCard({
 
     // Basic validation
     if (!email || !name || !password || !confirmPassword) {
-      setError('Please fill in all fields')
+      setError('请填写所有字段')
       return
     }
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match')
+      setError('两次输入的密码不匹配')
       return
     }
 
     setIsLoading(true)
 
     try {
-      // Call the signUp function from auth-client.ts
-      await signUp.email({
-        email,
-        password,
-        name,
-      })
-
-      // Redirect to verify-email page with email parameter
-      router.push(`/verify-email?email=${encodeURIComponent(email)}`)
+      // Call the signUp function from auth-client.ts with proper error handling
+      await signUp.email(
+        {
+          email,
+          password,
+          name,
+        },
+        {
+          onError: (ctx) => {
+            // Check for specific error codes
+            if (ctx.error.status === 422) {
+              // 422 status typically means the email already exists
+              setError('该邮箱已被注册，请直接登录或使用其他邮箱')
+            } else {
+              setError(ctx.error.message || '注册失败，请重试')
+            }
+          },
+          onSuccess: () => {
+            // Only redirect to verify-email on success
+            router.push(`/verify-email?email=${encodeURIComponent(email)}`)
+          },
+        },
+      )
     } catch (err: any) {
       console.error('Signup error:', err)
-      setError(err?.message || 'Failed to sign up. Please try again.')
+      setError(err?.message || '注册失败，请重试')
     } finally {
       setIsLoading(false)
     }

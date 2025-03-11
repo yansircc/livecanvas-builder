@@ -18,12 +18,14 @@ export const {
   // Optional: Configure client-side behavior
   onSessionExpired: () => {
     // Redirect to login page when session expires
-    window.location.href = '/login'
+    window.location.href = '/signin'
   },
   // Optional: Configure error handling
   onError: (error: Error) => {
     console.error('Authentication error:', error)
   },
+  // Add a timeout for session loading
+  sessionLoadingTimeout: 5000, // 5 seconds timeout
 })
 
 /**
@@ -38,8 +40,16 @@ export async function resendVerificationEmail(email: string, callbackURL = '/ver
       callbackURL,
     })
     return { success: true }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to send verification email:', error)
-    return { success: false, error }
+
+    // Return more detailed error information
+    return {
+      success: false,
+      error: {
+        status: error.status || 500,
+        message: error.message || '发送验证邮件失败，请稍后再试',
+      },
+    }
   }
 }

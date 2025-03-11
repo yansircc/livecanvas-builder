@@ -38,7 +38,7 @@ export default function SignInCard({
 
     // Basic validation
     if (!email || !password) {
-      setError('Please fill in all fields')
+      setError('请填写所有字段')
       return
     }
 
@@ -57,8 +57,11 @@ export default function SignInCard({
             if (ctx.error.status === 403) {
               // Redirect to verify-email page if email is not verified
               router.push(`/verify-email?email=${encodeURIComponent(email)}`)
+            } else if (ctx.error.status === 401) {
+              // 401 typically means invalid credentials
+              setError('邮箱或密码错误，请重试')
             } else {
-              setError(ctx.error.message || 'Failed to sign in. Please try again.')
+              setError(ctx.error.message || '登录失败，请重试')
             }
           },
           onSuccess: () => {
@@ -69,7 +72,7 @@ export default function SignInCard({
       )
     } catch (err: any) {
       console.error('Signin error:', err)
-      setError(err?.message || 'Failed to sign in. Please try again.')
+      setError(err?.message || '登录失败，请重试')
     } finally {
       setIsLoading(false)
     }
