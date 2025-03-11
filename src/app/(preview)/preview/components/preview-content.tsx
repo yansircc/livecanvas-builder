@@ -78,10 +78,8 @@ export function PreviewContent() {
             </div>
           </div>
 
-          <div className="flex w-full items-center justify-between gap-4 sm:w-auto">
-            <DeviceSelector onDeviceChange={handleDeviceChange} initialDevice={device} />
-            <CopyButton getContentToCopy={getContentToCopy} />
-          </div>
+          <DeviceSelector onDeviceChange={handleDeviceChange} initialDevice={device} />
+          <CopyButton getContentToCopy={getContentToCopy} />
         </div>
       </header>
 
