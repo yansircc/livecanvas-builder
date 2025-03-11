@@ -370,7 +370,7 @@ const EnhancedFormClient = ({
                           key={advice}
                           type="button"
                           onClick={() => handleAdviceClickInternal(advice)}
-                          className="rounded-xl bg-zinc-100 px-3 py-1.5 text-sm text-zinc-900 transition-colors hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
+                          className="rounded-xl bg-zinc-100 px-3 py-1.5 text-left text-sm text-zinc-900 transition-colors hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
                         >
                           {advice}
                         </button>
