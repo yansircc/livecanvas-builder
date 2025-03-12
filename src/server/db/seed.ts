@@ -74,7 +74,7 @@ async function main() {
       userId: users[0]!.id,
       providerId: 'credential', // Singular, not plural
       accountId: users[0]!.id, // Use user ID, not email
-      password: generatePasswordHash('password123'), // Demo user password
+      password: generatePasswordHash('password123'), // Demo user password, can use 8fff59c449463b4e94ec5fce2e1c1464:41f80790713bcd14f76b8d9abb5621f5fdfa1da32d6de63945f811957e0bb0cadcf97584d0861bfaff78c9123ae33aeb6c7ad78472110c579e71589bd19d1188 to represent q1w2e3r4
       createdAt: new Date(),
       updatedAt: new Date(),
     },
