@@ -260,16 +260,9 @@ export default function GalleryPage() {
   }
 
   // Handle copy code
-  const handleCopyCode = (htmlContent: string) => {
-    navigator.clipboard
-      .writeText(htmlContent)
-      .then(() => {
-        alert('代码已复制到剪贴板')
-      })
-      .catch((err) => {
-        console.error('Failed to copy code:', err)
-        alert('复制代码失败')
-      })
+  const handleCopyCode = () => {
+    // Just log the action, visual feedback is handled in the component
+    console.log('Code copied to clipboard')
   }
 
   return (

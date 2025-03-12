@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     }
 
     // Use GPT-4o Mini as the fixed model
-    const selectedModelId = 'openai/gpt-4o-mini'
+    const selectedModelId = 'openai/gpt-4o'
     const { providerId, modelValue } = parseModelId(selectedModelId)
     const provider = LLM_LIST[providerId]
 
@@ -43,7 +43,7 @@ export async function POST(req: Request) {
 
     // Prepare the system prompt and user message
     const systemPrompt = PROMPT
-    let userMessage = `Please analyze this HTML content and generate appropriate metadata (title, description, and tags):
+    let userMessage = `Please analyze this HTML content and generate appropriate metadata (title, description, and tags in Chinese):
 
 \`\`\`html
 ${htmlContent}

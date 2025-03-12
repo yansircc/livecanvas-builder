@@ -1,10 +1,9 @@
 'use client'
 
-import { X } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -29,6 +28,12 @@ interface PublishProjectDialogProps {
   isCapturingScreenshot?: boolean
 }
 
+interface Metadata {
+  title: string
+  description: string
+  tags: string[]
+}
+
 export function PublishProjectDialog({
   htmlContent,
   trigger,
@@ -39,31 +44,65 @@ export function PublishProjectDialog({
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [isGeneratingMetadata, setIsGeneratingMetadata] = useState(false)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [tagInput, setTagInput] = useState('')
   const [tags, setTags] = useState<string[]>([])
 
-  const handleAddTag = () => {
-    const trimmedTag = tagInput.trim()
-    if (trimmedTag && !tags.includes(trimmedTag) && tags.length < 5) {
-      setTags([...tags, trimmedTag])
-      setTagInput('')
-    } else if (tags.length >= 5) {
-      toast.error('最多添加 5 个标签')
-    }
-  }
+  // Function to generate metadata from the API
+  const generateMetadata = useCallback(
+    async (regenerate = false) => {
+      if (!htmlContent) {
+        toast.error('HTML content is required')
+        return
+      }
 
-  const handleRemoveTag = (tag: string) => {
-    setTags(tags.filter((t) => t !== tag))
-  }
+      setIsGeneratingMetadata(true)
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      handleAddTag()
+      try {
+        const response = await fetch('/api/metadata', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            htmlContent,
+            regenerate,
+          }),
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Failed to generate metadata')
+        }
+
+        const data = (await response.json()) as Metadata
+
+        // Update form fields with generated metadata
+        setTitle(data.title || '')
+        setDescription(data.description || '')
+        setTags(data.tags || [])
+
+        // Only show success message if regenerating (not on initial load)
+        if (regenerate) {
+          toast.success('元数据已重新生成')
+        }
+      } catch (err) {
+        console.error('Failed to generate metadata:', err)
+        toast.error('生成元数据失败: ' + (err instanceof Error ? err.message : '未知错误'))
+      } finally {
+        setIsGeneratingMetadata(false)
+      }
+    },
+    [htmlContent],
+  )
+
+  // Fetch metadata when dialog opens
+  useEffect(() => {
+    if (open && htmlContent && !title && !description && tags.length === 0) {
+      void generateMetadata()
     }
-  }
+  }, [open, htmlContent, title, description, tags.length, generateMetadata])
 
   const handlePublish = async () => {
     if (!title) {
@@ -141,82 +180,91 @@ export function PublishProjectDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="title" className="text-right">
-              标题
-            </Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="col-span-3"
-              placeholder="输入项目标题"
-            />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="description" className="text-right">
-              描述
-            </Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="col-span-3"
-              placeholder="简单描述一下你的项目（可选）"
-            />
-          </div>
-          <div className="grid grid-cols-4 items-start gap-4">
-            <Label htmlFor="tags" className="pt-2 text-right">
-              标签
-            </Label>
-            <div className="col-span-3 space-y-2">
-              <div className="mb-2 flex flex-wrap gap-2">
-                {tags.map((tag) => (
-                  <Badge key={tag} variant="secondary" className="flex items-center gap-1">
-                    {tag}
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveTag(tag)}
-                      className="rounded-full p-0.5 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                    >
-                      <X className="h-3 w-3" />
-                      <span className="sr-only">移除</span>
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                <Input
-                  id="tags"
-                  value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="添加标签（最多5个）"
-                  className="flex-1"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleAddTag}
-                  disabled={!tagInput.trim() || tags.length >= 5}
-                >
-                  添加
-                </Button>
-              </div>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                按回车键添加标签，最多添加5个标签
-              </p>
+          {/* Title Field */}
+          <div className="space-y-2">
+            <Label htmlFor="title">标题</Label>
+            <div className="relative">
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className={isGeneratingMetadata ? 'pr-10' : ''}
+                placeholder={isGeneratingMetadata ? '生成中...' : '输入项目标题'}
+                disabled={isGeneratingMetadata}
+              />
+              {isGeneratingMetadata && (
+                <div className="absolute top-1/2 right-3 -translate-y-1/2">
+                  <Loader2 className="text-muted-foreground h-4 w-4 animate-spin" />
+                </div>
+              )}
             </div>
+          </div>
+
+          {/* Description Field */}
+          <div className="space-y-2">
+            <Label htmlFor="description">描述</Label>
+            <div className="relative">
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className={isGeneratingMetadata ? 'pr-10' : ''}
+                placeholder={isGeneratingMetadata ? '生成中...' : '简单描述一下你的项目'}
+                disabled={isGeneratingMetadata}
+                rows={3}
+              />
+              {isGeneratingMetadata && (
+                <div className="absolute top-6 right-3">
+                  <Loader2 className="text-muted-foreground h-4 w-4 animate-spin" />
+                </div>
+              )}
+            </div>
+            <p className="text-muted-foreground text-xs">
+              {isGeneratingMetadata ? (
+                <span className="flex items-center gap-1">
+                  <Loader2 className="h-3 w-3 animate-spin" /> 正在生成标签...
+                </span>
+              ) : tags.length > 0 ? (
+                <>标签: {tags.join(', ')}</>
+              ) : (
+                '标签将自动生成'
+              )}
+            </p>
+          </div>
+
+          {/* Regenerate Button */}
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => generateMetadata(true)}
+              disabled={isGeneratingMetadata || isLoading}
+              className="h-8 px-3 text-xs"
+            >
+              {isGeneratingMetadata ? (
+                <>
+                  <Loader2 className="mr-1 h-3 w-3 animate-spin" /> 重新生成
+                </>
+              ) : (
+                '重新生成元数据'
+              )}
+            </Button>
           </div>
         </div>
         <DialogFooter>
           <Button
             type="submit"
             onClick={handlePublish}
-            disabled={isLoading || isCapturingScreenshot}
+            disabled={isLoading || isCapturingScreenshot || isGeneratingMetadata}
           >
-            {isLoading ? '发布中...' : isCapturingScreenshot ? '准备截图中...' : '发布'}
+            {isLoading
+              ? '发布中...'
+              : isCapturingScreenshot
+                ? '准备截图中...'
+                : isGeneratingMetadata
+                  ? '生成元数据中...'
+                  : '发布'}
           </Button>
         </DialogFooter>
       </DialogContent>
