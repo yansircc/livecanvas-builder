@@ -1,12 +1,13 @@
 import { Bookmark, Heart, User } from 'lucide-react'
 import { motion } from 'motion/react'
 import Image from 'next/image'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { type Project } from '../types'
 
 interface ProjectCardProps {
   project: Project
-  onProjectSelect: (project: Project) => void
+  onSelect: (project: Project) => void
   hasLiked?: boolean
   hasFavorited?: boolean
   onLike?: (projectId: string) => void
@@ -15,7 +16,7 @@ interface ProjectCardProps {
 
 export function ProjectCard({
   project,
-  onProjectSelect,
+  onSelect,
   hasLiked = false,
   hasFavorited = false,
   onLike,
@@ -25,11 +26,19 @@ export function ProjectCard({
     project.thumbnail ||
     'https://images.unsplash.com/photo-1618788372246-79faff0c3742?q=80&w=2070&auto=format&fit=crop'
 
+  // Parse tags from comma-separated string
+  const tags = project.tags
+    ? project.tags
+        .split(',')
+        .map((tag) => tag.trim())
+        .filter(Boolean)
+    : []
+
   return (
     <motion.div
       layoutId={`project-${project.id}`}
       className="group relative overflow-hidden rounded-lg border border-zinc-200 bg-white transition-all hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900"
-      onClick={() => onProjectSelect(project)}
+      onClick={() => onSelect(project)}
     >
       <div className="aspect-video overflow-hidden bg-zinc-100 dark:bg-zinc-800">
         <Image
@@ -47,6 +56,23 @@ export function ProjectCard({
             {project.description}
           </p>
         )}
+
+        {/* Tags */}
+        {tags.length > 0 && (
+          <div className="mb-3 flex flex-wrap gap-1">
+            {tags.slice(0, 3).map((tag) => (
+              <Badge key={tag} variant="secondary" className="text-xs">
+                {tag}
+              </Badge>
+            ))}
+            {tags.length > 3 && (
+              <Badge variant="outline" className="text-xs">
+                +{tags.length - 3}
+              </Badge>
+            )}
+          </div>
+        )}
+
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <div className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">

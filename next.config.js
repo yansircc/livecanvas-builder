@@ -20,6 +20,9 @@ const config = {
       {
         hostname: 'livecanvas-builder.b-cdn.net',
       },
+      {
+        hostname: 'ui-avatars.com',
+      },
     ],
   },
 }

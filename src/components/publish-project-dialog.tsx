@@ -1,8 +1,10 @@
 'use client'
 
+import { X } from 'lucide-react'
 import { toast } from 'sonner'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -39,6 +41,29 @@ export function PublishProjectDialog({
   const [isLoading, setIsLoading] = useState(false)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
+  const [tagInput, setTagInput] = useState('')
+  const [tags, setTags] = useState<string[]>([])
+
+  const handleAddTag = () => {
+    const trimmedTag = tagInput.trim()
+    if (trimmedTag && !tags.includes(trimmedTag) && tags.length < 5) {
+      setTags([...tags, trimmedTag])
+      setTagInput('')
+    } else if (tags.length >= 5) {
+      toast.error('最多添加 5 个标签')
+    }
+  }
+
+  const handleRemoveTag = (tag: string) => {
+    setTags(tags.filter((t) => t !== tag))
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      handleAddTag()
+    }
+  }
 
   const handlePublish = async () => {
     if (!title) {
@@ -77,6 +102,7 @@ export function PublishProjectDialog({
         description,
         htmlContent,
         thumbnail,
+        tags: tags.join(','), // Join tags with commas for storage
         isPublished: true,
       })
 
@@ -138,6 +164,50 @@ export function PublishProjectDialog({
               className="col-span-3"
               placeholder="简单描述一下你的项目（可选）"
             />
+          </div>
+          <div className="grid grid-cols-4 items-start gap-4">
+            <Label htmlFor="tags" className="pt-2 text-right">
+              标签
+            </Label>
+            <div className="col-span-3 space-y-2">
+              <div className="mb-2 flex flex-wrap gap-2">
+                {tags.map((tag) => (
+                  <Badge key={tag} variant="secondary" className="flex items-center gap-1">
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveTag(tag)}
+                      className="rounded-full p-0.5 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                    >
+                      <X className="h-3 w-3" />
+                      <span className="sr-only">移除</span>
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  id="tags"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="添加标签（最多5个）"
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddTag}
+                  disabled={!tagInput.trim() || tags.length >= 5}
+                >
+                  添加
+                </Button>
+              </div>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                按回车键添加标签，最多添加5个标签
+              </p>
+            </div>
           </div>
         </div>
         <DialogFooter>

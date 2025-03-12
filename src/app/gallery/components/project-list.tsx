@@ -6,21 +6,19 @@ import { ProjectCard } from './project-card'
 interface ProjectListProps {
   projects: Project[]
   viewMode: 'grid' | 'list'
-  projectInteractions: Record<string, { hasLiked: boolean; hasFavorited: boolean }>
-  onProjectSelect: (project: Project) => void
+  interactions: Record<string, { hasLiked: boolean; hasFavorited: boolean }>
+  onSelect: (project: Project) => void
   onLike: (projectId: string) => void
   onFavorite: (projectId: string) => void
-  alwaysFavorited?: boolean
 }
 
 export function ProjectList({
   projects,
   viewMode,
-  projectInteractions,
-  onProjectSelect,
+  interactions,
+  onSelect,
   onLike,
   onFavorite,
-  alwaysFavorited = false,
 }: ProjectListProps) {
   return (
     <div
@@ -30,9 +28,9 @@ export function ProjectList({
         <ProjectCard
           key={project.id}
           project={project}
-          onProjectSelect={onProjectSelect}
-          hasLiked={projectInteractions[project.id]?.hasLiked}
-          hasFavorited={alwaysFavorited ? true : projectInteractions[project.id]?.hasFavorited}
+          onSelect={onSelect}
+          hasLiked={interactions[project.id]?.hasLiked}
+          hasFavorited={interactions[project.id]?.hasFavorited}
           onLike={onLike}
           onFavorite={onFavorite}
         />

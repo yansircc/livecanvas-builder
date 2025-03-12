@@ -7,20 +7,20 @@ import { ProjectList } from './project-list'
 
 interface TabContentAllProps {
   isLoading: boolean
-  filteredProjects: Project[]
+  projects: Project[]
   viewMode: 'grid' | 'list'
-  projectInteractions: Record<string, { hasLiked: boolean; hasFavorited: boolean }>
-  onProjectSelect: (project: Project) => void
+  interactions: Record<string, { hasLiked: boolean; hasFavorited: boolean }>
+  onSelect: (project: Project) => void
   onLike: (projectId: string) => void
   onFavorite: (projectId: string) => void
 }
 
 export function TabContentAll({
   isLoading,
-  filteredProjects,
+  projects,
   viewMode,
-  projectInteractions,
-  onProjectSelect,
+  interactions,
+  onSelect,
   onLike,
   onFavorite,
 }: TabContentAllProps) {
@@ -28,16 +28,16 @@ export function TabContentAll({
     return <LoadingSpinner />
   }
 
-  if (filteredProjects.length === 0) {
+  if (projects.length === 0) {
     return <EmptyState message="没有找到项目" />
   }
 
   return (
     <ProjectList
-      projects={filteredProjects}
+      projects={projects}
       viewMode={viewMode}
-      projectInteractions={projectInteractions}
-      onProjectSelect={onProjectSelect}
+      interactions={interactions}
+      onSelect={onSelect}
       onLike={onLike}
       onFavorite={onFavorite}
     />

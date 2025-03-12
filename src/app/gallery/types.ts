@@ -4,6 +4,7 @@ export interface Project {
   description: string | null
   htmlContent: string
   thumbnail: string | null
+  tags: string | null
   isPublished: boolean
   likesCount: number
   userId: string

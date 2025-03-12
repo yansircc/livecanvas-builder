@@ -67,6 +67,7 @@ export async function createProject(data: {
   description?: string
   htmlContent: string
   thumbnail?: string
+  tags?: string
   isPublished: boolean
 }) {
   try {
@@ -85,6 +86,7 @@ export async function createProject(data: {
         description: data.description || '',
         htmlContent: data.htmlContent,
         thumbnail: data.thumbnail || '',
+        tags: data.tags || '',
         isPublished: data.isPublished,
         userId: session.user.id,
         createdAt: new Date(),

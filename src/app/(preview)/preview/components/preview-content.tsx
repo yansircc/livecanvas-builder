@@ -1,12 +1,11 @@
 'use client'
 
-import { Camera, FileCode } from 'lucide-react'
+import { FileCode } from 'lucide-react'
 import { toast } from 'sonner'
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { PublishProjectDialog } from '@/components/publish-project-dialog'
-import { Button } from '@/components/ui/button'
-import { captureIframeScreenshot, testScreenshotCapture } from '@/lib/screenshot'
+import { captureIframeScreenshot } from '@/lib/screenshot'
 import { getOriginalContent, loadContentFromStorage } from '../utils/content-loader'
 import { IframeWrapper } from '../utils/iframe-wrapper'
 import { CopyButton } from './copy-button'
@@ -175,67 +174,6 @@ export function PreviewContent() {
     }
   }
 
-  // Test screenshot capture
-  const handleTestScreenshot = async () => {
-    setIsCapturing(true)
-    toast.info('正在截取屏幕...')
-
-    try {
-      // Store original device
-      const currentDevice = originalDeviceRef.current
-
-      // Force desktop view for screenshot if not already in desktop
-      if (currentDevice !== 'desktop') {
-        setDevice('desktop')
-        // Wait for the device change to take effect
-        await new Promise((resolve) => setTimeout(resolve, 1000))
-      }
-
-      const screenshot = await testScreenshotCapture('iframe', true)
-
-      // Restore original device if changed
-      if (currentDevice !== 'desktop') {
-        setDevice(currentDevice)
-      }
-
-      if (screenshot) {
-        toast.success('截图成功！预览将显示 10 秒')
-
-        // Create a download link
-        const link = document.createElement('a')
-        link.href = screenshot
-        link.download = `screenshot-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.jpg`
-        link.style.position = 'fixed'
-        link.style.bottom = '10px'
-        link.style.right = '10px'
-        link.style.zIndex = '9999'
-        link.style.background = '#0070f3'
-        link.style.color = 'white'
-        link.style.padding = '8px 16px'
-        link.style.borderRadius = '4px'
-        link.style.textDecoration = 'none'
-        link.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)'
-        link.textContent = '下载截图'
-
-        document.body.appendChild(link)
-
-        // Auto-remove after 10 seconds
-        setTimeout(() => {
-          if (document.body.contains(link)) {
-            document.body.removeChild(link)
-          }
-        }, 10000)
-      } else {
-        toast.error('截图失败，请查看控制台获取详细信息')
-      }
-    } catch (error) {
-      console.error('Screenshot error:', error)
-      toast.error('截图过程中发生错误')
-    } finally {
-      setIsCapturing(false)
-    }
-  }
-
   if (loading) {
     return <LoadingSpinner />
   }
@@ -262,18 +200,6 @@ export function PreviewContent() {
 
           <DeviceSelector onDeviceChange={handleDeviceChange} initialDevice={device} />
           <div className="flex items-center gap-2">
-            {process.env.NODE_ENV === 'development' && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleTestScreenshot}
-                disabled={isCapturing}
-                className="flex items-center gap-1"
-              >
-                <Camera className="h-4 w-4" />
-                <span>测试截图{isCapturing ? '中...' : ''}</span>
-              </Button>
-            )}
             <CopyButton getContentToCopy={getContentToCopy} />
             <PublishProjectDialog
               htmlContent={content}

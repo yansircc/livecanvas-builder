@@ -57,6 +57,7 @@ export const project = pgTable('project', {
   description: text('description'),
   htmlContent: text('html_content').notNull(),
   thumbnail: text('thumbnail'),
+  tags: text('tags'),
   isPublished: boolean('is_published').notNull().default(false),
   likesCount: integer('likes_count').notNull().default(0),
   userId: text('user_id')
@@ -99,4 +100,24 @@ export const comment = pgTable('comment', {
     .references(() => user.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
+})
+
+// Tags table for better tag management (optional)
+export const tag = pgTable('tag', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  count: integer('count').notNull().default(0),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+})
+
+// Project-Tag relationship table (optional - for a more normalized approach)
+export const projectTag = pgTable('project_tag', {
+  id: text('id').primaryKey(),
+  projectId: text('project_id')
+    .notNull()
+    .references(() => project.id, { onDelete: 'cascade' }),
+  tagId: text('tag_id')
+    .notNull()
+    .references(() => tag.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
 })

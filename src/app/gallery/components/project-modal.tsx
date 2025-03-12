@@ -1,6 +1,7 @@
 import { Bookmark, Code, Heart, User } from 'lucide-react'
 import { motion } from 'motion/react'
 import Image from 'next/image'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { type Project } from '../types'
 
@@ -28,6 +29,14 @@ export function ProjectModal({
   const thumbnailUrl =
     project.thumbnail ||
     'https://images.unsplash.com/photo-1618788372246-79faff0c3742?q=80&w=2070&auto=format&fit=crop'
+
+  // Parse tags from comma-separated string
+  const tags = project.tags
+    ? project.tags
+        .split(',')
+        .map((tag) => tag.trim())
+        .filter(Boolean)
+    : []
 
   return (
     <>
@@ -58,6 +67,18 @@ export function ProjectModal({
               {project.description && (
                 <p className="mt-2 text-zinc-600 dark:text-zinc-300">{project.description}</p>
               )}
+
+              {/* Tags */}
+              {tags.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {tags.map((tag) => (
+                    <Badge key={tag} variant="secondary">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+
               <div className="mt-4 flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">

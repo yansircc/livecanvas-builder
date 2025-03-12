@@ -1,7 +1,7 @@
 'use client'
 
 import { AnimatePresence } from 'motion/react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useSession } from '@/lib/auth-client'
@@ -25,7 +25,7 @@ export default function GalleryPage() {
   const { data: session } = useSession()
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [searchQuery, setSearchQuery] = useState('')
-  const [activeTab, setActiveTab] = useState('all')
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
 
   const [allProjects, setAllProjects] = useState<Project[]>([])
   const [favoriteProjects, setFavoriteProjects] = useState<Project[]>([])
@@ -36,6 +36,28 @@ export default function GalleryPage() {
   const [projectInteractions, setProjectInteractions] = useState<
     Record<string, { hasLiked: boolean; hasFavorited: boolean }>
   >({})
+
+  // Extract all unique tags from projects
+  const availableTags = useMemo(() => {
+    const tagSet = new Set<string>()
+
+    // Function to process tags from a project
+    const processTags = (project: Project) => {
+      if (project.tags) {
+        project.tags.split(',').forEach((tag) => {
+          const trimmedTag = tag.trim()
+          if (trimmedTag) tagSet.add(trimmedTag)
+        })
+      }
+    }
+
+    // Process tags from all project lists
+    allProjects.forEach(processTags)
+    favoriteProjects.forEach(processTags)
+    myProjects.forEach(processTags)
+
+    return Array.from(tagSet).sort()
+  }, [allProjects, favoriteProjects, myProjects])
 
   // Load projects on mount
   useEffect(() => {
@@ -85,20 +107,45 @@ export default function GalleryPage() {
     void loadProjects()
   }, [session])
 
-  // Filter projects based on search query
-  const filteredProjects = (() => {
-    const query = searchQuery.toLowerCase()
-    const projects =
-      activeTab === 'all' ? allProjects : activeTab === 'favorites' ? favoriteProjects : myProjects
+  // Filter projects based on search query and selected tags
+  const filterProjects = useCallback(
+    (projects: Project[]) => {
+      const query = searchQuery.toLowerCase()
 
-    if (!query) return projects
+      return projects.filter((project) => {
+        // Filter by search query
+        const matchesQuery =
+          !query ||
+          project.title.toLowerCase().includes(query) ||
+          (project.description && project.description.toLowerCase().includes(query))
 
-    return projects.filter(
-      (project) =>
-        project.title.toLowerCase().includes(query) ||
-        (project.description && project.description.toLowerCase().includes(query)),
-    )
-  })()
+        // Filter by tags
+        const matchesTags =
+          selectedTags.length === 0 ||
+          (project.tags &&
+            selectedTags.every((tag) =>
+              project
+                .tags!.split(',')
+                .map((t) => t.trim())
+                .includes(tag),
+            ))
+
+        return matchesQuery && matchesTags
+      })
+    },
+    [searchQuery, selectedTags],
+  )
+
+  // Apply filters to each project list
+  const filteredProjects = useMemo(() => filterProjects(allProjects), [allProjects, filterProjects])
+  const filteredFavorites = useMemo(
+    () => filterProjects(favoriteProjects),
+    [favoriteProjects, filterProjects],
+  )
+  const filteredUserProjects = useMemo(
+    () => filterProjects(myProjects),
+    [filterProjects, myProjects],
+  )
 
   // Handle like project
   const handleLikeProject = async (projectId: string) => {
@@ -233,59 +280,53 @@ export default function GalleryPage() {
           setSearchQuery={setSearchQuery}
           viewMode={viewMode}
           setViewMode={setViewMode}
+          selectedTags={selectedTags}
+          setSelectedTags={setSelectedTags}
+          availableTags={availableTags}
         />
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
-          <TabsList className="grid w-full max-w-md grid-cols-3">
-            <TabsTrigger value="all">全部作品</TabsTrigger>
-            <TabsTrigger value="favorites" disabled={!session}>
-              我的收藏
-            </TabsTrigger>
-            <TabsTrigger value="my" disabled={!session}>
-              我的作品
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="all">
-            <TabContentAll
-              isLoading={isLoading}
-              filteredProjects={filteredProjects}
-              viewMode={viewMode}
-              projectInteractions={projectInteractions}
-              onProjectSelect={setSelectedProject}
-              onLike={handleLikeProject}
-              onFavorite={handleFavoriteProject}
-            />
-          </TabsContent>
-
-          <TabsContent value="favorites">
-            <TabContentFavorites
-              session={session}
-              isLoading={isLoading}
-              filteredProjects={filteredProjects}
-              viewMode={viewMode}
-              projectInteractions={projectInteractions}
-              onProjectSelect={setSelectedProject}
-              onLike={handleLikeProject}
-              onFavorite={handleFavoriteProject}
-              router={router}
-            />
-          </TabsContent>
-
-          <TabsContent value="my">
-            <TabContentMyProjects
-              session={session}
-              isLoading={isLoading}
-              filteredProjects={filteredProjects}
-              viewMode={viewMode}
-              projectInteractions={projectInteractions}
-              onProjectSelect={setSelectedProject}
-              onLike={handleLikeProject}
-              onFavorite={handleFavoriteProject}
-              router={router}
-            />
-          </TabsContent>
-        </Tabs>
+        <div className="mt-6">
+          <Tabs defaultValue="all">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="all">所有项目</TabsTrigger>
+              <TabsTrigger value="favorites">收藏</TabsTrigger>
+              <TabsTrigger value="my-projects">我的项目</TabsTrigger>
+            </TabsList>
+            <TabsContent value="all" className="mt-6">
+              <TabContentAll
+                isLoading={isLoading}
+                projects={filteredProjects}
+                viewMode={viewMode}
+                interactions={projectInteractions}
+                onSelect={setSelectedProject}
+                onLike={handleLikeProject}
+                onFavorite={handleFavoriteProject}
+              />
+            </TabsContent>
+            <TabsContent value="favorites" className="mt-6">
+              <TabContentFavorites
+                isLoading={isLoading}
+                projects={filteredFavorites}
+                viewMode={viewMode}
+                interactions={projectInteractions}
+                onSelect={setSelectedProject}
+                onLike={handleLikeProject}
+                onFavorite={handleFavoriteProject}
+              />
+            </TabsContent>
+            <TabsContent value="my-projects" className="mt-6">
+              <TabContentMyProjects
+                isLoading={isLoading}
+                projects={filteredUserProjects}
+                viewMode={viewMode}
+                interactions={projectInteractions}
+                onSelect={setSelectedProject}
+                onLike={handleLikeProject}
+                onFavorite={handleFavoriteProject}
+              />
+            </TabsContent>
+          </Tabs>
+        </div>
       </main>
 
       <AnimatePresence>
