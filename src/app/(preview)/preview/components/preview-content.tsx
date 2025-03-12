@@ -2,7 +2,7 @@
 
 import { Camera, FileCode } from 'lucide-react'
 import { toast } from 'sonner'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { PublishProjectDialog } from '@/components/publish-project-dialog'
 import { Button } from '@/components/ui/button'
@@ -22,6 +22,8 @@ export function PreviewContent() {
   const [loading, setLoading] = useState(true)
   const [device, setDevice] = useState<DeviceType>('desktop')
   const [isCapturing, setIsCapturing] = useState(false)
+  const originalDeviceRef = useRef<DeviceType>('desktop')
+  const iframeRef = useRef<HTMLIFrameElement | null>(null)
 
   // Create a unique key based on the full URL including hash
   const urlKey = typeof window !== 'undefined' ? window.location.href : ''
@@ -33,9 +35,20 @@ export function PreviewContent() {
     setLoading(false)
   }, [contentId])
 
+  // Store iframe reference
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Use a timeout to ensure the iframe is fully rendered
+      setTimeout(() => {
+        iframeRef.current = document.querySelector('iframe')
+      }, 500)
+    }
+  }, [content, device])
+
   // Handle device change
   const handleDeviceChange = (newDevice: DeviceType) => {
     setDevice(newDevice)
+    originalDeviceRef.current = newDevice
   }
 
   // Get content for copying
@@ -47,7 +60,7 @@ export function PreviewContent() {
     }
 
     // If we couldn't get the original content, try to get it from the iframe
-    const iframe = document.querySelector('iframe')!
+    const iframe = iframeRef.current || document.querySelector('iframe')!
     const iframeContent = getIframeContent(iframe)
 
     // If we got content from the iframe, return it
@@ -62,27 +75,103 @@ export function PreviewContent() {
   // Get screenshot for publishing
   const getScreenshot = async (): Promise<string | null> => {
     try {
-      // Force desktop view for screenshot
-      const currentDevice = device
+      setIsCapturing(true)
+      toast.info('正在准备截图...')
+
+      // Store original device
+      const currentDevice = originalDeviceRef.current
+
+      // Force desktop view for screenshot if not already in desktop
       if (currentDevice !== 'desktop') {
-        // Temporarily switch to desktop for screenshot
+        console.log('Switching to desktop view for screenshot')
         setDevice('desktop')
+
         // Wait for the device change to take effect
-        await new Promise((resolve) => setTimeout(resolve, 500))
+        await new Promise((resolve) => setTimeout(resolve, 1000))
       }
+
+      // Ensure we have the latest iframe reference
+      const iframe = document.querySelector('iframe')
+      if (!iframe) {
+        console.error('No iframe found for screenshot')
+        toast.error('找不到预览框架，无法截图')
+        return null
+      }
+
+      // Wait for iframe content to be fully loaded
+      if (iframe.contentDocument?.readyState !== 'complete') {
+        console.log('Waiting for iframe to fully load...')
+        toast.info('等待页面加载完成...')
+
+        // Wait for iframe to load
+        await new Promise<void>((resolve) => {
+          const handleLoad = () => resolve()
+          iframe.addEventListener('load', handleLoad, { once: true })
+          setTimeout(resolve, 2000) // Timeout after 2 seconds
+        })
+      }
+
+      // Check if Bootstrap is loaded in the iframe
+      const bootstrapLoaded =
+        iframe.contentDocument?.querySelector('link[href*="bootstrap"]') !== null
+      console.log('Bootstrap loaded in iframe:', bootstrapLoaded)
+
+      // Check for images in the iframe
+      const images = iframe.contentDocument?.querySelectorAll('img') || []
+      console.log(`Found ${images.length} images in iframe`)
+
+      // Wait for all images to load
+      if (images.length > 0) {
+        console.log('Waiting for images to load...')
+        toast.info('等待图片加载完成...')
+
+        // Create a promise for each image
+        const imagePromises = Array.from(images).map((img) => {
+          if (img.complete) return Promise.resolve()
+          return new Promise<void>((resolve) => {
+            img.addEventListener('load', () => resolve(), { once: true })
+            img.addEventListener('error', () => resolve(), { once: true }) // Resolve on error too
+            // Add a timeout in case the image never loads
+            setTimeout(resolve, 1000)
+          })
+        })
+
+        // Wait for all images to load with a timeout
+        await Promise.all(imagePromises)
+      }
+
+      // Wait a bit more to ensure all resources are loaded
+      console.log('Waiting for resources to load...')
+      toast.info('等待资源加载完成...')
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+
+      console.log('Capturing screenshot...')
+      toast.info('正在截取屏幕...')
 
       // Capture the screenshot
       const screenshot = await captureIframeScreenshot('iframe')
 
       // Restore original device if changed
       if (currentDevice !== 'desktop') {
+        console.log('Restoring original device view')
         setDevice(currentDevice)
+      }
+
+      if (screenshot) {
+        console.log('Screenshot captured successfully')
+        toast.success('截图成功！')
+      } else {
+        console.error('Screenshot capture returned null')
+        toast.error('截图失败，请查看控制台获取详细信息')
       }
 
       return screenshot
     } catch (error) {
       console.error('Failed to capture screenshot:', error)
+      toast.error('截图过程中发生错误')
       return null
+    } finally {
+      setIsCapturing(false)
     }
   }
 
@@ -92,7 +181,22 @@ export function PreviewContent() {
     toast.info('正在截取屏幕...')
 
     try {
+      // Store original device
+      const currentDevice = originalDeviceRef.current
+
+      // Force desktop view for screenshot if not already in desktop
+      if (currentDevice !== 'desktop') {
+        setDevice('desktop')
+        // Wait for the device change to take effect
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+      }
+
       const screenshot = await testScreenshotCapture('iframe', true)
+
+      // Restore original device if changed
+      if (currentDevice !== 'desktop') {
+        setDevice(currentDevice)
+      }
 
       if (screenshot) {
         toast.success('截图成功！预览将显示 10 秒')
@@ -167,11 +271,15 @@ export function PreviewContent() {
                 className="flex items-center gap-1"
               >
                 <Camera className="h-4 w-4" />
-                <span>测试截图</span>
+                <span>测试截图{isCapturing ? '中...' : ''}</span>
               </Button>
             )}
             <CopyButton getContentToCopy={getContentToCopy} />
-            <PublishProjectDialog htmlContent={content} getScreenshot={getScreenshot} />
+            <PublishProjectDialog
+              htmlContent={content}
+              getScreenshot={getScreenshot}
+              isCapturingScreenshot={isCapturing}
+            />
           </div>
         </div>
       </header>

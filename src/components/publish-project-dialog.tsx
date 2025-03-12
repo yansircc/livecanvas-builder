@@ -24,6 +24,7 @@ interface PublishProjectDialogProps {
   trigger?: React.ReactNode
   onSuccess?: () => void
   getScreenshot?: () => Promise<string | null>
+  isCapturingScreenshot?: boolean
 }
 
 export function PublishProjectDialog({
@@ -31,6 +32,7 @@ export function PublishProjectDialog({
   trigger,
   onSuccess,
   getScreenshot,
+  isCapturingScreenshot = false,
 }: PublishProjectDialogProps) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -100,8 +102,8 @@ export function PublishProjectDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger || (
-          <Button variant="default" size="sm">
-            发布到画廊
+          <Button variant="default" size="sm" disabled={isCapturingScreenshot || isLoading}>
+            {isCapturingScreenshot ? '准备截图中...' : '发布到画廊'}
           </Button>
         )}
       </DialogTrigger>
@@ -139,8 +141,12 @@ export function PublishProjectDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button type="submit" onClick={handlePublish} disabled={isLoading}>
-            {isLoading ? '发布中...' : '发布'}
+          <Button
+            type="submit"
+            onClick={handlePublish}
+            disabled={isLoading || isCapturingScreenshot}
+          >
+            {isLoading ? '发布中...' : isCapturingScreenshot ? '准备截图中...' : '发布'}
           </Button>
         </DialogFooter>
       </DialogContent>
