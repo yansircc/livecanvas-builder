@@ -1,8 +1,9 @@
 'use client'
 
-import { LogOut, User } from 'lucide-react'
+import { User } from 'lucide-react'
 import { useState } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -14,38 +15,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
-import { signOut, useSession } from '@/lib/auth-client'
+import { useSession } from '@/lib/auth-client'
 
 export function UserAuthMenu() {
   const router = useRouter()
   const { data: session, isPending } = useSession()
-  const [isSigningOut, setIsSigningOut] = useState(false)
   const [authDialogOpen, setAuthDialogOpen] = useState(false)
-
-  const handleSignOut = async () => {
-    try {
-      setIsSigningOut(true)
-      await signOut({
-        fetchOptions: {
-          onSuccess: () => {
-            router.push('/')
-          },
-        },
-      })
-    } catch (error) {
-      console.error('Error signing out:', error)
-    } finally {
-      setIsSigningOut(false)
-    }
-  }
 
   const navigateToSignIn = () => {
     setAuthDialogOpen(false)
@@ -67,42 +43,19 @@ export function UserAuthMenu() {
     const userInitial = session.user.name?.charAt(0) || session.user.email?.charAt(0) || 'U'
 
     return (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
-            <Avatar className="h-9 w-9">
-              {session.user.image ? (
-                <Image src={session.user.image} alt={session.user.name || 'User'} fill />
-              ) : (
-                <AvatarFallback className="bg-primary text-primary-foreground">
-                  {userInitial.toUpperCase()}
-                </AvatarFallback>
-              )}
-            </Avatar>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56">
-          <div className="flex items-center justify-start gap-2 p-2">
-            <div className="flex flex-col space-y-1 leading-none">
-              {session.user.name && <p className="font-medium">{session.user.name}</p>}
-              {session.user.email && (
-                <p className="text-muted-foreground w-[200px] truncate text-sm">
-                  {session.user.email}
-                </p>
-              )}
-            </div>
-          </div>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            className="text-destructive focus:text-destructive cursor-pointer"
-            disabled={isSigningOut}
-            onClick={handleSignOut}
-          >
-            <LogOut className="mr-2 h-4 w-4" />
-            <span>{isSigningOut ? '正在退出...' : '退出'}</span>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0" asChild>
+        <Link href="/profile">
+          <Avatar className="h-9 w-9">
+            {session.user.image ? (
+              <Image src={session.user.image} alt={session.user.name || 'User'} fill />
+            ) : (
+              <AvatarFallback className="bg-primary text-primary-foreground">
+                {userInitial.toUpperCase()}
+              </AvatarFallback>
+            )}
+          </Avatar>
+        </Link>
+      </Button>
     )
   }
 

@@ -1,12 +1,9 @@
-import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { auth } from '@/lib/auth'
+import { getServerSession } from '@/lib/auth-server'
 
 export default async function AuthLayout({ children }: { children: React.ReactNode }) {
   // Server-side authentication check
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  })
+  const session = await getServerSession()
 
   // If user is already logged in, redirect to dashboard
   if (session) {

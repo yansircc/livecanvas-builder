@@ -9,6 +9,9 @@ const config = {
   // eslint: {
   //   ignoreDuringBuilds: true,
   // },
+  experimental: {
+    reactCompiler: true,
+  },
   images: {
     remotePatterns: [
       {

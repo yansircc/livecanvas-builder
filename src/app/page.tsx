@@ -1,15 +1,12 @@
 import { ArrowRight, Code, Layers, Zap } from 'lucide-react'
-import { headers } from 'next/headers'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { auth } from '@/lib/auth'
+import { getServerSession } from '@/lib/auth-server'
 
 export default async function Home() {
   // Server-side authentication check
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  })
+  const session = await getServerSession()
 
   // If user is logged in, redirect to dashboard
   if (session) {

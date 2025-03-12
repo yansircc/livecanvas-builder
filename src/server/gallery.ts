@@ -3,8 +3,7 @@
 import { and, desc, eq, sql } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
 import { revalidatePath } from 'next/cache'
-import { headers } from 'next/headers'
-import { auth } from '@/lib/auth'
+import { getServerSession } from '@/lib/auth-server'
 import { db } from '@/server/db'
 import { favorite, like, project, user } from '@/server/db/schema'
 
@@ -71,9 +70,7 @@ export async function createProject(data: {
   isPublished: boolean
 }) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    })
+    const session = await getServerSession()
     if (!session) {
       return { success: false, error: 'Not authenticated' }
     }
@@ -107,103 +104,93 @@ export async function createProject(data: {
   }
 }
 
-// Update a project
+/**
+ * Update a project
+ * @param projectId - The ID of the project to update
+ * @param data - The updated project data
+ */
 export async function updateProject(
   projectId: string,
   data: {
     title?: string
-    description?: string
-    htmlContent?: string
-    thumbnail?: string
+    description?: string | null
+    tags?: string | null
     isPublished?: boolean
   },
 ) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    })
+    const session = await getServerSession()
     if (!session) {
-      return { success: false, error: 'Not authenticated' }
+      return { success: false, error: 'Unauthorized' }
     }
 
-    // Check if the user owns the project
+    // Get the project to verify ownership
     const existingProject = await db.query.project.findFirst({
-      where: eq(project.id, projectId),
+      where: and(eq(project.id, projectId), eq(project.userId, session.user.id)),
     })
 
     if (!existingProject) {
-      return { success: false, error: 'Project not found' }
+      return {
+        success: false,
+        error: 'Project not found or you do not have permission to update it',
+      }
     }
 
-    if (existingProject.userId !== session.user.id) {
-      return { success: false, error: 'Not authorized to update this project' }
-    }
-
-    const updatedProject = await db
+    // Update the project
+    await db
       .update(project)
       .set({
-        ...(data.title && { title: data.title }),
-        ...(data.description !== undefined && { description: data.description }),
-        ...(data.htmlContent && { htmlContent: data.htmlContent }),
-        ...(data.thumbnail !== undefined && { thumbnail: data.thumbnail }),
-        ...(data.isPublished !== undefined && { isPublished: data.isPublished }),
+        ...data,
         updatedAt: new Date(),
       })
       .where(eq(project.id, projectId))
-      .returning()
 
-    revalidatePath('/gallery')
-    revalidatePath(`/gallery/${projectId}`)
-
-    return { success: true, data: updatedProject[0] }
+    return { success: true }
   } catch (error) {
     console.error('Failed to update project:', error)
     return { success: false, error: 'Failed to update project' }
   }
 }
 
-// Delete a project
+/**
+ * Delete a project
+ * @param projectId - The ID of the project to delete
+ */
 export async function deleteProject(projectId: string) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    })
+    const session = await getServerSession()
     if (!session) {
-      return { success: false, error: 'Not authenticated' }
+      return { success: false, error: '未授权' }
     }
 
-    // Check if the user owns the project
+    // Get the project to verify ownership
     const existingProject = await db.query.project.findFirst({
-      where: eq(project.id, projectId),
+      where: and(eq(project.id, projectId), eq(project.userId, session.user.id)),
     })
 
     if (!existingProject) {
-      return { success: false, error: 'Project not found' }
+      return {
+        success: false,
+        error: '项目未找到或您没有权限删除它',
+      }
     }
 
-    if (existingProject.userId !== session.user.id) {
-      return { success: false, error: 'Not authorized to delete this project' }
-    }
-
+    // Delete the project
     await db.delete(project).where(eq(project.id, projectId))
-
-    revalidatePath('/gallery')
 
     return { success: true }
   } catch (error) {
-    console.error('Failed to delete project:', error)
-    return { success: false, error: 'Failed to delete project' }
+    console.error('删除项目失败:', error)
+    return { success: false, error: '删除项目失败' }
   }
 }
 
 // Like a project
 export async function likeProject(projectId: string) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    })
+    const session = await getServerSession()
     if (!session) {
-      return { success: false, error: 'Not authenticated' }
+      return { success: false, error: '未授权' }
     }
 
     // Check if the user has already liked the project
@@ -250,19 +237,17 @@ export async function likeProject(projectId: string) {
       return { success: true, liked: true }
     }
   } catch (error) {
-    console.error('Failed to like project:', error)
-    return { success: false, error: 'Failed to like project' }
+    console.error('点赞项目失败:', error)
+    return { success: false, error: '点赞项目失败' }
   }
 }
 
 // Favorite a project
 export async function favoriteProject(projectId: string) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    })
+    const session = await getServerSession()
     if (!session) {
-      return { success: false, error: 'Not authenticated' }
+      return { success: false, error: '未授权' }
     }
 
     // Check if the user has already favorited the project
@@ -293,17 +278,15 @@ export async function favoriteProject(projectId: string) {
       return { success: true, favorited: true }
     }
   } catch (error) {
-    console.error('Failed to favorite project:', error)
-    return { success: false, error: 'Failed to favorite project' }
+    console.error('收藏项目失败:', error)
+    return { success: false, error: '收藏项目失败' }
   }
 }
 
 // Check if user has liked or favorited a project
 export async function getUserInteractions(projectId: string) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    })
+    const session = await getServerSession()
     if (!session) {
       return { success: true, data: { hasLiked: false, hasFavorited: false } }
     }
@@ -325,19 +308,17 @@ export async function getUserInteractions(projectId: string) {
       },
     }
   } catch (error) {
-    console.error('Failed to get user interactions:', error)
-    return { success: false, error: 'Failed to get user interactions' }
+    console.error('获取用户互动失败:', error)
+    return { success: false, error: '获取用户互动失败' }
   }
 }
 
 // Get user's favorite projects
 export async function getUserFavorites() {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    })
+    const session = await getServerSession()
     if (!session) {
-      return { success: false, error: 'Not authenticated' }
+      return { success: false, error: '未授权' }
     }
 
     // Get the user's favorite project IDs
@@ -381,19 +362,17 @@ export async function getUserFavorites() {
 
     return { success: true, data: projectsWithUsers }
   } catch (error) {
-    console.error('Failed to get user favorites:', error)
-    return { success: false, error: 'Failed to get user favorites' }
+    console.error('获取用户收藏失败:', error)
+    return { success: false, error: '获取用户收藏失败' }
   }
 }
 
 // Get user's projects
 export async function getUserProjects() {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    })
+    const session = await getServerSession()
     if (!session) {
-      return { success: false, error: 'Not authenticated' }
+      return { success: false, error: '未授权' }
     }
 
     // Get the user's projects
@@ -415,7 +394,7 @@ export async function getUserProjects() {
 
     return { success: true, data: projectsWithUser }
   } catch (error) {
-    console.error('Failed to get user projects:', error)
-    return { success: false, error: 'Failed to get user projects' }
+    console.error('获取用户项目失败:', error)
+    return { success: false, error: '获取用户项目失败' }
   }
 }

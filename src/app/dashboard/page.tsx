@@ -6,7 +6,6 @@ import { CodeOutput } from '@/components/canvas/code-output'
 import { EnhancedForm, MAX_CONTEXT_LENGTH } from '@/components/canvas/enhanced-form'
 import { TokenUsage } from '@/components/canvas/token-usage'
 import Footer from '@/components/footer'
-import Header from '@/components/header'
 import type { ModelId } from '@/lib/models'
 import { useAppStore } from '@/store/use-app-store'
 import { processHtml } from '@/utils/process-html'
@@ -84,7 +83,7 @@ export default function Page() {
         console.error('Error displaying HTML:', error)
         setState('validationResult', {
           valid: false,
-          errors: ['Failed to process HTML'],
+          errors: ['处理HTML失败'],
         })
         return null
       }
@@ -95,12 +94,12 @@ export default function Page() {
   const handleSubmit = async (data: FormValues) => {
     // Validate inputs
     if (!data.message.trim()) {
-      toast.error('Please enter a prompt')
+      toast.error('请输入提示')
       return
     }
 
     if (data.context && data.context.length > MAX_CONTEXT_LENGTH) {
-      toast.error(`Context must be ${MAX_CONTEXT_LENGTH} characters or less`)
+      toast.error(`上下文必须小于${MAX_CONTEXT_LENGTH}个字符`)
       return
     }
 
@@ -128,7 +127,7 @@ export default function Page() {
       }
 
       // Log the optimized context for debugging
-      console.log('Optimized context: Only sending the most recent AI response')
+      console.log('优化上下文: 只发送最新的AI响应')
     }
 
     try {
@@ -202,9 +201,7 @@ export default function Page() {
       }
     } catch (error) {
       console.error('API error:', error)
-      toast.error(
-        error instanceof Error ? error.message : 'An error occurred while generating the template',
-      )
+      toast.error(error instanceof Error ? error.message : '生成模板时发生错误')
     } finally {
       setState('isLoading', false)
     }
@@ -217,9 +214,6 @@ export default function Page() {
 
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950">
-      {/* Header */}
-      <Header />
-
       {/* Main Content */}
       <main className="flex-1 py-8">
         <div className="container mx-auto h-full px-4">

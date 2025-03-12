@@ -3,6 +3,7 @@
 import { GalleryHorizontal, Home } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { ThemeToggle } from '@/components/theme-toggle'
 import { Button } from '@/components/ui/button'
 import { UserAuthMenu } from '@/components/user-auth-menu'
 
@@ -45,6 +46,7 @@ export function MainNav() {
         </div>
         <div className="flex items-center gap-4">
           <UserAuthMenu />
+          <ThemeToggle />
         </div>
       </div>
     </nav>
