@@ -15,7 +15,9 @@ import {
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { updateSessionData } from '@/lib/session-utils'
+import { useAppStore } from '@/store/use-app-store'
 
 interface ProfileInfoProps {
   user:
@@ -24,6 +26,7 @@ interface ProfileInfoProps {
         name: string
         email: string
         image?: string | null
+        backgroundInfo?: string | null
       }
     | null
     | undefined
@@ -37,6 +40,7 @@ interface UpdateProfileResponse {
     name: string
     email: string
     image?: string | null
+    backgroundInfo?: string | null
   }
 }
 
@@ -47,9 +51,11 @@ interface UploadResponse {
 }
 
 export function ProfileInfo({ user }: ProfileInfoProps) {
+  const { setState } = useAppStore()
   const [isLoading, setIsLoading] = useState(false)
   const [name, setName] = useState(user?.name || '')
   const [avatarUrl, setAvatarUrl] = useState(user?.image || '')
+  const [backgroundInfo, setBackgroundInfo] = useState(user?.backgroundInfo || '')
   const [isUploading, setIsUploading] = useState(false)
 
   // Handle avatar upload
@@ -120,6 +126,7 @@ export function ProfileInfo({ user }: ProfileInfoProps) {
         body: JSON.stringify({
           name,
           image: avatarUrl,
+          backgroundInfo,
         }),
       })
 
@@ -127,6 +134,9 @@ export function ProfileInfo({ user }: ProfileInfoProps) {
 
       if (data.success) {
         toast.success('个人信息更新成功')
+
+        // Update the context in the app store
+        setState('context', backgroundInfo)
 
         // Show a loading toast while refreshing the session
         const loadingToast = toast.loading('更新会话数据...')
@@ -233,6 +243,26 @@ export function ProfileInfo({ user }: ProfileInfoProps) {
             className="border-zinc-200 bg-zinc-50 text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-400"
           />
           <p className="text-xs text-zinc-500 dark:text-zinc-400">邮箱地址不能被更改</p>
+        </div>
+
+        {/* Background Information */}
+        <div className="space-y-2">
+          <Label
+            htmlFor="backgroundInfo"
+            className="text-sm font-medium text-zinc-900 dark:text-zinc-100"
+          >
+            背景信息
+          </Label>
+          <Textarea
+            id="backgroundInfo"
+            value={backgroundInfo}
+            onChange={(e) => setBackgroundInfo(e.target.value)}
+            placeholder="请输入您的背景信息，这将用于AI生成更符合您需求的内容"
+            className="min-h-[150px] resize-y border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800"
+          />
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            此信息将用于AI生成时的上下文，帮助AI更好地理解您的需求
+          </p>
         </div>
       </CardContent>
       <CardFooter className="border-t border-zinc-200 bg-zinc-50 px-6 py-4 dark:border-zinc-800 dark:bg-zinc-900/50">

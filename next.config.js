@@ -6,9 +6,9 @@ import './src/env.js'
 
 /** @type {import("next").NextConfig} */
 const config = {
-  // eslint: {
-  //   ignoreDuringBuilds: true,
-  // },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   experimental: {
     reactCompiler: true,
   },

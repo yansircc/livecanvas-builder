@@ -75,7 +75,6 @@ export function PreviewContent() {
   const getScreenshot = async (): Promise<string | null> => {
     try {
       setIsCapturing(true)
-      toast.info('正在准备截图...')
 
       // Store original device
       const currentDevice = originalDeviceRef.current
@@ -93,37 +92,25 @@ export function PreviewContent() {
       const iframe = document.querySelector('iframe')
       if (!iframe) {
         console.error('No iframe found for screenshot')
-        toast.error('找不到预览框架，无法截图')
+        toast.error('截图失败，无法获取截图')
         return null
       }
 
       // Wait for iframe content to be fully loaded
       if (iframe.contentDocument?.readyState !== 'complete') {
-        console.log('Waiting for iframe to fully load...')
-        toast.info('等待页面加载完成...')
-
         // Wait for iframe to load
         await new Promise<void>((resolve) => {
           const handleLoad = () => resolve()
           iframe.addEventListener('load', handleLoad, { once: true })
-          setTimeout(resolve, 2000) // Timeout after 2 seconds
+          setTimeout(resolve, 3000) // Increased timeout to 3 seconds
         })
       }
 
-      // Check if Bootstrap is loaded in the iframe
-      const bootstrapLoaded =
-        iframe.contentDocument?.querySelector('link[href*="bootstrap"]') !== null
-      console.log('Bootstrap loaded in iframe:', bootstrapLoaded)
-
       // Check for images in the iframe
       const images = iframe.contentDocument?.querySelectorAll('img') || []
-      console.log(`Found ${images.length} images in iframe`)
 
       // Wait for all images to load
       if (images.length > 0) {
-        console.log('Waiting for images to load...')
-        toast.info('等待图片加载完成...')
-
         // Create a promise for each image
         const imagePromises = Array.from(images).map((img) => {
           if (img.complete) return Promise.resolve()
@@ -131,7 +118,7 @@ export function PreviewContent() {
             img.addEventListener('load', () => resolve(), { once: true })
             img.addEventListener('error', () => resolve(), { once: true }) // Resolve on error too
             // Add a timeout in case the image never loads
-            setTimeout(resolve, 1000)
+            setTimeout(resolve, 2000) // Increased timeout to 2 seconds
           })
         })
 
@@ -140,34 +127,45 @@ export function PreviewContent() {
       }
 
       // Wait a bit more to ensure all resources are loaded
-      console.log('Waiting for resources to load...')
-      toast.info('等待资源加载完成...')
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      await new Promise((resolve) => setTimeout(resolve, 2000)) // Increased to 2 seconds
+      // Try to capture the screenshot with multiple attempts
+      let screenshot = null
+      let attempts = 0
+      const maxAttempts = 3
 
-      console.log('Capturing screenshot...')
-      toast.info('正在截取屏幕...')
-
-      // Capture the screenshot
-      const screenshot = await captureIframeScreenshot('iframe')
+      while (!screenshot && attempts < maxAttempts) {
+        attempts++
+        try {
+          screenshot = await captureIframeScreenshot('iframe')
+          if (!screenshot) {
+            console.warn(`Attempt ${attempts} failed, ${maxAttempts - attempts} attempts remaining`)
+            // Wait before trying again
+            if (attempts < maxAttempts) {
+              await new Promise((resolve) => setTimeout(resolve, 1000))
+            }
+          }
+        } catch (error) {
+          console.error(`Screenshot attempt ${attempts} error:`, error)
+          if (attempts < maxAttempts) {
+            await new Promise((resolve) => setTimeout(resolve, 1000))
+          }
+        }
+      }
 
       // Restore original device if changed
       if (currentDevice !== 'desktop') {
-        console.log('Restoring original device view')
         setDevice(currentDevice)
       }
 
       if (screenshot) {
-        console.log('Screenshot captured successfully')
-        toast.success('截图成功！')
+        toast.success('截图成功!')
       } else {
-        console.error('Screenshot capture returned null')
-        toast.error('截图失败，请查看控制台获取详细信息')
+        toast.error('截图失败，请查看控制台获取详细信息。')
       }
 
       return screenshot
     } catch (error) {
       console.error('Failed to capture screenshot:', error)
-      toast.error('截图过程中发生错误')
       return null
     } finally {
       setIsCapturing(false)

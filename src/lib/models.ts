@@ -2,6 +2,7 @@ import { createAnthropic } from '@ai-sdk/anthropic'
 import { createDeepSeek } from '@ai-sdk/deepseek'
 import { createOpenAI } from '@ai-sdk/openai'
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
+import { createQwen } from 'qwen-ai-provider'
 import { env } from '@/env'
 
 /**
@@ -168,27 +169,26 @@ export const LLM_LIST: Record<string, LLM> = {
     name: 'Qwen',
     availableModels: [
       {
-        name: 'Qwen Max',
-        value: 'qwen-max-0125',
-        price: {
-          input: 0.38,
-          output: 1.52,
-        },
-        canOutputStructuredData: false,
-      },
-      {
         name: 'Qwen 32B',
         value: 'qwen-qwq-32b',
         price: {
           input: 0.4,
           output: 0.8,
         },
-        canOutputStructuredData: false,
+        canOutputStructuredData: true,
+      },
+      {
+        name: 'Qwen Max',
+        value: 'qwen-max-0125',
+        price: {
+          input: 0.38,
+          output: 1.52,
+        },
+        canOutputStructuredData: true,
       },
     ],
     model: (modelValue: string) => {
-      const qwen = createOpenAICompatible({
-        name: 'Qwen',
+      const qwen = createQwen({
         apiKey: env.AI_HUB_MIX_API_KEY,
         baseURL: env.AI_HUB_MIX_ENDPOINT,
       })

@@ -1,13 +1,16 @@
 'use client'
 
-import { Check, Copy, Eye, FileCode } from 'lucide-react'
+import { Check, Copy, Eye, FileCode, Info } from 'lucide-react'
 import { useCallback, useState } from 'react'
-import { VersionSelector } from '@/components/canvas/version-selector'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { type ModelId } from '@/lib/models'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/use-app-store'
 import { replaceImagePlaceholders } from '@/utils/replace-image-placeholders'
+import { calculateCost } from '../utils/calculate-cost'
+import { VersionSelector } from './version-selector'
 
 interface ValidationResult {
   valid: boolean
@@ -18,11 +21,17 @@ interface CodeOutputProps {
   code: string
   validationResult: ValidationResult
   isLoading?: boolean
+  modelId?: ModelId
 }
 
-export function CodeOutput({ code, validationResult, isLoading = false }: CodeOutputProps) {
+export function CodeOutput({
+  code,
+  validationResult,
+  isLoading = false,
+  modelId,
+}: CodeOutputProps) {
   const [copied, setCopied] = useState(false)
-  const { processedHtml } = useAppStore()
+  const { processedHtml, usage } = useAppStore()
 
   const copyToClipboard = useCallback(async () => {
     try {
@@ -46,6 +55,9 @@ export function CodeOutput({ code, validationResult, isLoading = false }: CodeOu
     window.open(`/preview?id=${contentId}`, '_blank')
   }
 
+  // Calculate cost if usage and modelId are available
+  const cost = usage && modelId ? calculateCost(usage, modelId) : undefined
+
   return (
     <div
       className={cn(
@@ -67,6 +79,26 @@ export function CodeOutput({ code, validationResult, isLoading = false }: CodeOu
           </div>
         </div>
         <div className="flex items-center gap-3">
+          {cost && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex cursor-help items-center gap-1 rounded-lg bg-zinc-100 px-2 py-1 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+                    <Info className="h-3 w-3" />
+                    <span>{cost.cny.toFixed(2)} 元</span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent className="space-y-1 text-xs">
+                  <p>总计: {usage?.totalTokens.toLocaleString()} tokens</p>
+                  <p>提示: {usage?.promptTokens.toLocaleString()} tokens</p>
+                  <p>补全: {usage?.completionTokens.toLocaleString()} tokens</p>
+                  <p className="pt-1 text-xs font-medium">
+                    费用: {cost.cny.toFixed(4)} 元 (${cost.usd.toFixed(4)})
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
           <VersionSelector />
           <div className="flex gap-2">
             <Button

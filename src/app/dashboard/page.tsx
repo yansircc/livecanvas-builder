@@ -2,13 +2,13 @@
 
 import { toast } from 'sonner'
 import { useCallback, useEffect, useState } from 'react'
-import { CodeOutput } from '@/components/canvas/code-output'
-import { EnhancedForm, MAX_CONTEXT_LENGTH } from '@/components/canvas/enhanced-form'
-import { TokenUsage } from '@/components/canvas/token-usage'
 import Footer from '@/components/footer'
+import { MainNav } from '@/components/main-nav'
 import type { ModelId } from '@/lib/models'
 import { useAppStore } from '@/store/use-app-store'
 import { processHtml } from '@/utils/process-html'
+import { CodeOutput } from './components/code-output'
+import { EnhancedForm, MAX_CONTEXT_LENGTH } from './components/enhanced-form'
 
 interface CodeResponse {
   code: string
@@ -20,7 +20,14 @@ interface CodeResponse {
   }
 }
 
+// Interface for the form values from EnhancedForm
 interface FormValues {
+  message: string
+  includeContext: boolean
+}
+
+// Interface for the complete form data needed for API call
+interface CompleteFormData {
   message: string
   model: ModelId
   apiKey: string
@@ -44,7 +51,6 @@ export default function Page() {
     validationResult,
     versions,
     currentVersionIndex,
-    usage,
     setState,
     addVersion,
     resetState,
@@ -91,20 +97,29 @@ export default function Page() {
     [setState],
   )
 
-  const handleSubmit = async (data: FormValues) => {
-    // Validate inputs
-    if (!data.message.trim()) {
-      toast.error('请输入提示')
-      return
-    }
-
-    if (data.context && data.context.length > MAX_CONTEXT_LENGTH) {
-      toast.error(`上下文必须小于${MAX_CONTEXT_LENGTH}个字符`)
-      return
-    }
-
+  const handleSubmit = (data: FormValues) => {
     // Store the current message for later use
     setCurrentMessage(data.message)
+
+    // Validate inputs
+    if (!data.message.trim()) {
+      toast.error('请输入提示词')
+      return
+    }
+
+    // Prepare the complete form data with values from the app store
+    const completeData: CompleteFormData = {
+      message: data.message,
+      model: model || 'anthropic/claude-3-7-sonnet-20250219',
+      apiKey: apiKey ?? '',
+      // Only include context if the toggle is on
+      context: data.includeContext ? (context ?? '') : '',
+    }
+
+    if (completeData.context && completeData.context.length > MAX_CONTEXT_LENGTH) {
+      toast.error(`背景信息必须少于 ${MAX_CONTEXT_LENGTH} 个字符`)
+      return
+    }
 
     // Reset state but keep user settings and versions
     resetState({ keepUserSettings: true, keepVersions: true })
@@ -127,93 +142,99 @@ export default function Page() {
       }
 
       // Log the optimized context for debugging
-      console.log('优化上下文: 只发送最新的AI响应')
+      console.log('优化上下文: 仅发送最新的AI响应')
     }
 
-    try {
-      // Make a direct fetch request to the API
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: data.message,
-          context: (data.context || context || '').substring(0, 1200),
-          history: conversationHistory,
-          apiKey: data.apiKey ?? apiKey ?? undefined,
-          model: data.model ?? model,
-        }),
-      })
+    // Make the API call
+    void (async () => {
+      try {
+        // Make a direct fetch request to the API
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message: completeData.message,
+            context: (completeData.context || '').substring(0, 1200),
+            history: conversationHistory,
+            apiKey: completeData.apiKey ?? undefined,
+            model: completeData.model,
+          }),
+        })
 
-      if (!response.ok) {
-        const errorData = (await response.json().catch(() => ({}))) as {
-          error?: string
-        }
-        throw new Error(errorData.error ?? `API request failed with status ${response.status}`)
-      }
-
-      // Parse the response as JSON
-      const object: CodeResponse = (await response.json()) as CodeResponse
-
-      // Process the code
-      if (object.code) {
-        setState('code', object.code)
-
-        // Handle advices with robust type checking and conversion
-        if (object.advices) {
-          let processedAdvices: string[] = []
-          if (Array.isArray(object.advices)) {
-            processedAdvices = object.advices
-              .filter((advice) => advice !== null && advice !== undefined)
-              .map((advice) => (typeof advice === 'string' ? advice : String(advice)))
-            setState('advices', processedAdvices)
-          } else {
-            // Fallback for unexpected format
-            setState('advices', [String(object.advices)])
+        if (!response.ok) {
+          const errorData = (await response.json().catch(() => ({}))) as {
+            error?: string
           }
-        } else {
-          setState('advices', [])
+          throw new Error(errorData.error ?? `API请求失败，状态码 ${response.status}`)
         }
 
-        // Save token usage information
-        if (object.usage) {
-          setState('usage', object.usage)
+        // Parse the response as JSON
+        const object: CodeResponse = (await response.json()) as CodeResponse
+
+        // Process the code
+        if (object.code) {
+          setState('code', object.code)
+
+          // Handle advices with robust type checking and conversion
+          if (object.advices) {
+            let processedAdvices: string[] = []
+            if (Array.isArray(object.advices)) {
+              processedAdvices = object.advices
+                .filter((advice) => advice !== null && advice !== undefined)
+                .map((advice) => (typeof advice === 'string' ? advice : String(advice)))
+              setState('advices', processedAdvices)
+            } else {
+              // Fallback for unexpected format
+              setState('advices', [String(object.advices)])
+            }
+          } else {
+            setState('advices', [])
+          }
+
+          // Save token usage information
+          if (object.usage) {
+            setState('usage', object.usage)
+          }
+
+          // Process the HTML
+          const processedHtml = renderTemplateToHtml(object.code)
+
+          // Add a new version with the current form data
+          const formData = {
+            message: currentMessage,
+            model: model,
+            apiKey: apiKey,
+            context: context,
+          }
+
+          addVersion(currentMessage, formData)
+
+          // Open preview with the current version's HTML
+          if (processedHtml) {
+            openPreview(processedHtml)
+          }
         }
-
-        // Process the HTML
-        const processedHtml = renderTemplateToHtml(object.code)
-
-        // Add a new version with the current form data
-        const formData = {
-          message: currentMessage,
-          model: model,
-          apiKey: apiKey,
-          context: context,
-        }
-
-        addVersion(currentMessage, formData)
-
-        // Open preview with the current version's HTML
-        if (processedHtml) {
-          openPreview(processedHtml)
-        }
+      } catch (error) {
+        console.error('API error:', error)
+        toast.error(error instanceof Error ? error.message : '生成模板时出错')
+      } finally {
+        setState('isLoading', false)
       }
-    } catch (error) {
-      console.error('API error:', error)
-      toast.error(error instanceof Error ? error.message : '生成模板时发生错误')
-    } finally {
-      setState('isLoading', false)
-    }
+    })()
   }
 
   const handleAdviceClick = (advice: string) => {
     // This is now just a placeholder since the form handles it internally
-    console.log('Advice clicked:', advice)
+    console.log('建议点击:', advice)
   }
 
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950">
+      {/* MainNav */}
+      <MainNav />
+
       {/* Main Content */}
       <main className="flex-1 py-8">
         <div className="container mx-auto h-full px-4">
@@ -227,7 +248,6 @@ export default function Page() {
                 onAdviceClick={handleAdviceClick}
                 initialMessage={currentMessage}
               />
-              {usage && <TokenUsage usage={usage} modelId={model} />}
             </div>
 
             {/* Right: Output Panel */}
@@ -236,6 +256,7 @@ export default function Page() {
                 code={code ?? ''}
                 validationResult={validationResult}
                 isLoading={isLoading}
+                modelId={model}
               />
             </div>
           </div>

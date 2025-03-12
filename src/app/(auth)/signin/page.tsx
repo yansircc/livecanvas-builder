@@ -2,7 +2,7 @@
 
 import { Github } from 'lucide-react'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -10,25 +10,15 @@ import { Input } from '@/components/ui/input'
 import { signIn } from '@/lib/auth-client'
 import { cn } from '@/lib/utils'
 
-interface AuthCardProps extends React.HTMLAttributes<HTMLDivElement> {
-  showGithub?: boolean
-  showGoogle?: boolean
-  searchParams?: Record<string, string>
-}
-
-export default function SignInCard({
-  showGithub = false,
-  showGoogle = false,
-  className,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  searchParams,
-  ...props
-}: AuthCardProps) {
+export default function Page() {
   const router = useRouter()
+  const _searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const showGithub = false
+  const showGoogle = false
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -86,9 +76,7 @@ export default function SignInCard({
           'bg-white dark:bg-[#121212]',
           'border-2 border-zinc-100 dark:border-zinc-800/50',
           'shadow-[0_24px_48px_-12px] shadow-zinc-900/10 dark:shadow-black/30',
-          className,
         )}
-        {...props}
       >
         <CardHeader className="space-y-4 px-8 pt-10">
           <div className="space-y-2 text-center">
