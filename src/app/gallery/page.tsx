@@ -3,8 +3,6 @@
 import { AnimatePresence } from 'motion/react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useSession } from '@/lib/auth-client'
 import {
   favoriteProject,
   getPublishedProjects,
@@ -12,13 +10,15 @@ import {
   getUserInteractions,
   getUserProjects,
   likeProject,
-} from '@/server/gallery'
+} from '@/actions/gallery'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useSession } from '@/lib/auth-client'
+import { type Project } from '@/types'
 import { GalleryHeader } from './components/gallery-header'
 import { ProjectModal } from './components/project-modal'
 import { TabContentAll } from './components/tab-content-all'
 import { TabContentFavorites } from './components/tab-content-favorites'
 import { TabContentMyProjects } from './components/tab-content-my-projects'
-import { type Project } from './types'
 
 export default function GalleryPage() {
   const router = useRouter()

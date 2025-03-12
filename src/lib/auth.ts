@@ -1,10 +1,10 @@
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { nextCookies } from 'better-auth/next-js'
+import { db } from '@/db'
+import { account, session, user, verification } from '@/db/schema'
 import { env } from '@/env'
 import { sendEmail } from '@/lib/send-email'
-import { db } from '@/server/db/'
-import { account, session, user, verification } from '@/server/db/schema'
 
 /**
  * Better Auth configuration

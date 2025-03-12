@@ -3,7 +3,7 @@ import { motion } from 'motion/react'
 import Image from 'next/image'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { type Project } from '../types'
+import { type Project } from '@/types'
 
 interface ProjectCardProps {
   project: Project

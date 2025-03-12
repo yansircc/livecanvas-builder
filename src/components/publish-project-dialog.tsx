@@ -4,6 +4,8 @@ import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { createProject } from '@/actions/gallery'
+import { generateThumbnail } from '@/actions/thumbnail'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -17,8 +19,6 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { createProject } from '@/server/gallery'
-import { generateThumbnail } from '@/server/thumbnail'
 
 interface PublishProjectDialogProps {
   htmlContent: string

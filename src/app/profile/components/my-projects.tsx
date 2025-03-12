@@ -4,7 +4,7 @@ import { Edit, Eye, MoreHorizontal, Trash } from 'lucide-react'
 import { toast } from 'sonner'
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
-import { type Project } from '@/app/gallery/types'
+import { deleteProject, getUserProjects, updateProject } from '@/actions/gallery'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { deleteProject, getUserProjects, updateProject } from '@/server/gallery'
+import { type Project } from '@/types'
 import { EditProjectDialog } from './edit-project-dialog'
 
 interface MyProjectsProps {

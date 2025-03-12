@@ -1,8 +1,8 @@
 import { eq } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
+import { db } from '@/db'
+import { user } from '@/db/schema'
 import { getServerSession } from '@/lib/auth-server'
-import { db } from '@/server/db'
-import { user } from '@/server/db/schema'
 
 /**
  * API endpoint to refresh the user session with the latest data from the database

@@ -3,9 +3,9 @@
 import { and, desc, eq, sql } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
 import { revalidatePath } from 'next/cache'
+import { db } from '@/db'
+import { favorite, like, project, user } from '@/db/schema'
 import { getServerSession } from '@/lib/auth-server'
-import { db } from '@/server/db'
-import { favorite, like, project, user } from '@/server/db/schema'
 
 // Get all published projects
 export async function getPublishedProjects() {

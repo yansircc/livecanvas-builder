@@ -1,8 +1,8 @@
 import { eq } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
+import { db } from '@/db'
+import { user } from '@/db/schema'
 import { getServerSession } from '@/lib/auth-server'
-import { db } from '@/server/db'
-import { user } from '@/server/db/schema'
 
 export async function PUT(request: Request) {
   try {

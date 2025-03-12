@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { type Project } from '../types'
+import { type Project } from '@/types'
 
 interface ProjectModalProps {
   project: Project | null

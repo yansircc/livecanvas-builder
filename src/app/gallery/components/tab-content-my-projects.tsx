@@ -1,6 +1,6 @@
 'use client'
 
-import type { Project } from '../types'
+import { type Project } from '@/types'
 import { EmptyState } from './empty-state'
 import { LoadingSpinner } from './loading-spinner'
 import { ProjectList } from './project-list'
