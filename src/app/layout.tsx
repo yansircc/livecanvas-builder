@@ -1,6 +1,7 @@
 import '@/styles/globals.css'
 import { GeistSans } from 'geist/font/sans'
 import type { Metadata } from 'next'
+import { CacheInitializer } from '@/components/cache-initializer'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
 
@@ -14,6 +15,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" className={GeistSans.className} suppressHydrationWarning>
       <body className="bg-background min-h-screen font-sans antialiased">
+        <CacheInitializer />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

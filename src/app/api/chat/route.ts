@@ -1,6 +1,7 @@
 import { generateObject, generateText } from 'ai'
 import { canModelOutputStructuredData, LLM_LIST, parseModelId } from '@/lib/models'
 import { extractAndParseJSON } from '@/utils/json-parser'
+import { replaceWithUnsplashImages } from '@/utils/replace-with-unsplash'
 import { PROMPT } from './prompt'
 import { codeSchema } from './schema'
 import type { CodeResponse } from './schema'
@@ -24,6 +25,63 @@ interface ApiResponse extends CodeResponse {
   }
 }
 
+/**
+ * 处理响应并返回格式化的结果
+ * @param codeResponse 代码响应对象
+ * @param usage 使用信息
+ * @returns 格式化的响应
+ */
+function processResponse(
+  codeResponse: CodeResponse,
+  usage?: { promptTokens: number; completionTokens: number; totalTokens: number },
+): Response {
+  // 替换图片占位符
+  if (codeResponse.code) {
+    codeResponse.code = replaceWithUnsplashImages(codeResponse.code)
+  }
+
+  // 创建包含 usage 信息的响应
+  const responseWithUsage: ApiResponse = {
+    ...codeResponse,
+    usage: usage
+      ? {
+          promptTokens: usage.promptTokens,
+          completionTokens: usage.completionTokens,
+          totalTokens: usage.totalTokens,
+        }
+      : undefined,
+  }
+
+  // 返回格式化的响应
+  return new Response(JSON.stringify(responseWithUsage), {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+}
+
+/**
+ * 创建错误响应
+ * @param message 错误消息
+ * @param status HTTP状态码
+ * @returns 错误响应
+ */
+function createErrorResponse(message: string, status = 500): Response {
+  return new Response(
+    JSON.stringify({
+      error: message,
+      code: '<!-- Error: Failed to generate valid HTML -->',
+      advices: ['Try a different prompt or model'],
+    }),
+    {
+      status,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    },
+  )
+}
+
 export async function POST(req: Request) {
   const body = (await req.json()) as ChatRequestBody
 
@@ -40,15 +98,49 @@ export async function POST(req: Request) {
   const provider = LLM_LIST[providerId]
 
   if (!provider) {
-    return new Response(JSON.stringify({ error: `Provider ${providerId} not found` }), {
-      status: 400,
-    })
+    return createErrorResponse(`Provider ${providerId} not found`, 400)
   }
 
   // Check if the selected model can output structured data
   const canOutputStructuredData = canModelOutputStructuredData(selectedModelId)
 
-  // Create a context-aware prompt that includes conversation history
+  // 构建上下文感知提示
+  const contextualPrompt = buildContextualPrompt(message, context, history)
+
+  console.debug('modelValue:', modelValue, 'canOutputStructuredData:', canOutputStructuredData)
+
+  try {
+    // 尝试使用 generateObject 或 generateText 生成响应
+    return await generateResponse(
+      provider.model(modelValue),
+      contextualPrompt,
+      canOutputStructuredData,
+    )
+  } catch (error) {
+    console.error('Generation failed, falling back to generateText:', error)
+
+    // 尝试使用 generateText 作为回退
+    try {
+      return await generateFallbackResponse(provider.model(modelValue), contextualPrompt)
+    } catch (fallbackError) {
+      console.error('Both generateObject and fallback failed:', fallbackError)
+      return createErrorResponse('Failed to generate response')
+    }
+  }
+}
+
+/**
+ * 构建上下文感知提示
+ * @param message 用户消息
+ * @param context 上下文
+ * @param history 历史记录
+ * @returns 上下文感知提示
+ */
+function buildContextualPrompt(
+  message: string,
+  context?: string,
+  history?: { prompt: string; response?: string }[],
+): string {
   let contextualPrompt = PROMPT
 
   // Add user context if available
@@ -71,152 +163,71 @@ export async function POST(req: Request) {
   // Add the current message
   contextualPrompt += `\n${message}`
 
-  console.debug('modelValue:', modelValue, 'canOutputStructuredData:', canOutputStructuredData)
+  return contextualPrompt
+}
 
-  try {
-    // If the model can output structured data, use generateObject
-    if (canOutputStructuredData) {
-      // First try with generateObject
-      const { object, usage } = await generateObject({
-        model: provider.model(modelValue),
-        schema: codeSchema,
-        prompt: contextualPrompt,
-      })
+/**
+ * 生成响应
+ * @param model 模型
+ * @param prompt 提示
+ * @param canOutputStructuredData 是否可以输出结构化数据
+ * @returns 响应
+ */
+async function generateResponse(
+  model: any,
+  prompt: string,
+  canOutputStructuredData: boolean,
+): Promise<Response> {
+  if (canOutputStructuredData) {
+    // 使用 generateObject
+    const { object, usage } = await generateObject({
+      model,
+      schema: codeSchema,
+      prompt,
+    })
 
-      // 创建包含 usage 信息的响应
-      const responseWithUsage: ApiResponse = {
-        ...object,
-        usage: usage
-          ? {
-              promptTokens: usage.promptTokens,
-              completionTokens: usage.completionTokens,
-              totalTokens: usage.totalTokens,
-            }
-          : undefined,
-      }
+    return processResponse(object, usage)
+  } else {
+    // 使用 generateText
+    console.log(`Model doesn't support structured data output, using generateText`)
+    const { text, usage } = await generateText({
+      model,
+      prompt:
+        prompt +
+        "\n\nPlease respond with a valid JSON object containing 'code' and 'advices' fields. Format your response as a JSON object without any markdown formatting.",
+    })
 
-      // Return the object as a proper Response
-      return new Response(JSON.stringify(responseWithUsage), {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
+    // 解析响应
+    const parsedObject = extractAndParseJSON<CodeResponse>(text)
+
+    if (parsedObject && parsedObject.code) {
+      return processResponse(parsedObject, usage)
     } else {
-      // For models that can't output structured data, use generateText directly
-      console.log(
-        `Model ${selectedModelId} doesn't support structured data output, using generateText`,
-      )
-      const { text, usage } = await generateText({
-        model: provider.model(modelValue),
-        prompt:
-          contextualPrompt +
-          "\n\nPlease respond with a valid JSON object containing 'code' and 'advices' fields. Format your response as a JSON object without any markdown formatting.",
-      })
-
-      // Extract and parse JSON from the text response
-      const parsedObject = extractAndParseJSON<CodeResponse>(text)
-
-      if (parsedObject && parsedObject.code) {
-        // 添加 usage 信息到响应
-        const responseWithUsage: ApiResponse = {
-          ...parsedObject,
-          usage: usage
-            ? {
-                promptTokens: usage.promptTokens,
-                completionTokens: usage.completionTokens,
-                totalTokens: usage.totalTokens,
-              }
-            : undefined,
-        }
-
-        return new Response(JSON.stringify(responseWithUsage), {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        })
-      } else {
-        // If parsing fails, return an error
-        return new Response(
-          JSON.stringify({
-            error: 'Failed to parse LLM response as JSON',
-            code: '<!-- Error: Failed to generate valid HTML -->',
-            advices: ['Try a different prompt or model'],
-          }),
-          {
-            status: 500,
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          },
-        )
-      }
+      return createErrorResponse('Failed to parse LLM response as JSON')
     }
-  } catch (error) {
-    console.error('Generation failed, falling back to generateText:', error)
+  }
+}
 
-    // If generateObject fails or for models that don't support structured data, fall back to generateText
-    try {
-      const { text, usage } = await generateText({
-        model: provider.model(modelValue),
-        prompt:
-          contextualPrompt +
-          "\n\nPlease respond with a valid JSON object containing 'code' and 'advices' fields. Format your response as a JSON object without any markdown formatting.",
-      })
+/**
+ * 生成回退响应
+ * @param model 模型
+ * @param prompt 提示
+ * @returns 响应
+ */
+async function generateFallbackResponse(model: any, prompt: string): Promise<Response> {
+  const { text, usage } = await generateText({
+    model,
+    prompt:
+      prompt +
+      "\n\nPlease respond with a valid JSON object containing 'code' and 'advices' fields. Format your response as a JSON object without any markdown formatting.",
+  })
 
-      // Extract and parse JSON from the text response
-      const parsedObject = extractAndParseJSON<CodeResponse>(text)
+  // 解析响应
+  const parsedObject = extractAndParseJSON<CodeResponse>(text)
 
-      if (parsedObject && parsedObject.code) {
-        // 添加 usage 信息到响应
-        const responseWithUsage: ApiResponse = {
-          ...parsedObject,
-          usage: usage
-            ? {
-                promptTokens: usage.promptTokens,
-                completionTokens: usage.completionTokens,
-                totalTokens: usage.totalTokens,
-              }
-            : undefined,
-        }
-
-        return new Response(JSON.stringify(responseWithUsage), {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        })
-      } else {
-        // If parsing fails, return an error
-        return new Response(
-          JSON.stringify({
-            error: 'Failed to parse LLM response as JSON',
-            code: '<!-- Error: Failed to generate valid HTML -->',
-            advices: ['Try a different prompt or model'],
-          }),
-          {
-            status: 500,
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          },
-        )
-      }
-    } catch (fallbackError) {
-      console.error('Both generateObject and fallback failed:', fallbackError)
-
-      // Return a user-friendly error
-      return new Response(
-        JSON.stringify({
-          error: 'Failed to generate response',
-          code: '<!-- Error: Failed to generate valid HTML -->',
-          advices: ['Try a different prompt or model'],
-        }),
-        {
-          status: 500,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      )
-    }
+  if (parsedObject && parsedObject.code) {
+    return processResponse(parsedObject, usage)
+  } else {
+    return createErrorResponse('Failed to parse LLM response as JSON')
   }
 }

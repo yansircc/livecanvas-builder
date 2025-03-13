@@ -65,9 +65,16 @@ jobs:
       - name: 🏗️ Build
         env:
           NEXT_TELEMETRY_DISABLED: 1
-          AI_HUB_MIX_API_KEY: "CI_PLACEHOLDER"
-          AI_HUB_MIX_ENDPOINT: "CI_PLACEHOLDER"
-          NEXT_PUBLIC_IMAGE_PLACEHOLDER_PREFIX: "CI_PLACEHOLDER"
+          NODE_ENV: 'production'
+          AI_HUB_MIX_API_KEY: 'CI_PLACEHOLDER'
+          AI_HUB_MIX_ENDPOINT: 'CI_PLACEHOLDER'
+          NEXT_PUBLIC_BETTER_AUTH_URL: 'CI_PLACEHOLDER'
+          PLUNK_API_KEY: 'CI_PLACEHOLDER'
+          PLUNK_API_URL: 'CI_PLACEHOLDER'
+          BUNNY_STORAGE_API_KEY: 'CI_PLACEHOLDER'
+          BETTER_AUTH_SECRET: 'CI_PLACEHOLDER'
+          DATABASE_URL: 'CI_PLACEHOLDER'
+          NEXT_PUBLIC_IMAGE_PLACEHOLDER_PREFIX: 'CI_PLACEHOLDER'
         run: bun run build
 
       - name: 📊 Generate build report
