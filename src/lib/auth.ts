@@ -5,6 +5,10 @@ import { db } from '@/db'
 import { account, session, user, verification } from '@/db/schema'
 import { env } from '@/env'
 import { sendEmail } from '@/lib/send-email'
+import { isCI } from '@/utils/is-ci'
+
+// 在 CI 环境中使用安全的默认值
+const safeSecret = isCI ? 'ci-test-secret-key-for-testing-only' : env.BETTER_AUTH_SECRET
 
 /**
  * Better Auth configuration
@@ -57,33 +61,43 @@ export const auth = betterAuth({
     verificationCallbackURL: '/verify-success', // Redirect to this URL after verification
     autoSignInAfterVerification: false, // 不要在验证后自动登录
     sendVerificationEmail: async ({ user, url, token }, request) => {
-      // 确保 URL 包含正确的回调地址
-      // 如果 URL 已经包含 callbackURL 参数，则替换它
-      const urlObj = new URL(url)
-      const hasCallbackParam = urlObj.searchParams.has('callbackURL')
-
-      if (hasCallbackParam) {
-        urlObj.searchParams.set('callbackURL', '/verify-success')
-      } else {
-        // 如果没有 callbackURL 参数，则添加它
-        urlObj.searchParams.append('callbackURL', '/verify-success')
+      // 在 CI 环境中跳过发送邮件
+      if (isCI) {
+        console.log('CI 环境中跳过发送验证邮件')
+        return
       }
 
-      const finalUrl = urlObj.toString()
+      try {
+        // 确保 URL 包含正确的回调地址
+        // 如果 URL 已经包含 callbackURL 参数，则替换它
+        const urlObj = new URL(url)
+        const hasCallbackParam = urlObj.searchParams.has('callbackURL')
 
-      // Use the sendEmail function to send verification email
-      await sendEmail({
-        to: user.email,
-        subject: 'Verify your email address',
-        body: `
-          <h1>Verify your email address</h1>
-          <p>Thank you for signing up! Please click the link below to verify your email address:</p>
-          <p><a href="${finalUrl}" style="padding: 10px 15px; background-color: #4F46E5; color: white; text-decoration: none; border-radius: 5px;">Verify Email</a></p>
-          <p>Or copy and paste this URL into your browser:</p>
-          <p>${finalUrl}</p>
-          <p>This link will expire in 24 hours.</p>
-        `,
-      })
+        if (hasCallbackParam) {
+          urlObj.searchParams.set('callbackURL', '/verify-success')
+        } else {
+          // 如果没有 callbackURL 参数，则添加它
+          urlObj.searchParams.append('callbackURL', '/verify-success')
+        }
+
+        const finalUrl = urlObj.toString()
+
+        // Use the sendEmail function to send verification email
+        await sendEmail({
+          to: user.email,
+          subject: 'Verify your email address',
+          body: `
+            <h1>Verify your email address</h1>
+            <p>Thank you for signing up! Please click the link below to verify your email address:</p>
+            <p><a href="${finalUrl}" style="padding: 10px 15px; background-color: #4F46E5; color: white; text-decoration: none; border-radius: 5px;">Verify Email</a></p>
+            <p>Or copy and paste this URL into your browser:</p>
+            <p>${finalUrl}</p>
+            <p>This link will expire in 24 hours.</p>
+          `,
+        })
+      } catch (error) {
+        console.error('发送验证邮件失败:', error)
+      }
     },
   },
 
@@ -94,7 +108,7 @@ export const auth = betterAuth({
   },
 
   // Security configuration
-  secret: env.BETTER_AUTH_SECRET,
+  secret: safeSecret,
   tablePrefix: 'lc_builder_', // Match our schema prefix
 
   // Optional: Configure callbacks

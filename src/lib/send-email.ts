@@ -8,6 +8,7 @@
  */
 
 import { env } from '@/env'
+import { isCI } from '@/utils/is-ci'
 
 interface SendEmailOptions {
   to: string
@@ -30,15 +31,26 @@ export async function sendEmail({
   reply,
   headers,
 }: SendEmailOptions) {
-  const options = {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${env.PLUNK_API_KEY}`,
-    },
-    body: JSON.stringify({ to, subject, body, subscribed, name, from, reply, headers }),
+  // 在 CI 环境中模拟发送邮件
+  if (isCI) {
+    console.log('CI 环境中模拟发送邮件:', { to, subject })
+    return { success: true, message: 'Email sending simulated in CI environment' }
   }
-  const response = await fetch(env.PLUNK_API_URL + '/send', options)
-  const data = await response.json()
-  return data
+
+  try {
+    const options = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${env.PLUNK_API_KEY}`,
+      },
+      body: JSON.stringify({ to, subject, body, subscribed, name, from, reply, headers }),
+    }
+    const response = await fetch(env.PLUNK_API_URL + '/send', options)
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('发送邮件失败:', error)
+    throw error
+  }
 }
