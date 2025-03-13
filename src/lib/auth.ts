@@ -5,10 +5,6 @@ import { db } from '@/db'
 import { account, session, user, verification } from '@/db/schema'
 import { env } from '@/env'
 import { sendEmail } from '@/lib/send-email'
-import { isCI } from '@/utils/is-ci'
-
-// 在 CI 环境中使用安全的默认值
-const safeSecret = isCI ? 'ci-test-secret-key-for-testing-only' : env.BETTER_AUTH_SECRET
 
 /**
  * Better Auth configuration
@@ -61,12 +57,6 @@ export const auth = betterAuth({
     verificationCallbackURL: '/verify-success', // Redirect to this URL after verification
     autoSignInAfterVerification: false, // 不要在验证后自动登录
     sendVerificationEmail: async ({ user, url, token }, request) => {
-      // 在 CI 环境中跳过发送邮件
-      if (isCI) {
-        console.log('CI 环境中跳过发送验证邮件')
-        return
-      }
-
       try {
         // 确保 URL 包含正确的回调地址
         // 如果 URL 已经包含 callbackURL 参数，则替换它
@@ -108,7 +98,7 @@ export const auth = betterAuth({
   },
 
   // Security configuration
-  secret: safeSecret,
+  secret: env.BETTER_AUTH_SECRET,
   tablePrefix: 'lc_builder_', // Match our schema prefix
 
   // Optional: Configure callbacks

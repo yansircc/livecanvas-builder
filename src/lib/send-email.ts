@@ -8,7 +8,6 @@
  */
 
 import { env } from '@/env'
-import { isCI } from '@/utils/is-ci'
 
 interface SendEmailOptions {
   to: string
@@ -31,12 +30,6 @@ export async function sendEmail({
   reply,
   headers,
 }: SendEmailOptions) {
-  // 在 CI 环境中模拟发送邮件
-  if (isCI) {
-    console.log('CI 环境中模拟发送邮件:', { to, subject })
-    return { success: true, message: 'Email sending simulated in CI environment' }
-  }
-
   try {
     const options = {
       method: 'POST',

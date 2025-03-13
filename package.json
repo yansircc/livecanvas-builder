@@ -23,7 +23,7 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mdx}\" --cache",
     "commitlint": "commitlint --edit",
     "prepare": "husky",
-    "clean": "rm -rf .next",
+    "clean": "rm -rf .next && rm -rf node_modules && rm -rf bun.lockb && bun i",
     "trigger:dev": "bunx trigger.dev@latest dev",
     "trigger:deploy": "bunx trigger.dev@latest deploy"
   },

@@ -3,27 +3,12 @@ import { NextResponse } from 'next/server'
 import { db } from '@/db'
 import { user } from '@/db/schema'
 import { getServerSession } from '@/lib/auth-server'
-import { isCI } from '@/utils/is-ci'
 
 /**
  * API endpoint to refresh the user session with the latest data from the database
  */
 export async function GET() {
   try {
-    // 在 CI 环境中返回模拟响应
-    if (isCI) {
-      console.log('在 CI 环境中运行，返回模拟响应')
-      return NextResponse.json({
-        success: true,
-        user: {
-          id: 'mock-user-id',
-          name: 'CI Test User',
-          email: 'test@example.com',
-          image: null,
-        },
-      })
-    }
-
     // Get the current user session
     const session = await getServerSession()
     if (!session) {
