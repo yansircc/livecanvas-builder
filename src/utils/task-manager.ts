@@ -116,7 +116,14 @@ export async function checkTaskStatus(taskId: string): Promise<TaskResponse> {
       throw new Error(errorData.error ?? `获取任务状态失败，状态码 ${response.status}`)
     }
 
-    return (await response.json()) as TaskResponse
+    const result = (await response.json()) as TaskResponse
+
+    // 记录原始状态，用于调试
+    console.log(
+      `Task ${taskId} status: ${result.status}, original status: ${result.originalStatus}`,
+    )
+
+    return result
   } catch (error) {
     console.error('检查任务状态出错:', error)
     // 返回一个默认响应，表示任务仍在处理中

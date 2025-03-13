@@ -54,7 +54,7 @@ export default function Page() {
 
   // 状态管理 - 保留状态但不在UI中显示
   const [currentMessage, setCurrentMessage] = useState('')
-  const [taskId, setTaskId] = useState<string | null>(null)
+  const [_taskId, setTaskId] = useState<string | null>(null)
   const [_taskStatus, setTaskStatus] = useState<'processing' | 'completed' | 'error' | null>(null)
   const [_taskError, setTaskError] = useState<string | null>(null)
   const [_isPolling, setIsPolling] = useState(false)
@@ -150,6 +150,21 @@ export default function Page() {
 
       if (status.error) {
         setTaskError(typeof status.error === 'string' ? status.error : JSON.stringify(status.error))
+
+        // Show error toast with the actual error message
+        if (status.status === 'error') {
+          const errorMessage =
+            typeof status.error === 'string'
+              ? status.error
+              : status.error?.message || '生成失败，请检查 Trigger.dev 配置'
+
+          // 显示特定的取消消息
+          if (status.originalStatus === 'CANCELED') {
+            toast.error('任务已被取消')
+          } else {
+            toast.error(`生成失败: ${errorMessage}`)
+          }
+        }
       }
 
       // 如果任务完成，处理输出
@@ -158,7 +173,7 @@ export default function Page() {
         setState('isLoading', false)
       } else if (status.status === 'error') {
         setState('isLoading', false)
-        toast.error('生成失败，请重试')
+        // Error toast is already shown above when error is detected
       }
     },
     [processTaskOutput, setState],
@@ -242,26 +257,28 @@ export default function Page() {
           void pollTaskStatus({
             taskId: taskResponse.taskId,
             onStatusUpdate: handleTaskStatusUpdate,
-            maxRetries: 3,
+            maxRetries: 5, // Increase retries
             retryInterval: 3000,
             timeout: 600000, // 10分钟
           })
             .catch((error) => {
               setIsPolling(false)
               console.error('任务轮询失败:', error)
-              toast.error('生成超时，请重试')
+              toast.error(
+                `任务状态检查失败: ${error instanceof Error ? error.message : '未知错误'}`,
+              )
               setState('isLoading', false)
             })
             .finally(() => {
               setIsPolling(false)
             })
         } else {
-          toast.error('提交任务失败，请重试')
+          toast.error('提交任务失败，请检查 Trigger.dev 配置')
           setState('isLoading', false)
         }
       } catch (error) {
         console.error('API error:', error)
-        toast.error(error instanceof Error ? error.message : '生成模板时出错')
+        toast.error(error instanceof Error ? `错误: ${error.message}` : '生成模板时出错')
         setState('isLoading', false)
       }
     },
