@@ -66,6 +66,8 @@ jobs:
         env:
           NEXT_TELEMETRY_DISABLED: 1
           NODE_ENV: 'production'
+          CI: 'true'
+          GITHUB_ACTIONS: 'true'
           AI_HUB_MIX_API_KEY: 'CI_PLACEHOLDER'
           AI_HUB_MIX_ENDPOINT: 'CI_PLACEHOLDER'
           NEXT_PUBLIC_BETTER_AUTH_URL: 'CI_PLACEHOLDER'
@@ -75,6 +77,8 @@ jobs:
           BETTER_AUTH_SECRET: 'CI_PLACEHOLDER'
           DATABASE_URL: 'CI_PLACEHOLDER'
           NEXT_PUBLIC_IMAGE_PLACEHOLDER_PREFIX: 'CI_PLACEHOLDER'
+          TRIGGER_SECRET_KEY: 'CI_PLACEHOLDER'
+
         run: bun run build
 
       - name: 📊 Generate build report
