@@ -7,18 +7,14 @@ import { MainNav } from '@/components/main-nav'
 import type { ModelId } from '@/lib/models'
 import { useAppStore } from '@/store/use-app-store'
 import { processHtml } from '@/utils/process-html'
+import {
+  pollTaskStatus,
+  submitTask,
+  type ConversationHistoryItem,
+  type TaskResponse,
+} from '@/utils/task-manager'
 import { CodeOutput } from './components/code-output'
 import { EnhancedForm, MAX_CONTEXT_LENGTH } from './components/enhanced-form'
-
-interface CodeResponse {
-  code: string
-  advices?: string[] | null
-  usage?: {
-    promptTokens: number
-    completionTokens: number
-    totalTokens: number
-  }
-}
 
 // Interface for the form values from EnhancedForm
 interface FormValues {
@@ -56,26 +52,28 @@ export default function Page() {
     resetState,
   } = useAppStore()
 
-  // Add a state variable to store the current message
+  // 状态管理 - 保留状态但不在UI中显示
   const [currentMessage, setCurrentMessage] = useState('')
+  const [taskId, setTaskId] = useState<string | null>(null)
+  const [_taskStatus, setTaskStatus] = useState<'processing' | 'completed' | 'error' | null>(null)
+  const [_taskError, setTaskError] = useState<string | null>(null)
+  const [_isPolling, setIsPolling] = useState(false)
 
-  // Clear version history when the page loads
+  // 初始化和重置
   useEffect(() => {
     resetState({ keepUserSettings: true, keepVersions: false })
   }, [resetState])
 
-  // Reset current message when code is reset
   useEffect(() => {
     if (code === null) {
       setCurrentMessage('')
     }
   }, [code])
 
-  // Render template to HTML
+  // HTML 处理
   const renderTemplateToHtml = useCallback(
     (htmlCode: string) => {
       try {
-        // Process HTML to replace Lucide icons with SVGs where possible
         try {
           const processedHtmlWithIcons = processHtml(htmlCode)
           setState('processedHtml', processedHtmlWithIcons)
@@ -97,149 +95,199 @@ export default function Page() {
     [setState],
   )
 
-  const handleSubmit = (data: FormValues) => {
-    // Store the current message for later use
-    setCurrentMessage(data.message)
+  // 处理任务输出
+  const processTaskOutput = useCallback(
+    (output: any) => {
+      if (!output?.code) return
 
-    // Validate inputs
-    if (!data.message.trim()) {
-      toast.error('请输入提示词')
-      return
-    }
+      // 设置代码
+      setState('code', output.code)
 
-    // Prepare the complete form data with values from the app store
-    const completeData: CompleteFormData = {
-      message: data.message,
-      model: model || 'anthropic/claude-3-7-sonnet-20250219',
-      apiKey: apiKey ?? '',
-      // Only include context if the toggle is on
-      context: data.includeContext ? (context ?? '') : '',
-    }
+      // 处理建议
+      if (output.advices) {
+        const processedAdvices = Array.isArray(output.advices)
+          ? output.advices
+              .filter(Boolean)
+              .map((advice: unknown) => (typeof advice === 'string' ? advice : String(advice)))
+          : [String(output.advices)]
 
-    if (completeData.context && completeData.context.length > MAX_CONTEXT_LENGTH) {
-      toast.error(`背景信息必须少于 ${MAX_CONTEXT_LENGTH} 个字符`)
-      return
-    }
-
-    // Reset state but keep user settings and versions
-    resetState({ keepUserSettings: true, keepVersions: true })
-    setState('isLoading', true)
-
-    // Build conversation history based on the current version
-    const conversationHistory = []
-
-    // If we're on a specific version, get only the most recent AI response
-    if (currentVersionIndex >= 0 && versions.length > 0) {
-      // Get the current version (most recent AI response)
-      const currentVersion = versions[currentVersionIndex]
-
-      // Only add the most recent AI response to the history
-      if (currentVersion) {
-        conversationHistory.push({
-          prompt: currentVersion.prompt,
-          response: currentVersion.code,
-        })
+        setState('advices', processedAdvices)
+      } else {
+        setState('advices', [])
       }
 
-      // Log the optimized context for debugging
+      // 保存 token 使用信息
+      if (output.usage) {
+        setState('usage', output.usage)
+      }
+
+      // 处理 HTML
+      const processedHtml = renderTemplateToHtml(output.code)
+
+      // 添加新版本
+      const formData = {
+        message: currentMessage,
+        model,
+        apiKey,
+        context,
+      }
+
+      addVersion(currentMessage, formData)
+
+      // 打开预览
+      if (processedHtml) {
+        openPreview(processedHtml)
+      }
+    },
+    [setState, renderTemplateToHtml, currentMessage, model, apiKey, context, addVersion],
+  )
+
+  // 处理任务状态更新
+  const handleTaskStatusUpdate = useCallback(
+    (status: TaskResponse) => {
+      console.log('任务状态更新:', status)
+      setTaskStatus(status.status)
+
+      if (status.error) {
+        setTaskError(typeof status.error === 'string' ? status.error : JSON.stringify(status.error))
+      }
+
+      // 如果任务完成，处理输出
+      if (status.status === 'completed' && status.output) {
+        processTaskOutput(status.output)
+        setState('isLoading', false)
+      } else if (status.status === 'error') {
+        setState('isLoading', false)
+        toast.error('生成失败，请重试')
+      }
+    },
+    [processTaskOutput, setState],
+  )
+
+  // 构建对话历史
+  const buildConversationHistory = useCallback((): ConversationHistoryItem[] => {
+    const history: ConversationHistoryItem[] = []
+
+    if (currentVersionIndex >= 0 && versions.length > 0) {
+      const currentVersion = versions[currentVersionIndex]
+      if (currentVersion) {
+        history.push({
+          prompt: currentVersion.prompt,
+          response: currentVersion.code ?? '',
+        })
+      }
       console.log('优化上下文: 仅发送最新的AI响应')
     }
 
-    // Make the API call
-    void (async () => {
+    return history
+  }, [currentVersionIndex, versions])
+
+  // 提交表单处理
+  const handleSubmit = useCallback(
+    async (data: FormValues) => {
+      // 保存当前消息
+      setCurrentMessage(data.message)
+
+      // 验证输入
+      if (!data.message.trim()) {
+        toast.error('请输入提示词')
+        return
+      }
+
+      // 准备表单数据
+      const completeData: CompleteFormData = {
+        message: data.message,
+        model: model || 'anthropic/claude-3-7-sonnet-20250219',
+        apiKey: apiKey ?? '',
+        context: data.includeContext ? (context ?? '') : '',
+      }
+
+      if (completeData.context && completeData.context.length > MAX_CONTEXT_LENGTH) {
+        toast.error(`背景信息必须少于 ${MAX_CONTEXT_LENGTH} 个字符`)
+        return
+      }
+
+      // 重置状态
+      resetState({ keepUserSettings: true, keepVersions: true })
+      setState('isLoading', true)
+      setTaskId(null)
+      setTaskStatus(null)
+      setTaskError(null)
+      setIsPolling(false)
+
+      // 构建对话历史
+      const conversationHistory = buildConversationHistory()
+
+      // 提交任务
       try {
-        // Make a direct fetch request to the API
-        const response = await fetch('/api/chat', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            message: completeData.message,
-            context: (completeData.context || '').substring(0, 1200),
-            history: conversationHistory,
-            apiKey: completeData.apiKey ?? undefined,
-            model: completeData.model,
-          }),
+        const taskResponse = await submitTask({
+          message: completeData.message,
+          context: (completeData.context || '').substring(0, 1200),
+          history: conversationHistory,
+          apiKey: completeData.apiKey ?? undefined,
+          model: completeData.model,
         })
 
-        if (!response.ok) {
-          const errorData = (await response.json().catch(() => ({}))) as {
-            error?: string
-          }
-          throw new Error(errorData.error ?? `API请求失败，状态码 ${response.status}`)
-        }
+        console.log('任务已提交:', taskResponse)
 
-        // Parse the response as JSON
-        const object: CodeResponse = (await response.json()) as CodeResponse
+        // 保存任务ID
+        if (taskResponse.taskId) {
+          setTaskId(taskResponse.taskId)
+          setTaskStatus('processing')
+          toast.success('正在生成中，请稍候...')
 
-        // Process the code
-        if (object.code) {
-          setState('code', object.code)
+          // 开始轮询任务状态
+          setIsPolling(true)
 
-          // Handle advices with robust type checking and conversion
-          if (object.advices) {
-            let processedAdvices: string[] = []
-            if (Array.isArray(object.advices)) {
-              processedAdvices = object.advices
-                .filter((advice) => advice !== null && advice !== undefined)
-                .map((advice) => (typeof advice === 'string' ? advice : String(advice)))
-              setState('advices', processedAdvices)
-            } else {
-              // Fallback for unexpected format
-              setState('advices', [String(object.advices)])
-            }
-          } else {
-            setState('advices', [])
-          }
-
-          // Save token usage information
-          if (object.usage) {
-            setState('usage', object.usage)
-          }
-
-          // Process the HTML
-          const processedHtml = renderTemplateToHtml(object.code)
-
-          // Add a new version with the current form data
-          const formData = {
-            message: currentMessage,
-            model: model,
-            apiKey: apiKey,
-            context: context,
-          }
-
-          addVersion(currentMessage, formData)
-
-          // Open preview with the current version's HTML
-          if (processedHtml) {
-            openPreview(processedHtml)
-          }
+          void pollTaskStatus({
+            taskId: taskResponse.taskId,
+            onStatusUpdate: handleTaskStatusUpdate,
+            maxRetries: 3,
+            retryInterval: 3000,
+            timeout: 600000, // 10分钟
+          })
+            .catch((error) => {
+              setIsPolling(false)
+              console.error('任务轮询失败:', error)
+              toast.error('生成超时，请重试')
+              setState('isLoading', false)
+            })
+            .finally(() => {
+              setIsPolling(false)
+            })
+        } else {
+          toast.error('提交任务失败，请重试')
+          setState('isLoading', false)
         }
       } catch (error) {
         console.error('API error:', error)
         toast.error(error instanceof Error ? error.message : '生成模板时出错')
-      } finally {
         setState('isLoading', false)
       }
-    })()
-  }
+    },
+    [
+      model,
+      apiKey,
+      context,
+      resetState,
+      setState,
+      handleTaskStatusUpdate,
+      buildConversationHistory,
+    ],
+  )
 
   const handleAdviceClick = (advice: string) => {
-    // This is now just a placeholder since the form handles it internally
     console.log('建议点击:', advice)
   }
 
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950">
-      {/* MainNav */}
       <MainNav />
 
-      {/* Main Content */}
       <main className="flex-1 py-8">
         <div className="container mx-auto h-full px-4">
           <div className="grid h-full grid-cols-1 gap-8 md:grid-cols-2">
-            {/* Left: Form Panel */}
+            {/* 左侧：表单面板 */}
             <div>
               <EnhancedForm
                 onSubmit={handleSubmit}
@@ -250,7 +298,7 @@ export default function Page() {
               />
             </div>
 
-            {/* Right: Output Panel */}
+            {/* 右侧：输出面板 */}
             <div className="h-full">
               <CodeOutput
                 code={code ?? ''}
@@ -263,7 +311,6 @@ export default function Page() {
         </div>
       </main>
 
-      {/* Footer */}
       <Footer />
     </div>
   )

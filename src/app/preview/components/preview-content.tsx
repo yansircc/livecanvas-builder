@@ -4,7 +4,6 @@ import { FileCode } from 'lucide-react'
 import { toast } from 'sonner'
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { PublishProjectDialog } from '@/components/publish-project-dialog'
 import { captureIframeScreenshot } from '@/lib/screenshot'
 import { IframeWrapper } from '@/utils/iframe-wrapper'
 import { getOriginalContent, loadContentFromStorage } from '../utils/content-loader'
@@ -13,6 +12,7 @@ import { deviceConfigs, DeviceSelector, type DeviceType } from './device-selecto
 import { HashNavigationHandler } from './hash-navigation-handler'
 import { LoadingSpinner } from './loading-spinner'
 import { getIframeContent, PreviewFrame } from './preview-frame'
+import { PublishProjectDialog } from './publish-project-dialog'
 
 export function PreviewContent() {
   const searchParams = useSearchParams()

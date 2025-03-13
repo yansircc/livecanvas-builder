@@ -23,7 +23,9 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mdx}\" --cache",
     "commitlint": "commitlint --edit",
     "prepare": "husky",
-    "clean": "rm -rf .next"
+    "clean": "rm -rf .next",
+    "trigger:dev": "bunx trigger.dev@latest dev",
+    "trigger:deploy": "bunx trigger.dev@latest deploy"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^1.1.15",
@@ -42,6 +44,7 @@
     "@radix-ui/react-tabs": "^1.1.3",
     "@radix-ui/react-tooltip": "^1.1.8",
     "@t3-oss/env-nextjs": "^0.10.1",
+    "@trigger.dev/sdk": "^3.3.17",
     "@types/dom-to-image": "^2.6.7",
     "ai": "^4.1.54",
     "babel-plugin-react-compiler": "^19.0.0-beta-bafa41b-20250307",
@@ -78,6 +81,7 @@
     "@commitlint/config-conventional": "^19.8.0",
     "@ianvs/prettier-plugin-sort-imports": "^4.4.1",
     "@tailwindcss/postcss": "^4.0.12",
+    "@trigger.dev/build": "^3.3.17",
     "@types/bun": "^1.2.4",
     "@types/eslint": "^8.56.10",
     "@types/node": "^20.14.10",
