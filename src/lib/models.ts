@@ -36,7 +36,7 @@ export const LLM_LIST: Record<string, LLM> = {
           input: 3.3,
           output: 16.5,
         },
-        canOutputStructuredData: true,
+        canOutputStructuredData: false,
       },
       {
         name: 'Claude 3.5 Sonnet',

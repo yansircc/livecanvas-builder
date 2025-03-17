@@ -57,8 +57,8 @@ export const chatGenerationTask = task({
     logger.log('Using model', { modelValue, canOutputStructuredData })
 
     try {
-      // Try to generate response
-      const response = await generateResponseWithRetry(
+      // Generate response without retry (trigger.dev handles retries)
+      const response = await generateResponse(
         provider.model(modelValue),
         contextualPrompt,
         canOutputStructuredData,
@@ -108,85 +108,71 @@ function buildContextualPrompt(
 }
 
 /**
- * Generate response with retry
+ * Generate response without retry (trigger.dev handles retries)
  */
-async function generateResponseWithRetry(
+async function generateResponse(
   model: any,
   prompt: string,
   canOutputStructuredData: boolean,
-  maxRetries = 2,
 ): Promise<
   CodeResponse & { usage?: { promptTokens: number; completionTokens: number; totalTokens: number } }
 > {
-  let lastError
+  if (canOutputStructuredData) {
+    // Use generateObject
+    const { object, usage } = await generateObject({
+      model,
+      schema: codeSchema,
+      prompt,
+    })
 
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      if (canOutputStructuredData) {
-        // Use generateObject
-        const { object, usage } = await generateObject({
-          model,
-          schema: codeSchema,
-          prompt,
-        })
+    logger.debug('Generated object', { object })
 
-        // Replace image placeholders
-        if (object.code) {
-          object.code = replaceWithUnsplashImages(object.code)
-        }
+    // Replace image placeholders
+    if (object.code) {
+      object.code = replaceWithUnsplashImages(object.code)
+    }
 
-        return {
-          ...object,
-          usage: usage
-            ? {
-                promptTokens: usage.promptTokens,
-                completionTokens: usage.completionTokens,
-                totalTokens: usage.totalTokens,
-              }
-            : undefined,
-        }
-      } else {
-        // Use generateText
-        logger.log(`Model doesn't support structured data output, using generateText`)
-        const { text, usage } = await generateText({
-          model,
-          prompt:
-            prompt +
-            "\n\nPlease respond with a valid JSON object containing 'code' and 'advices' fields. Format your response as a JSON object without any markdown formatting.",
-        })
-
-        // Parse response
-        const parsedObject = extractAndParseJSON<CodeResponse>(text)
-
-        if (parsedObject && parsedObject.code) {
-          // Replace image placeholders
-          parsedObject.code = replaceWithUnsplashImages(parsedObject.code)
-
-          return {
-            ...parsedObject,
-            usage: usage
-              ? {
-                  promptTokens: usage.promptTokens,
-                  completionTokens: usage.completionTokens,
-                  totalTokens: usage.totalTokens,
-                }
-              : undefined,
+    return {
+      ...object,
+      usage: usage
+        ? {
+            promptTokens: usage.promptTokens,
+            completionTokens: usage.completionTokens,
+            totalTokens: usage.totalTokens,
           }
-        } else {
-          throw new Error('Failed to parse LLM response as JSON')
-        }
-      }
-    } catch (error) {
-      lastError = error
-      logger.error(`Attempt ${attempt + 1} failed`, { error })
+        : undefined,
+    }
+  } else {
+    // Use generateText
+    logger.log(`Model doesn't support structured data output, using generateText`)
+    const { text, usage } = await generateText({
+      model,
+      prompt:
+        prompt +
+        "\n\nPlease respond with a valid JSON object containing 'code' and 'advices' fields. Format your response as a JSON object without any markdown formatting.",
+    })
 
-      // If this is the last retry, throw the error
-      if (attempt === maxRetries) {
-        throw lastError
+    logger.debug('Generated text', { text })
+
+    // Parse response
+    const parsedObject = extractAndParseJSON<CodeResponse>(text)
+
+    if (parsedObject && parsedObject.code) {
+      // Replace image placeholders
+      parsedObject.code = replaceWithUnsplashImages(parsedObject.code)
+
+      return {
+        ...parsedObject,
+        usage: usage
+          ? {
+              promptTokens: usage.promptTokens,
+              completionTokens: usage.completionTokens,
+              totalTokens: usage.totalTokens,
+            }
+          : undefined,
       }
+    } else {
+      throw new Error('Failed to parse LLM response as JSON')
     }
   }
-
-  // This should never be reached due to the throw in the loop
-  throw lastError
 }

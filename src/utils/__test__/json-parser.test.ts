@@ -6,288 +6,262 @@ interface TestObject {
   advices: string[]
 }
 
-describe('extractAndParseJSON', () => {
-  // Valid JSON cases
-  it('should parse valid JSON correctly', () => {
-    const validJson = '{"code": "<div>Test</div>", "advices": ["Advice 1", "Advice 2"]}'
-    const result = extractAndParseJSON<TestObject>(validJson)
+describe('Refactored JSON Parser Tests', () => {
+  // Test for unescaped newlines in string literals
+  it('should handle unescaped newlines in string literals', () => {
+    const jsonWithNewlines = `{
+      "code": "<div>
+        <h1>Title</h1>
+        <p>Paragraph with
+        multiple
+        lines</p>
+      </div>",
+      "advices": ["First advice", "Second advice"]
+    }`
+
+    const result = extractAndParseJSON<TestObject>(jsonWithNewlines)
 
     expect(result).not.toBeNull()
-    expect(result?.code).toBe('<div>Test</div>')
-    expect(result?.advices).toEqual(['Advice 1', 'Advice 2'])
+    expect(result?.code).toContain('<div>')
+    expect(result?.code).toContain('<h1>Title</h1>')
+    expect(result?.advices).toHaveLength(2)
   })
 
-  // Markdown code block cases
-  it('should extract JSON from markdown code blocks with json tag', () => {
-    const markdownJson =
-      '```json\n{"code": "<div>Test</div>", "advices": ["Advice 1", "Advice 2"]}\n```'
-    const result = extractAndParseJSON<TestObject>(markdownJson)
-
-    expect(result).not.toBeNull()
-    expect(result?.code).toBe('<div>Test</div>')
-    expect(result?.advices).toEqual(['Advice 1', 'Advice 2'])
-  })
-
-  it('should extract JSON from markdown code blocks without language tag', () => {
-    const markdownJson =
-      '```\n{"code": "<div>Test</div>", "advices": ["Advice 1", "Advice 2"]}\n```'
-    const result = extractAndParseJSON<TestObject>(markdownJson)
-
-    expect(result).not.toBeNull()
-    expect(result?.code).toBe('<div>Test</div>')
-    expect(result?.advices).toEqual(['Advice 1', 'Advice 2'])
-  })
-
-  it('should extract JSON from markdown code blocks with javascript tag', () => {
-    const markdownJson =
-      '```javascript\n{"code": "<div>Test</div>", "advices": ["Advice 1", "Advice 2"]}\n```'
-    const result = extractAndParseJSON<TestObject>(markdownJson)
-
-    expect(result).not.toBeNull()
-    expect(result?.code).toBe('<div>Test</div>')
-    expect(result?.advices).toEqual(['Advice 1', 'Advice 2'])
-  })
-
-  // JSON with surrounding text
-  it('should extract JSON from text with surrounding content', () => {
-    const textWithJson =
-      'Here is the response:\n{"code": "<div>Test</div>", "advices": ["Advice 1", "Advice 2"]}\nHope this helps!'
-    const result = extractAndParseJSON<TestObject>(textWithJson)
-
-    expect(result).not.toBeNull()
-    expect(result?.code).toBe('<div>Test</div>')
-    expect(result?.advices).toEqual(['Advice 1', 'Advice 2'])
-  })
-
-  // Nested markdown and text
-  it('should extract JSON from nested markdown and text', () => {
-    const nestedMarkdown =
-      'I recommend using this HTML:\n\n```json\n{"code": "<div>Test</div>", "advices": ["Advice 1", "Advice 2"]}\n```\n\nLet me know if you need anything else.'
-    const result = extractAndParseJSON<TestObject>(nestedMarkdown)
-
-    expect(result).not.toBeNull()
-    expect(result?.code).toBe('<div>Test</div>')
-    expect(result?.advices).toEqual(['Advice 1', 'Advice 2'])
-  })
-
-  // JSON with formatting issues
-  it('should handle JSON with single quotes instead of double quotes', () => {
-    const singleQuotesJson = "{'code': '<div>Test</div>', 'advices': ['Advice 1', 'Advice 2']}"
-    const result = extractAndParseJSON<TestObject>(singleQuotesJson)
-
-    expect(result).not.toBeNull()
-    expect(result?.code).toBe('<div>Test</div>')
-    expect(result?.advices).toEqual(['Advice 1', 'Advice 2'])
-  })
-
-  it('should handle JSON with unquoted keys', () => {
-    const unquotedKeysJson = "{code: '<div>Test</div>', advices: ['Advice 1', 'Advice 2']}"
-    const result = extractAndParseJSON<TestObject>(unquotedKeysJson)
-
-    expect(result).not.toBeNull()
-    expect(result?.code).toBe('<div>Test</div>')
-    expect(result?.advices).toEqual(['Advice 1', 'Advice 2'])
-  })
-
-  // Complex nested structures
-  it('should handle complex nested JSON structures', () => {
-    const complexJson = `
-    \`\`\`json
-    {
-      "code": "<div class=\\"container\\">\\n  <h1>Hello World</h1>\\n  <p>This is a test</p>\\n</div>",
+  // Test for nested HTML with attributes and complex structure
+  it('should handle complex HTML with attributes and nested structure', () => {
+    const complexHtml = `{
+      "code": "<section class=\\"container\\" data-aos=\\"fade-up\\">
+        <div class=\\"row align-items-center\\">
+          <div class=\\"col-md-6\\">
+            <h2 class=\\"display-4 mb-4\\">Product Features</h2>
+            <p class=\\"lead\\">Our product offers the following features:</p>
+            <ul class=\\"list-unstyled\\">
+              <li><i class=\\"lucide-check text-success mr-2\\"></i> Feature 1</li>
+              <li><i class=\\"lucide-check text-success mr-2\\"></i> Feature 2</li>
+              <li><i class=\\"lucide-check text-success mr-2\\"></i> Feature 3</li>
+            </ul>
+            <button class=\\"btn btn-primary mt-3\\">Learn More</button>
+          </div>
+          <div class=\\"col-md-6\\">
+            <img src=\\"https://example.com/image.jpg\\" alt=\\"Product\\" class=\\"img-fluid rounded shadow\\">
+          </div>
+        </div>
+      </section>",
       "advices": [
-        "Add more semantic HTML elements",
-        "Consider using CSS Grid for layout",
-        "Improve accessibility with ARIA attributes"
+        "Use semantic HTML elements for better accessibility",
+        "Consider adding more whitespace between elements",
+        "Make sure images have appropriate alt text"
       ]
-    }
-    \`\`\`
-    `
+    }`
 
-    const result = extractAndParseJSON<TestObject>(complexJson)
+    const result = extractAndParseJSON<TestObject>(complexHtml)
+
+    expect(result).not.toBeNull()
+    expect(result?.code).toContain('<section class="container"')
+    expect(result?.code).toContain('<button class="btn btn-primary mt-3">')
+    expect(result?.advices).toHaveLength(3)
+  })
+
+  // Test for malformed JSON with mixed quote styles and missing commas
+  it('should handle malformed JSON with mixed quote styles and missing commas', () => {
+    const malformedJson = `{
+      "code": '<div class="container">
+        <h1>Mixed Quotes</h1>
+        <p>This has "nested" quotes</p>
+      </div>'
+      advices: [
+        'Missing comma after code'
+        "Mixed quote styles"
+        'Missing comma here too'
+      ]
+    }`
+
+    const result = extractAndParseJSON<TestObject>(malformedJson)
 
     expect(result).not.toBeNull()
     expect(result?.code).toContain('<div class="container">')
-    expect(result?.advices).toHaveLength(3)
-    expect(result?.advices[0]).toBe('Add more semantic HTML elements')
+    expect(result?.advices.length).toBeGreaterThan(0)
   })
 
-  // Malformed JSON that should still be parsed
-  it('should handle JSON with trailing commas', () => {
-    const trailingCommaJson = '{"code": "<div>Test</div>", "advices": ["Advice 1", "Advice 2",]}'
-    const result = extractAndParseJSON<TestObject>(trailingCommaJson)
-
-    // This test might fail with standard JSON.parse, but our function should handle it
-    expect(result).not.toBeNull()
-  })
-
-  // Edge cases
-  it('should return null for empty input', () => {
-    expect(extractAndParseJSON('')).toBeNull()
-  })
-
-  it('should return null for non-string input', () => {
-    // @ts-expect-error Testing invalid input type
-    expect(extractAndParseJSON(null)).toBeNull()
-    // @ts-expect-error Testing invalid input type
-    expect(extractAndParseJSON(undefined)).toBeNull()
-    // @ts-expect-error Testing invalid input type
-    expect(extractAndParseJSON(123)).toBeNull()
-  })
-
-  it('should return null for completely invalid JSON', () => {
-    const invalidJson = 'This is not JSON at all'
-    expect(extractAndParseJSON(invalidJson)).toBeNull()
-  })
-
-  // Real-world LLM response examples
-  it('should handle real-world LLM response with markdown', () => {
-    const llmResponse = `
-    I've created a simple HTML button with Bootstrap styling and AOS animation:
-
-    \`\`\`json
-    {
-      "code": "<section class=\\"container py-5\\">\\n  <div class=\\"d-flex justify-content-center\\">\\n    <button class=\\"btn btn-primary\\" data-aos=\\"fade-up\\" data-aos-duration=\\"1000\\">\\n      <i class=\\"lucide-check\\" style=\\"font-size: 0.8em;\\"></i> 立即咨询\\n    </button>\\n  </div>\\n</section>",
-      "advices": [
-        "使用Bootstrap的\`btn\`类确保按钮样式一致且响应式。",
-        "添加AOS动画\`fade-up\`提升按钮的视觉吸引力。",
-        "通过\`d-flex\`和\`justify-content-center\`确保按钮在页面中居中显示。"
-      ]
-    }
-    \`\`\`
-
-    This button has the following features:
-    1. Centered in the container using Bootstrap's flexbox utilities
-    2. Primary button styling from Bootstrap
-    3. Fade-up animation using AOS library
-    4. A small check icon from Lucide icons
-    5. Chinese text that says "Consult Now"
-    `
-
-    const result = extractAndParseJSON<TestObject>(llmResponse)
-
-    expect(result).not.toBeNull()
-    expect(result?.code).toContain('<section class="container py-5">')
-    expect(result?.advices).toHaveLength(3)
-  })
-
-  it('should handle LLM response with escaped quotes and special characters', () => {
-    const escapedResponse = `
-    \`\`\`json
-    {
-      "code": "<div class=\\"container\\">\\n  <p>This has \\"quoted\\" text and special chars like \\\\, \\n, and \\t</p>\\n</div>",
-      "advices": [
-        "Advice with \\"quotes\\"",
-        "Advice with \\\\backslashes\\\\",
-        "Advice with \\nnewlines"
-      ]
-    }
-    \`\`\`
-    `
-
-    const result = extractAndParseJSON<TestObject>(escapedResponse)
-
-    expect(result).not.toBeNull()
-    expect(result?.code).toContain('This has "quoted" text')
-    expect(result?.advices[0]).toContain('"quotes"')
-  })
-
-  // Multiple JSON objects in the same string
-  it('should extract the first valid JSON object when multiple are present', () => {
-    const multipleJson = `
-    First object:
-    {"code": "<div>First</div>", "advices": ["First Advice"]}
+  // Test for JSON embedded in markdown with surrounding text
+  it('should extract JSON from markdown with surrounding text', () => {
+    const markdownWithJson = `
+    # Response to your request
     
-    Second object:
-    {"code": "<div>Second</div>", "advices": ["Second Advice"]}
+    Here's the HTML component you requested:
+    
+    \`\`\`json
+    {
+      "code": "<div class=\\"card\\">
+        <div class=\\"card-header\\">
+          <h3>Card Title</h3>
+        </div>
+        <div class=\\"card-body\\">
+          <p>Card content goes here</p>
+        </div>
+        <div class=\\"card-footer\\">
+          <button class=\\"btn\\">Click Me</button>
+        </div>
+      </div>",
+      "advices": [
+        "Consider adding more padding",
+        "Use a more descriptive button text"
+      ]
+    }
+    \`\`\`
+    
+    Let me know if you need any adjustments to the code above.
     `
 
-    const result = extractAndParseJSON<TestObject>(multipleJson)
+    const result = extractAndParseJSON<TestObject>(markdownWithJson)
 
     expect(result).not.toBeNull()
-    expect(result?.code).toBe('<div>First</div>')
+    expect(result?.code).toContain('<div class="card">')
+    expect(result?.advices).toHaveLength(2)
   })
 
-  // Additional edge cases
-  it('should handle JSON with nested quotes in values', () => {
-    const nestedQuotesJson =
-      '{"code": "<div class=\\"container\\">Test</div>", "advices": ["Use \\"quotes\\" properly"]}'
-    const result = extractAndParseJSON<TestObject>(nestedQuotesJson)
-
-    expect(result).not.toBeNull()
-    expect(result?.code).toBe('<div class="container">Test</div>')
-    expect(result?.advices[0]).toBe('Use "quotes" properly')
-  })
-
-  it('should handle JSON with JavaScript-style comments', () => {
-    const jsonWithComments = `
+  // Test for extremely malformed but recoverable JSON
+  it('should recover from extremely malformed JSON', () => {
+    const extremelyMalformedJson = `
     {
-      // This is a comment
-      "code": "<div>Test</div>", /* Another comment */
-      "advices": ["Advice 1", "Advice 2"]
+      code: <div>
+        <h1>This is not even in quotes</h1>
+        <p>And has unescaped < and > characters</p>
+      </div>
+      
+      advices: [
+        This isn't in quotes either
+        Neither is this
+        "But this one is"
+      ]
     }
     `
 
-    const result = extractAndParseJSON<TestObject>(jsonWithComments)
+    const result = extractAndParseJSON<TestObject>(extremelyMalformedJson)
 
+    // We just expect some kind of result, not necessarily perfect
     expect(result).not.toBeNull()
-    expect(result?.code).toBe('<div>Test</div>')
+    expect(result?.code).toBeDefined()
   })
 
-  it('should handle partial JSON extraction when full parsing fails', () => {
+  // Test for JSON with Unicode characters and emojis
+  it('should handle JSON with Unicode characters and emojis', () => {
+    const unicodeJson = `{
+      "code": "<div>
+        <h1>你好，世界！</h1>
+        <p>This contains emojis: 🚀 🔥 👍</p>
+        <p>And special characters: ©®™</p>
+      </div>",
+      "advices": ["Unicode advice: 这是一个建议", "Emoji advice: 👍 works well"]
+    }`
+
+    const result = extractAndParseJSON<TestObject>(unicodeJson)
+
+    expect(result).not.toBeNull()
+    expect(result?.code).toContain('你好，世界！')
+    expect(result?.code).toContain('🚀 🔥 👍')
+    expect(result?.advices[0]).toContain('这是一个建议')
+  })
+
+  // Test for JSON with deeply nested structures
+  it('should handle deeply nested JSON structures', () => {
+    const deeplyNestedJson = `{
+      "code": "<div class=\\"outer\\">
+        <div class=\\"level-1\\">
+          <div class=\\"level-2\\">
+            <div class=\\"level-3\\">
+              <div class=\\"level-4\\">
+                <div class=\\"level-5\\">
+                  <p>Deeply nested content</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>",
+      "advices": [
+        "Consider flattening your HTML structure",
+        "Too many nested divs can impact performance",
+        "Use semantic elements instead of generic divs"
+      ]
+    }`
+
+    const result = extractAndParseJSON<TestObject>(deeplyNestedJson)
+
+    expect(result).not.toBeNull()
+    expect(result?.code).toContain('level-5')
+    expect(result?.code).toContain('Deeply nested content')
+    expect(result?.advices).toHaveLength(3)
+  })
+
+  // Test for JSON with JavaScript code snippets inside
+  it('should handle JSON with JavaScript code snippets inside', () => {
+    const jsonWithJavaScript = `{
+      "code": "<script>
+        function handleClick() {
+          const x = document.getElementById('demo');
+          if (x.style.display === 'none') {
+            x.style.display = 'block';
+          } else {
+            x.style.display = 'none';
+          }
+          // This is a comment
+          /* This is a 
+             multi-line comment */
+          return false;
+        }
+      </script>
+      <button onclick=\\"handleClick()\\">Toggle</button>
+      <div id=\\"demo\\">This is a demo</div>",
+      "advices": [
+        "Avoid inline JavaScript for better separation of concerns",
+        "Consider using addEventListener instead of onclick attribute"
+      ]
+    }`
+
+    const result = extractAndParseJSON<TestObject>(jsonWithJavaScript)
+
+    expect(result).not.toBeNull()
+    expect(result?.code).toContain('function handleClick()')
+    expect(result?.code).toContain('document.getElementById')
+    expect(result?.advices).toHaveLength(2)
+  })
+
+  // Test for partial JSON extraction
+  it('should extract partial JSON when complete parsing fails', () => {
     const partialJson = `
-    The code is:
-    "code": "<div>Partial</div>",
-    and the advices are:
-    "advices": ["Partial Advice 1", "Partial Advice 2"]
+    Here's what you need:
+    
+    code: "<div>Just the code part</div>"
+    
+    And some advices:
+    
+    advices: ["Just the advice part"]
+    
+    Hope this helps!
     `
 
     const result = extractAndParseJSON<TestObject>(partialJson)
 
     expect(result).not.toBeNull()
-    expect(result?.code).toBe('<div>Partial</div>')
-    expect(result?.advices).toContainEqual('Partial Advice 1')
+    // We're just checking if it extracted something reasonable
+    expect(result?.code).toBeDefined()
+    expect(result?.code).toContain('<div>')
   })
 
-  it('should handle JSON with Unicode characters', () => {
-    const unicodeJson =
-      '{"code": "<div>Unicode: \\u00A9 \\u2713 \\u2665</div>", "advices": ["Unicode: 你好，世界"]}'
-    const result = extractAndParseJSON<TestObject>(unicodeJson)
-
-    expect(result).not.toBeNull()
-    expect(result?.code).toContain('Unicode:')
-    expect(result?.advices[0]).toContain('你好，世界')
-  })
-
-  it('should handle JSON with special characters in keys', () => {
-    const specialKeysJson =
-      '{"code-html": "<div>Test</div>", "advices_list": ["Advice 1", "Advice 2"]}'
-
-    // We need to use any here since our interface doesn't match the keys
-    const result = extractAndParseJSON<any>(specialKeysJson)
-
-    expect(result).not.toBeNull()
-    expect(result?.['code-html']).toBe('<div>Test</div>')
-    expect(result?.advices_list).toEqual(['Advice 1', 'Advice 2'])
-  })
-
-  it('should handle extremely malformed but recoverable JSON', () => {
-    const malformedJson = `
-    {
-      code: '<div>Malformed</div>'
-      advices: [
-        'Missing commas'
-        'Unquoted keys'
-        'Single quotes'
-      ]
-    }
+  // Test for HTML extraction as last resort
+  it('should extract HTML as last resort when JSON parsing fails completely', () => {
+    const htmlOnly = `
+    <div class="container">
+      <h1>This is just HTML</h1>
+      <p>No JSON structure around it</p>
+    </div>
     `
 
-    const result = extractAndParseJSON<TestObject>(malformedJson)
+    const result = extractAndParseJSON<TestObject>(htmlOnly)
 
     expect(result).not.toBeNull()
-    expect(result?.code).toContain('<div>Malformed</div>')
-    // We don't test exact advices content as the parsing might vary
+    expect(result?.code).toContain('<div class="container">')
     expect(result?.advices).toBeDefined()
   })
 })

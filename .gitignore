@@ -48,3 +48,6 @@ yarn-error.log*
 # drizzle
 /drizzle/
 .trigger
+
+# docs
+/docs/

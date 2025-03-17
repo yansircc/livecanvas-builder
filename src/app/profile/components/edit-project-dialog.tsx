@@ -66,14 +66,6 @@ export function EditProjectDialog({ project, onClose, onSave }: EditProjectDialo
           <DialogTitle className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
             编辑项目
           </DialogTitle>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute top-4 right-4 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-            onClick={onClose}
-          >
-            <X className="h-4 w-4" />
-          </Button>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 py-2">
