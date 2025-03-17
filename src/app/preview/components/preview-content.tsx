@@ -1,14 +1,20 @@
 'use client'
 
-import { FileCode } from 'lucide-react'
+import { Eye, FileCode } from 'lucide-react'
 import { toast } from 'sonner'
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { Button } from '@/components/ui/button'
 import { captureIframeScreenshot } from '@/lib/screenshot'
 import { IframeWrapper } from '@/utils/iframe-wrapper'
+import { generateCustomCSS } from '../services/theme-generator'
+import { useStyleStore } from '../store/style-store'
 import { getOriginalContent, loadContentFromStorage } from '../utils/content-loader'
+import { ButtonSchemeSelector } from './button-scheme-selector'
+import { ColorSchemeSelector } from './color-scheme-selector'
 import { CopyButton } from './copy-button'
 import { deviceConfigs, DeviceSelector, type DeviceType } from './device-selector'
+import { FontSchemeSelector } from './font-scheme-selector'
 import { HashNavigationHandler } from './hash-navigation-handler'
 import { LoadingSpinner } from './loading-spinner'
 import { getIframeContent, PreviewFrame } from './preview-frame'
@@ -20,6 +26,14 @@ export function PreviewContent() {
   const [content, setContent] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [device, setDevice] = useState<DeviceType>('desktop')
+
+  // Use the zustand store for customization options
+  const { customOptions, setColorScheme, setFontScheme, setButtonScheme } = useStyleStore()
+  const [customCSS, setCustomCSS] = useState<string>('')
+
+  // Preview mode to show the style preview component
+  const [previewMode, setPreviewMode] = useState<boolean>(false)
+
   const [isCapturing, setIsCapturing] = useState(false)
   const originalDeviceRef = useRef<DeviceType>('desktop')
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
@@ -33,6 +47,24 @@ export function PreviewContent() {
     setContent(htmlContent)
     setLoading(false)
   }, [contentId])
+
+  // Generate custom CSS when the customization options change
+  useEffect(() => {
+    const css = generateCustomCSS(customOptions)
+    setCustomCSS(css)
+
+    // If iframe exists, send theme change message
+    const iframe = iframeRef.current || document.querySelector('iframe')
+    if (iframe?.contentWindow) {
+      iframe.contentWindow.postMessage(
+        {
+          type: 'themeChange',
+          css: css,
+        },
+        '*',
+      )
+    }
+  }, [customOptions])
 
   // Store iframe reference
   useEffect(() => {
@@ -48,6 +80,28 @@ export function PreviewContent() {
   const handleDeviceChange = (newDevice: DeviceType) => {
     setDevice(newDevice)
     originalDeviceRef.current = newDevice
+  }
+
+  // Handle customization changes
+  const handleColorSchemeChange = (schemeId: string) => {
+    setColorScheme(schemeId)
+    toast.success(`Color scheme updated`)
+  }
+
+  const handleFontSchemeChange = (schemeId: string) => {
+    setFontScheme(schemeId)
+    toast.success(`Font scheme updated`)
+  }
+
+  const handleButtonSchemeChange = (schemeId: string) => {
+    setButtonScheme(schemeId)
+    toast.success(`Button style updated`)
+  }
+
+  // Toggle preview mode
+  const togglePreviewMode = () => {
+    setPreviewMode((prev) => !prev)
+    toast.success(previewMode ? 'Showing actual content' : 'Showing style preview')
   }
 
   // Get content for copying
@@ -176,28 +230,37 @@ export function PreviewContent() {
     return <LoadingSpinner />
   }
 
-  const iframeContent = IframeWrapper(content)
+  const iframeContent = IframeWrapper(content, customCSS, previewMode)
   const currentDevice = deviceConfigs[device]
 
   return (
     <div key={urlKey} className="flex min-h-screen flex-col bg-zinc-100 dark:bg-zinc-900">
-      {/* Header with title, device selector, and copy button */}
+      {/* Main header with title and primary actions */}
       <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white px-6 py-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-        <div className="container mx-auto flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
-                <FileCode className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
-              </div>
-              <div>
-                <h1 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">HTML 预览</h1>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">查看生成的组件</p>
-              </div>
+        <div className="container mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
+              <FileCode className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+            </div>
+            <div>
+              <h1 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">HTML 预览</h1>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">查看生成的组件</p>
             </div>
           </div>
 
-          <DeviceSelector onDeviceChange={handleDeviceChange} initialDevice={device} />
           <div className="flex items-center gap-2">
+            {/* Toggle preview mode */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={togglePreviewMode}
+              className="flex items-center gap-1 text-xs"
+            >
+              <Eye className="h-3 w-3" />
+              {previewMode ? 'Show Content' : 'Style Preview'}
+            </Button>
+
+            {/* Action buttons */}
             <CopyButton getContentToCopy={getContentToCopy} />
             <PublishProjectDialog
               htmlContent={content}
@@ -207,6 +270,30 @@ export function PreviewContent() {
           </div>
         </div>
       </header>
+
+      {/* Secondary header for style adjustments */}
+      <div className="border-b border-zinc-200 bg-white px-6 py-2 dark:border-zinc-800 dark:bg-zinc-950">
+        <div className="container mx-auto flex flex-wrap items-center justify-between gap-2">
+          {/* Device selector */}
+          <DeviceSelector onDeviceChange={handleDeviceChange} initialDevice={device} />
+
+          {/* Style selectors */}
+          <div className="flex flex-wrap gap-2">
+            <ColorSchemeSelector
+              onChange={handleColorSchemeChange}
+              currentScheme={customOptions.colorScheme}
+            />
+            <FontSchemeSelector
+              onChange={handleFontSchemeChange}
+              currentScheme={customOptions.fontScheme}
+            />
+            <ButtonSchemeSelector
+              onChange={handleButtonSchemeChange}
+              currentScheme={customOptions.buttonScheme}
+            />
+          </div>
+        </div>
+      </div>
 
       {/* Preview frame */}
       <main className="flex-1 overflow-auto bg-zinc-100 dark:bg-zinc-900">

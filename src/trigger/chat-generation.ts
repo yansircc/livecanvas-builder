@@ -31,8 +31,6 @@ export const chatGenerationTask = task({
   // Set a maximum duration for the task
   maxDuration: 300, // 5 minutes
   run: async (payload: z.infer<typeof chatInputSchema>) => {
-    logger.log('Starting chat generation task', { payload })
-
     const { message, context, history, model } = payload
 
     // Default model if none provided
@@ -54,8 +52,6 @@ export const chatGenerationTask = task({
     // Build contextual prompt
     const contextualPrompt = buildContextualPrompt(message, context, history)
 
-    logger.log('Using model', { modelValue, canOutputStructuredData })
-
     try {
       // Generate response without retry (trigger.dev handles retries)
       const response = await generateResponse(
@@ -63,8 +59,6 @@ export const chatGenerationTask = task({
         contextualPrompt,
         canOutputStructuredData,
       )
-
-      logger.log('Generation successful', { responseLength: response.code.length })
 
       return response
     } catch (error) {
@@ -144,7 +138,6 @@ async function generateResponse(
     }
   } else {
     // Use generateText
-    logger.log(`Model doesn't support structured data output, using generateText`)
     const { text, usage } = await generateText({
       model,
       prompt:
@@ -152,9 +145,8 @@ async function generateResponse(
         "\n\nPlease respond with a valid JSON object containing 'code' and 'advices' fields. Format your response as a JSON object without any markdown formatting.",
     })
 
-    logger.debug('Generated text', { text })
-
     // Parse response
+    logger.info('Raw response', { text })
     const parsedObject = extractAndParseJSON<CodeResponse>(text)
 
     if (parsedObject && parsedObject.code) {

@@ -167,8 +167,20 @@ export function PublishProjectDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger || (
-          <Button variant="default" size="sm" disabled={isCapturingScreenshot || isLoading}>
-            {isCapturingScreenshot ? '准备截图中...' : '发布到画廊'}
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isCapturingScreenshot || isLoading}
+            className="flex items-center gap-1 text-xs"
+          >
+            {isCapturingScreenshot ? (
+              <>
+                <Loader2 className="h-3 w-3 animate-spin" />
+                <span>准备截图中...</span>
+              </>
+            ) : (
+              <span>发布到画廊</span>
+            )}
           </Button>
         )}
       </DialogTrigger>
