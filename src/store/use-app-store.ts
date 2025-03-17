@@ -315,7 +315,7 @@ const stateCreator: StateCreator<AppState, [], [], AppState> = (set, get) => ({
                 ? {
                     code: output.code,
                     advices: output.advices || [],
-                    processedHtml: state.processedHtml,
+                    processedHtml: output.processedHtml || state.processedHtml,
                     usage: output.usage,
                   }
                 : {}),
@@ -329,7 +329,7 @@ const stateCreator: StateCreator<AppState, [], [], AppState> = (set, get) => ({
   resetState: (options = {}) => {
     const { keepVersions = false, keepUserSettings = false, keepContext = false } = options
 
-    set((state) => ({
+    set((_state) => ({
       isLoading: false,
       code: null,
       advices: [],
