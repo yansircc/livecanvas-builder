@@ -25,6 +25,15 @@ export default function ProfilePage() {
   const [activeSection, setActiveSection] = useState('profile')
   const [isSigningOut, setIsSigningOut] = useState(false)
 
+  // Debug session data
+  useEffect(() => {
+    if (session) {
+      console.log('Session data:', session)
+      console.log('User data:', session.user)
+      console.log('Background info:', (session.user as any)?.backgroundInfo)
+    }
+  }, [session])
+
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!isPending && !session) {

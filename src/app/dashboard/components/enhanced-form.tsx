@@ -1,7 +1,7 @@
 'use client'
 
 import { AnimatePresence, motion } from 'framer-motion'
-import { CircleFadingPlus, Folder, Paperclip, Send } from 'lucide-react'
+import { CircleFadingPlus, Folder, InfoIcon, Send } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { useEffect, useState } from 'react'
 import dynamic from 'next/dynamic'
@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { getModelPrice, MODELS, type ModelId } from '@/lib/models'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/use-app-store'
@@ -67,19 +68,58 @@ const EnhancedFormClient = ({
   onAdviceClick,
   initialMessage = '',
 }: EnhancedFormProps) => {
-  const { model, setState } = useAppStore()
+  const { model, context, setState } = useAppStore()
   const [isClient, setIsClient] = useState(false)
+  const [_isLoadingContext, setIsLoadingContext] = useState(false)
+  const [localContext, setLocalContext] = useState(context)
+  const hasContext = Boolean(localContext && localContext.trim().length > 0)
 
   // Ensure client-side rendering only
   useEffect(() => {
     setIsClient(true)
   }, [])
 
+  // Fetch context from API if not available in app store
+  useEffect(() => {
+    const fetchUserContext = async () => {
+      // If context is already available in app store, use it
+      if (context && context.trim().length > 0) {
+        setLocalContext(context)
+        return
+      }
+
+      try {
+        setIsLoadingContext(true)
+        const response = await fetch('/api/user/me')
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && data.user && data.user.backgroundInfo) {
+            // Update local state and app store with background info
+            setLocalContext(data.user.backgroundInfo)
+            setState('context', data.user.backgroundInfo)
+          }
+        } else {
+          console.error('Failed to fetch user context:', response.statusText)
+        }
+      } catch (error) {
+        console.error('Error fetching user context:', error)
+      } finally {
+        setIsLoadingContext(false)
+      }
+    }
+
+    // Only fetch if we're on the client and don't have context yet
+    if (isClient && (!context || context.trim().length === 0)) {
+      void fetchUserContext()
+    }
+  }, [isClient, context, setState])
+
   // Initialize form with values from store
   const form = useForm<FormValues>({
     defaultValues: {
       message: initialMessage,
-      includeContext: true,
+      includeContext: hasContext,
     },
   })
 
@@ -95,6 +135,7 @@ const EnhancedFormClient = ({
     const completeData = {
       message: data.message,
       includeContext: data.includeContext,
+      context: localContext,
     }
 
     onSubmit(completeData)
@@ -221,62 +262,93 @@ const EnhancedFormClient = ({
                               control={form.control}
                               name="includeContext"
                               render={({ field: contextField }) => (
-                                <button
-                                  type="button"
-                                  onClick={() => contextField.onChange(!contextField.value)}
-                                  className={cn(
-                                    'flex h-8 cursor-pointer items-center gap-2 rounded-full border px-1.5 py-1 transition-all',
-                                    contextField.value
-                                      ? 'border-sky-400 bg-sky-500/15 text-sky-500'
-                                      : 'border-transparent bg-zinc-200/50 text-zinc-500 hover:text-zinc-700 dark:bg-zinc-700/50 dark:text-zinc-400 dark:hover:text-zinc-300',
-                                  )}
-                                >
-                                  <div className="flex h-4 w-4 shrink-0 items-center justify-center">
-                                    <motion.div
-                                      animate={{
-                                        rotate: contextField.value ? 180 : 0,
-                                        scale: contextField.value ? 1.1 : 1,
-                                      }}
-                                      whileHover={{
-                                        rotate: contextField.value ? 180 : 15,
-                                        scale: 1.1,
-                                        transition: {
-                                          type: 'spring',
-                                          stiffness: 300,
-                                          damping: 10,
-                                        },
-                                      }}
-                                      transition={{
-                                        type: 'spring',
-                                        stiffness: 260,
-                                        damping: 25,
-                                      }}
-                                    >
-                                      <CircleFadingPlus
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <button
+                                        type="button"
+                                        onClick={() => contextField.onChange(!contextField.value)}
                                         className={cn(
-                                          'h-4 w-4',
-                                          contextField.value ? 'text-sky-500' : 'text-inherit',
+                                          'flex h-8 cursor-pointer items-center gap-2 rounded-full border px-1.5 py-1 transition-all',
+                                          contextField.value && hasContext
+                                            ? 'border-sky-400 bg-sky-500/15 text-sky-500'
+                                            : contextField.value && !hasContext
+                                              ? 'border-amber-400 bg-amber-500/15 text-amber-500'
+                                              : 'border-transparent bg-zinc-200/50 text-zinc-500 hover:text-zinc-700 dark:bg-zinc-700/50 dark:text-zinc-400 dark:hover:text-zinc-300',
                                         )}
-                                      />
-                                    </motion.div>
-                                  </div>
-                                  <AnimatePresence>
-                                    {contextField.value && (
-                                      <motion.span
-                                        initial={{ width: 0, opacity: 0 }}
-                                        animate={{
-                                          width: 'auto',
-                                          opacity: 1,
-                                        }}
-                                        exit={{ width: 0, opacity: 0 }}
-                                        transition={{ duration: 0.2 }}
-                                        className="shrink-0 overflow-hidden text-sm whitespace-nowrap text-sky-500"
                                       >
-                                        背景信息
-                                      </motion.span>
-                                    )}
-                                  </AnimatePresence>
-                                </button>
+                                        <div className="flex h-4 w-4 shrink-0 items-center justify-center">
+                                          <motion.div
+                                            animate={{
+                                              rotate: contextField.value ? 180 : 0,
+                                              scale: contextField.value ? 1.1 : 1,
+                                            }}
+                                            whileHover={{
+                                              rotate: contextField.value ? 180 : 15,
+                                              scale: 1.1,
+                                              transition: {
+                                                type: 'spring',
+                                                stiffness: 300,
+                                                damping: 10,
+                                              },
+                                            }}
+                                            transition={{
+                                              type: 'spring',
+                                              stiffness: 260,
+                                              damping: 25,
+                                            }}
+                                          >
+                                            {contextField.value && !hasContext ? (
+                                              <InfoIcon
+                                                className={cn('h-4 w-4', 'text-amber-500')}
+                                              />
+                                            ) : (
+                                              <CircleFadingPlus
+                                                className={cn(
+                                                  'h-4 w-4',
+                                                  contextField.value && hasContext
+                                                    ? 'text-sky-500'
+                                                    : 'text-inherit',
+                                                )}
+                                              />
+                                            )}
+                                          </motion.div>
+                                        </div>
+                                        <AnimatePresence>
+                                          {contextField.value && (
+                                            <motion.span
+                                              initial={{ width: 0, opacity: 0 }}
+                                              animate={{
+                                                width: 'auto',
+                                                opacity: 1,
+                                              }}
+                                              exit={{ width: 0, opacity: 0 }}
+                                              transition={{ duration: 0.2 }}
+                                              className={cn(
+                                                'shrink-0 overflow-hidden text-sm whitespace-nowrap',
+                                                hasContext ? 'text-sky-500' : 'text-amber-500',
+                                              )}
+                                            >
+                                              背景信息
+                                            </motion.span>
+                                          )}
+                                        </AnimatePresence>
+                                      </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" className="max-w-xs">
+                                      {hasContext ? (
+                                        <div className="max-h-[200px] overflow-y-auto text-xs">
+                                          <p className="mb-1 font-medium">背景信息:</p>
+                                          <p className="whitespace-pre-wrap">{localContext}</p>
+                                        </div>
+                                      ) : (
+                                        <p className="text-xs">
+                                          您尚未设置背景信息。请在个人资料页面添加背景信息，以便AI更好地理解您的需求。
+                                        </p>
+                                      )}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
                               )}
                             />
                           </div>

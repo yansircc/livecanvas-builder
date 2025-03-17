@@ -199,7 +199,7 @@ export default function Page() {
 
   // 提交表单处理
   const handleSubmit = useCallback(
-    async (data: FormValues) => {
+    async (data: FormValues & { context?: string }) => {
       // 保存当前消息
       setCurrentMessage(data.message)
 
@@ -214,7 +214,7 @@ export default function Page() {
         message: data.message,
         model: model || 'anthropic/claude-3-7-sonnet-20250219',
         apiKey: apiKey ?? '',
-        context: data.includeContext ? (context ?? '') : '',
+        context: data.includeContext ? data.context || context || '' : '',
       }
 
       if (completeData.context && completeData.context.length > MAX_CONTEXT_LENGTH) {

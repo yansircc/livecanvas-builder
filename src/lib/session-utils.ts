@@ -18,7 +18,19 @@ export async function refreshSession(): Promise<void> {
  */
 export async function updateSessionData(): Promise<boolean> {
   try {
-    // Call the refresh session API
+    // First, call our custom update-session API to ensure the session data is updated
+    const updateResponse = await fetch('/api/auth/update-session', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!updateResponse.ok) {
+      console.error('Failed to update session data:', updateResponse.statusText)
+    }
+
+    // Then call the refresh session API
     const response = await fetch('/api/auth/refresh-session', {
       method: 'GET',
       headers: {

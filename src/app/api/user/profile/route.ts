@@ -14,7 +14,7 @@ export async function PUT(request: Request) {
 
     // Parse request body
     const body = await request.json()
-    const { name, image } = body
+    const { name, image, backgroundInfo } = body
 
     // Validate input
     if (!name || name.trim() === '') {
@@ -27,6 +27,7 @@ export async function PUT(request: Request) {
       .set({
         name,
         image,
+        backgroundInfo,
         updatedAt: new Date(),
       })
       .where(eq(user.id, session.user.id))
@@ -49,6 +50,7 @@ export async function PUT(request: Request) {
         name: updatedUser.name,
         email: updatedUser.email,
         image: updatedUser.image,
+        backgroundInfo: updatedUser.backgroundInfo,
       },
     })
   } catch (error) {

@@ -1,5 +1,7 @@
+import { customSessionClient } from 'better-auth/client/plugins'
 import { createAuthClient } from 'better-auth/react'
 import { env } from '@/env'
+import type { auth } from '@/lib/auth' // Import the auth instance as a type
 
 /**
  * Client-side authentication hooks and utilities
@@ -26,6 +28,9 @@ export const {
   },
   // Add a timeout for session loading
   sessionLoadingTimeout: 5000, // 5 seconds timeout
+  plugins: [
+    customSessionClient<typeof auth>(), // Add type inference for custom session fields
+  ],
 })
 
 /**

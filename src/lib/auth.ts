@@ -99,17 +99,10 @@ export const auth = betterAuth({
 
   // Security configuration
   secret: env.BETTER_AUTH_SECRET,
-  tablePrefix: 'lc_builder_', // Match our schema prefix
+  tablePrefix: 'lc_builder_',
 
   // Optional: Configure callbacks
   callbacks: {
-    // Customize the session object
-    session: ({ session, user }: { session: any; user: any }) => {
-      if (session.user) {
-        session.user.id = user.id
-      }
-      return session
-    },
     // Control which users can sign in
     signIn: ({ user }: { user: any }) => {
       // Always allow sign in for now

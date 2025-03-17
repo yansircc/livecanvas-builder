@@ -2,12 +2,14 @@ import { eq } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 import { db } from '@/db'
 import { user } from '@/db/schema'
+import { auth } from '@/lib/auth'
 import { getServerSession } from '@/lib/auth-server'
 
 /**
- * API endpoint to refresh the user session with the latest data from the database
+ * API endpoint to update the user session with the latest data from the database
+ * This is a workaround for better-auth's limitation in updating session data
  */
-export async function GET() {
+export async function GET(request: Request) {
   try {
     // Get the current user session
     const session = await getServerSession()
@@ -24,19 +26,22 @@ export async function GET() {
       return NextResponse.json({ success: false, error: '用户未找到' }, { status: 404 })
     }
 
-    // Return the latest user data
-    return NextResponse.json({
-      success: true,
+    // Create a new session with the updated user data
+    const updatedSession = {
+      ...session,
       user: {
-        id: userData.id,
-        name: userData.name,
-        email: userData.email,
-        image: userData.image,
+        ...session.user,
         backgroundInfo: userData.backgroundInfo,
       },
+    }
+
+    // Return the updated session data
+    return NextResponse.json({
+      success: true,
+      session: updatedSession,
     })
   } catch (error) {
-    console.error('刷新会话失败:', error)
-    return NextResponse.json({ success: false, error: '刷新会话失败' }, { status: 500 })
+    console.error('更新会话失败:', error)
+    return NextResponse.json({ success: false, error: '更新会话失败' }, { status: 500 })
   }
 }
