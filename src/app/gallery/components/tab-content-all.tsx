@@ -11,8 +11,8 @@ interface TabContentAllProps {
   viewMode: 'grid' | 'list'
   interactions: Record<string, { hasLiked: boolean; hasFavorited: boolean }>
   onSelect: (project: Project) => void
-  onLike: (projectId: string) => void
-  onFavorite: (projectId: string) => void
+  onLike: (projectId: string, event?: React.MouseEvent) => void
+  onFavorite: (projectId: string, event?: React.MouseEvent) => void
 }
 
 export function TabContentAll({

@@ -210,9 +210,6 @@ export async function likeProject(projectId: string) {
         })
         .where(eq(project.id, projectId))
 
-      revalidatePath('/gallery')
-      revalidatePath(`/gallery/${projectId}`)
-
       return { success: true, liked: false }
     } else {
       // Like the project
@@ -230,9 +227,6 @@ export async function likeProject(projectId: string) {
           likesCount: sql`${project.likesCount} + 1`,
         })
         .where(eq(project.id, projectId))
-
-      revalidatePath('/gallery')
-      revalidatePath(`/gallery/${projectId}`)
 
       return { success: true, liked: true }
     }
@@ -259,9 +253,6 @@ export async function favoriteProject(projectId: string) {
       // Unfavorite the project
       await db.delete(favorite).where(eq(favorite.id, existingFavorite.id))
 
-      revalidatePath('/gallery')
-      revalidatePath(`/gallery/${projectId}`)
-
       return { success: true, favorited: false }
     } else {
       // Favorite the project
@@ -271,9 +262,6 @@ export async function favoriteProject(projectId: string) {
         userId: session.user.id,
         createdAt: new Date(),
       })
-
-      revalidatePath('/gallery')
-      revalidatePath(`/gallery/${projectId}`)
 
       return { success: true, favorited: true }
     }

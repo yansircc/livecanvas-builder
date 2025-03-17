@@ -10,8 +10,8 @@ interface ProjectCardProps {
   onSelect: (project: Project) => void
   hasLiked?: boolean
   hasFavorited?: boolean
-  onLike?: (projectId: string) => void
-  onFavorite?: (projectId: string) => void
+  onLike?: (projectId: string, event?: React.MouseEvent) => void
+  onFavorite?: (projectId: string, event?: React.MouseEvent) => void
 }
 
 export function ProjectCard({
@@ -103,7 +103,7 @@ export function ProjectCard({
               className="h-8 w-8 rounded-full p-0"
               onClick={(e) => {
                 e.stopPropagation()
-                if (onLike) onLike(project.id)
+                if (onLike) onLike(project.id, e)
               }}
             >
               <Heart
@@ -117,7 +117,7 @@ export function ProjectCard({
               className="h-8 w-8 rounded-full p-0"
               onClick={(e) => {
                 e.stopPropagation()
-                if (onFavorite) onFavorite(project.id)
+                if (onFavorite) onFavorite(project.id, e)
               }}
             >
               <Bookmark

@@ -12,8 +12,8 @@ interface ProjectModalProps {
   onClose: () => void
   hasLiked: boolean
   hasFavorited: boolean
-  onLike: (projectId: string) => void
-  onFavorite: (projectId: string) => void
+  onLike: (projectId: string, event?: React.MouseEvent) => void
+  onFavorite: (projectId: string, event?: React.MouseEvent) => void
   onCopyCode?: (htmlContent: string) => void
 }
 
@@ -123,7 +123,7 @@ export function ProjectModal({
                 variant="outline"
                 size="sm"
                 className="flex items-center space-x-1"
-                onClick={() => onLike(project.id)}
+                onClick={(e) => onLike(project.id, e)}
               >
                 <Heart className={`h-4 w-4 ${hasLiked ? 'fill-red-500 text-red-500' : ''}`} />
                 <span>{hasLiked ? '已点赞' : '点赞'}</span>
@@ -132,7 +132,7 @@ export function ProjectModal({
                 variant="outline"
                 size="sm"
                 className="flex items-center space-x-1"
-                onClick={() => onFavorite(project.id)}
+                onClick={(e) => onFavorite(project.id, e)}
               >
                 <Bookmark
                   className={`h-4 w-4 ${hasFavorited ? 'fill-yellow-500 text-yellow-500' : ''}`}

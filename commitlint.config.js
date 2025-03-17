@@ -30,8 +30,9 @@ const Configuration = {
     'type-empty': [2, 'never'],
     'subject-empty': [2, 'never'],
     'subject-full-stop': [2, 'never', '.'],
-    'header-max-length': [2, 'always', 128],
-    'body-max-length': [2, 'always', 512],
+    'header-max-length': [2, 'always', 256],
+    'body-max-length': [2, 'always', 1024],
+    'body-max-line-length': [2, 'always', 256],
   },
   /*
    * Array of functions that return true if commitlint should ignore the given message.
