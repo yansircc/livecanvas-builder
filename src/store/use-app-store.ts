@@ -31,6 +31,23 @@ export interface Version {
   }
 }
 
+// Task history interface
+export interface TaskItem {
+  id: string
+  timestamp: number
+  message: string
+  status: 'processing' | 'completed' | 'error'
+  error?: string
+  code?: string | null
+  advices?: string[]
+  processedHtml?: string
+  usage?: {
+    promptTokens: number
+    completionTokens: number
+    totalTokens: number
+  }
+}
+
 // 定义可以通过 setState 设置的状态类型
 type SettableState = {
   apiKey: string | null
@@ -46,6 +63,8 @@ type SettableState = {
     completionTokens: number
     totalTokens: number
   }
+  // Task history
+  taskHistory: TaskItem[]
 }
 
 interface AppState extends SettableState {
@@ -67,6 +86,24 @@ interface AppState extends SettableState {
     },
   ) => void
   switchToVersion: (index: number) => void
+
+  // Task history methods
+  addTask: (taskId: string, message: string) => void
+  updateTaskStatus: (
+    taskId: string,
+    status: 'processing' | 'completed' | 'error',
+    error?: string,
+    output?: {
+      code: string | null
+      advices?: string[]
+      processedHtml?: string
+      usage?: {
+        promptTokens: number
+        completionTokens: number
+        totalTokens: number
+      }
+    },
+  ) => void
 
   // 重置方法
   resetState: (options?: {
@@ -188,6 +225,7 @@ const stateCreator: StateCreator<AppState, [], [], AppState> = (set, get) => ({
   usage: undefined,
   versions: [],
   currentVersionIndex: -1,
+  taskHistory: [],
 
   // 通用状态设置方法
   setState: (key, value) => set({ [key]: value }),
@@ -252,42 +290,70 @@ const stateCreator: StateCreator<AppState, [], [], AppState> = (set, get) => ({
     }
   },
 
+  // Task history methods
+  addTask: (taskId, message) => {
+    const newTask: TaskItem = {
+      id: taskId,
+      timestamp: Date.now(),
+      message,
+      status: 'processing',
+    }
+    set((state) => ({
+      taskHistory: [...state.taskHistory, newTask],
+    }))
+  },
+
+  updateTaskStatus: (taskId, status, error, output) => {
+    set((state) => ({
+      taskHistory: state.taskHistory.map((task) =>
+        task.id === taskId
+          ? {
+              ...task,
+              status,
+              ...(error ? { error } : {}),
+              ...(output
+                ? {
+                    code: output.code,
+                    advices: output.advices || [],
+                    processedHtml: state.processedHtml,
+                    usage: output.usage,
+                  }
+                : {}),
+            }
+          : task,
+      ),
+    }))
+  },
+
   // 重置方法
   resetState: (options = {}) => {
-    const { keepVersions = false, keepUserSettings = true, keepContext = true } = options
+    const { keepVersions = false, keepUserSettings = false, keepContext = false } = options
 
-    // 创建新状态对象
-    const newState: Partial<AppState> = {
+    set((state) => ({
       isLoading: false,
       code: null,
       advices: [],
       processedHtml: '',
-      usage: undefined,
       validationResult: {
         valid: true,
         errors: [],
       },
-    }
-
-    // 如果不保留版本，则重置版本相关状态
-    if (!keepVersions) {
-      newState.versions = []
-      newState.currentVersionIndex = -1
-    }
-
-    // 如果不保留用户设置，则重置用户设置
-    if (!keepUserSettings) {
-      newState.apiKey = null
-      newState.model = getDefaultModelValue()
-      newState.context = ''
-    }
-
-    // 确保重置上下文，即使保留用户设置
-    if (!keepContext) {
-      newState.context = ''
-    }
-
-    set(newState)
+      usage: undefined,
+      // Keep taskHistory on reset
+      ...(keepUserSettings
+        ? {}
+        : {
+            apiKey: initialState.apiKey,
+            model: initialState.model,
+          }),
+      ...(keepContext ? {} : { context: initialState.context }),
+      ...(keepVersions
+        ? {}
+        : {
+            versions: [],
+            currentVersionIndex: -1,
+          }),
+    }))
   },
 })
 

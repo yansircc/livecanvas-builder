@@ -127,6 +127,8 @@ const EnhancedFormClient = ({
   useEffect(() => {
     if (initialMessage) {
       form.setValue('message', initialMessage)
+    } else {
+      form.setValue('message', '')
     }
   }, [initialMessage, form])
 
@@ -355,7 +357,6 @@ const EnhancedFormClient = ({
                           <div className="absolute right-3 bottom-3">
                             <button
                               type="submit"
-                              disabled={isLoading}
                               className={cn(
                                 'flex h-8 w-8 items-center justify-center rounded-lg transition-colors',
                                 field.value
