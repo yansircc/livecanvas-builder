@@ -1,14 +1,15 @@
 'use client'
 
-import { Eye, FileCode } from 'lucide-react'
+import { FileCode } from 'lucide-react'
 import { toast } from 'sonner'
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Button } from '@/components/ui/button'
 import { captureIframeScreenshot } from '@/lib/screenshot'
+import { useCssStore } from '../stores/css-store'
 import { loadContentFromStorage } from '../utils/content-loader'
-import { processTailwindContent } from '../utils/css-processor'
+import { processContentWithCustomCss, processTailwindContent } from '../utils/css-processor'
 import { CopyButton } from './copy-button'
+import { CustomCssDialog } from './custom-css-dialog'
 import { deviceConfigs, DeviceSelector, type DeviceType } from './device-selector'
 import { LoadingSpinner } from './loading-spinner'
 import { PublishProjectDialog } from './publish-project-dialog'
@@ -20,23 +21,53 @@ export function PreviewContent() {
   const [processedContent, setProcessedContent] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [device, setDevice] = useState<DeviceType>('desktop')
-  const [previewMode, setPreviewMode] = useState<boolean>(false)
   const [iframeHeight, setIframeHeight] = useState<number>(600)
   const [isCapturing, setIsCapturing] = useState(false)
+  const [uniqueKey, setUniqueKey] = useState<number>(Date.now()) // Used to force iframe reload
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const originalDeviceRef = useRef<DeviceType>('desktop')
 
+  // Access custom CSS from store
+  const { customCss } = useCssStore()
+
   // Load content on mount
   useEffect(() => {
-    const htmlContent = loadContentFromStorage(contentId)
-    setContent(htmlContent)
+    loadAndProcessContent()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Process the content with Tailwind CSS
-    const tailwindContent = processTailwindContent(htmlContent)
-    setProcessedContent(tailwindContent)
+  // Re-process content when custom CSS changes
+  useEffect(() => {
+    loadAndProcessContent()
+  }, [customCss]) // eslint-disable-line react-hooks/exhaustive-deps
 
-    setLoading(false)
-  }, [contentId])
+  const loadAndProcessContent = () => {
+    try {
+      const htmlContent = loadContentFromStorage(contentId)
+      setContent(htmlContent)
+
+      // Process the content with custom CSS if available, otherwise use Tailwind CSS
+      if (customCss) {
+        const contentWithCustomCss = processContentWithCustomCss(htmlContent, customCss)
+        setProcessedContent(contentWithCustomCss)
+      } else {
+        const tailwindContent = processTailwindContent(htmlContent)
+        setProcessedContent(tailwindContent)
+      }
+    } catch (error) {
+      console.error('Error processing content:', error)
+      toast.error('Error processing content')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Handle forcing iframe reload
+  const handleReloadPage = () => {
+    // Change the unique key to force a complete iframe reload
+    setUniqueKey(Date.now())
+    // Re-process the content
+    loadAndProcessContent()
+  }
 
   // Listen for messages from the iframe to adjust height
   useEffect(() => {
@@ -61,12 +92,6 @@ export function PreviewContent() {
   // Handle device change
   const handleDeviceChange = (newDevice: DeviceType) => {
     setDevice(newDevice)
-  }
-
-  // Toggle preview mode
-  const togglePreviewMode = () => {
-    setPreviewMode((prev) => !prev)
-    toast.success(previewMode ? 'Showing actual content' : 'Showing preview content')
   }
 
   // Get content for copying
@@ -183,10 +208,8 @@ export function PreviewContent() {
           <div className="flex items-center gap-2">
             <DeviceSelector onDeviceChange={handleDeviceChange} initialDevice={device} />
 
-            <Button variant="outline" size="sm" onClick={togglePreviewMode} className="relative">
-              <Eye className="h-4 w-4" />
-              <span className="sr-only">Preview Mode</span>
-            </Button>
+            {/* CustomCssDialog with reload handler */}
+            <CustomCssDialog onReloadPage={handleReloadPage} />
 
             <CopyButton getContentToCopy={getContentToCopy} />
 
@@ -224,11 +247,12 @@ export function PreviewContent() {
               }}
             >
               <iframe
+                key={uniqueKey} // This forces a re-render of the iframe when uniqueKey changes
                 ref={iframeRef}
                 srcDoc={processedContent}
                 className="h-full w-full border-0"
                 title="Tailwind Preview"
-                sandbox="allow-scripts allow-same-origin"
+                sandbox="allow-scripts allow-same-origin allow-modals allow-forms allow-popups"
                 loading="lazy"
                 onLoad={() => {
                   // Try to force a resize after load
