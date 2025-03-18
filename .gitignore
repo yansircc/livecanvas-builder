@@ -51,3 +51,6 @@ yarn-error.log*
 
 # docs
 /docs/
+
+# scripts
+/src/scripts/

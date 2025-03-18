@@ -34,10 +34,10 @@ export default async function Home() {
       {/* Hero Section */}
       <section className="container mx-auto flex flex-col items-center justify-center py-20 text-center md:py-32">
         <h1 className="mb-6 text-4xl leading-tight font-bold md:text-6xl">
-          利用 AI 构建精美的 Bootstrap 网页组件
+          利用 AI 构建精美的 Tailwind CSS 网页组件
         </h1>
         <p className="text-muted-foreground mb-10 max-w-2xl text-xl">
-          LiveCanvas Builder 是一个强大的工具，利用 Aihubmax 为 LiveCanvas 生成兼容 Bootstrap 5 的
+          LiveCanvas Builder 是一个强大的工具，利用 Aihubmax 为 LiveCanvas 生成兼容 Tailwind CSS 的
           HTML 代码。通过简单的提示，您可以创建美观、响应式的网页组件。
         </p>
         <div className="flex flex-col gap-4 sm:flex-row">
@@ -64,7 +64,7 @@ export default async function Home() {
             </div>
             <h3 className="mb-2 text-xl font-semibold">AI 驱动的 HTML 生成</h3>
             <p className="text-muted-foreground">
-              使用 Aihubmax 创建兼容 Bootstrap 5 的 HTML，轻松构建响应式组件。
+              使用 Aihubmax 创建兼容 Tailwind CSS 的 HTML，轻松构建响应式组件。
             </p>
           </div>
           <div className="flex flex-col items-center rounded-lg border p-6 text-center">
@@ -92,7 +92,7 @@ export default async function Home() {
       <section className="bg-primary text-primary-foreground py-16">
         <div className="container mx-auto text-center">
           <h2 className="mb-6 text-3xl font-bold">准备好开始使用了吗？</h2>
-          <p className="mb-8 text-xl">立即注册并开始创建令人惊叹的 Bootstrap 组件。</p>
+          <p className="mb-8 text-xl">立即注册并开始创建令人惊叹的 Tailwind CSS 组件。</p>
           <Link href="/signup">
             <Button size="lg" variant="secondary" className="gap-2">
               免费注册 <ArrowRight className="h-4 w-4" />

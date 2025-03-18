@@ -55,7 +55,6 @@ export const UNSPLASH_IMAGES: Record<ImageCategory, string[]> = {
     'https://images.unsplash.com/photo-1493397212122-2b85dda8106b?w=800&h=600&fit=crop',
     'https://images.unsplash.com/photo-1464817739973-0128fe77aaa1?w=800&h=600&fit=crop',
     'https://images.unsplash.com/photo-1451976426598-a7593bd6d0b2?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1478066792002-98655f9b8e27?w=800&h=600&fit=crop',
     'https://images.unsplash.com/photo-1496564203457-11bb12075d90?w=800&h=600&fit=crop',
   ],
   business: [
