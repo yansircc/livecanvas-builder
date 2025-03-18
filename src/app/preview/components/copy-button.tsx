@@ -1,6 +1,6 @@
 'use client'
 
-import { Check, Code } from 'lucide-react'
+import { Check, Copy } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -46,28 +46,21 @@ export function CopyButton({ getContentToCopy }: CopyButtonProps) {
       onClick={handleCopy}
       disabled={isLoading}
       className={cn(
-        'flex items-center gap-1 text-xs',
         copied &&
           'border-green-200 bg-green-50 text-green-600 dark:border-green-800 dark:bg-green-900/10 dark:text-green-400',
       )}
-      title={copied ? '已复制！' : '复制HTML代码'}
+      title={copied ? 'Copied!' : 'Copy HTML code'}
     >
       {copied ? (
-        <>
-          <Check className="h-3 w-3" />
-          <span>已复制</span>
-        </>
+        <Check className="h-4 w-4" />
       ) : isLoading ? (
-        <>
-          <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
-          <span>复制中...</span>
-        </>
+        <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
       ) : (
-        <>
-          <Code className="h-3 w-3" />
-          <span>复制HTML</span>
-        </>
+        <Copy className="h-4 w-4" />
       )}
+      <span className="sr-only md:not-sr-only md:ml-2">
+        {copied ? 'Copied' : isLoading ? 'Copying...' : 'Copy'}
+      </span>
     </Button>
   )
 }

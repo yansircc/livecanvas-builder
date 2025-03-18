@@ -23,93 +23,62 @@ export function DeviceFrame({ children, deviceType, className }: DeviceFrameProp
   }
 }
 
-// Desktop frame (Mac-like browser)
+// Desktop frame (simple browser-like)
 function DesktopFrame({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
     <div
       className={cn(
-        'relative mx-auto w-full max-w-full rounded-lg border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-800',
+        'relative w-full max-w-full rounded-lg border border-neutral-200 bg-white shadow-sm dark:border-neutral-700 dark:bg-neutral-800',
         className,
       )}
     >
       {/* Browser chrome */}
-      <div className="flex h-9 items-center rounded-t-lg bg-zinc-100 px-4 dark:bg-zinc-700">
-        <div className="flex space-x-2">
-          <div className="h-3 w-3 rounded-full bg-red-500"></div>
-          <div className="h-3 w-3 rounded-full bg-yellow-500"></div>
-          <div className="h-3 w-3 rounded-full bg-green-500"></div>
-        </div>
-        <div className="mx-auto flex h-6 w-2/3 items-center rounded-md bg-white px-3 text-xs text-zinc-500 dark:bg-zinc-600 dark:text-zinc-300">
-          preview.livecanvas.io
+      <div className="flex h-8 items-center rounded-t-lg bg-neutral-100 px-3 dark:bg-neutral-700">
+        <div className="flex space-x-1.5">
+          <div className="h-2.5 w-2.5 rounded-full bg-red-400"></div>
+          <div className="h-2.5 w-2.5 rounded-full bg-amber-400"></div>
+          <div className="h-2.5 w-2.5 rounded-full bg-green-400"></div>
         </div>
       </div>
 
       {/* Content area */}
-      <div className="min-h-[600px] w-full overflow-auto">{children}</div>
+      <div className="w-full overflow-hidden">{children}</div>
     </div>
   )
 }
 
-// Mobile frame (iPhone-like)
+// Mobile frame (simplified)
 function MobileFrame({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
     <div
       className={cn(
-        'relative mx-auto overflow-hidden rounded-[40px] border-[14px] border-zinc-900 bg-zinc-800 shadow-xl dark:border-zinc-700',
+        'relative mx-auto overflow-hidden rounded-[18px] border-[8px] border-neutral-900 bg-neutral-800 shadow-md dark:border-neutral-700',
         className,
       )}
     >
       {/* Notch */}
-      <div className="absolute top-0 left-1/2 z-10 h-6 w-1/3 -translate-x-1/2 rounded-b-xl bg-zinc-900 dark:bg-zinc-700"></div>
-
-      {/* Status bar */}
-      <div className="relative h-8 bg-white dark:bg-zinc-800">
-        <div className="absolute top-1.5 right-4 flex items-center space-x-1.5">
-          <div className="h-2 w-4 rounded-sm bg-zinc-800 dark:bg-zinc-300"></div>
-          <div className="h-2 w-2 rounded-full bg-zinc-800 dark:bg-zinc-300"></div>
-          <div className="h-2 w-2 rounded-full bg-zinc-800 dark:bg-zinc-300"></div>
-        </div>
-      </div>
+      <div className="absolute top-0 left-1/2 z-10 h-5 w-16 -translate-x-1/2 rounded-b-xl bg-neutral-900 dark:bg-neutral-700"></div>
 
       {/* Content area */}
-      <div className="overflow-auto bg-white dark:bg-zinc-800">{children}</div>
-
-      {/* Home indicator */}
-      <div className="flex h-8 items-center justify-center bg-white dark:bg-zinc-800">
-        <div className="h-1 w-1/3 rounded-full bg-zinc-300 dark:bg-zinc-600"></div>
-      </div>
+      <div className="overflow-hidden bg-white dark:bg-neutral-800">{children}</div>
     </div>
   )
 }
 
-// Tablet frame (iPad-like)
+// Tablet frame (simplified)
 function TabletFrame({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
     <div
       className={cn(
-        'relative mx-auto overflow-hidden rounded-[24px] border-[12px] border-zinc-800 bg-zinc-700 shadow-xl dark:border-zinc-700',
+        'relative mx-auto overflow-hidden rounded-[16px] border-[8px] border-neutral-800 bg-neutral-700 shadow-md dark:border-neutral-700',
         className,
       )}
     >
       {/* Camera */}
-      <div className="absolute top-2 left-1/2 z-10 h-2 w-2 -translate-x-1/2 rounded-full bg-zinc-600 dark:bg-zinc-500"></div>
-
-      {/* Status bar */}
-      <div className="relative h-6 bg-white dark:bg-zinc-800">
-        <div className="absolute top-1.5 right-4 flex items-center space-x-1.5">
-          <div className="h-1.5 w-3 rounded-sm bg-zinc-800 dark:bg-zinc-300"></div>
-          <div className="h-1.5 w-1.5 rounded-full bg-zinc-800 dark:bg-zinc-300"></div>
-          <div className="h-1.5 w-1.5 rounded-full bg-zinc-800 dark:bg-zinc-300"></div>
-        </div>
-      </div>
+      <div className="absolute top-2 left-1/2 z-10 h-2 w-2 -translate-x-1/2 rounded-full bg-neutral-600 dark:bg-neutral-500"></div>
 
       {/* Content area */}
-      <div className="overflow-auto bg-white dark:bg-zinc-800">{children}</div>
-
-      {/* Home button */}
-      <div className="flex h-6 items-center justify-center bg-white dark:bg-zinc-800">
-        <div className="h-4 w-4 rounded-full border-2 border-zinc-300 dark:border-zinc-600"></div>
-      </div>
+      <div className="overflow-hidden bg-white dark:bg-neutral-800">{children}</div>
     </div>
   )
 }

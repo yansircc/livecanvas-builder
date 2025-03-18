@@ -111,15 +111,23 @@ async function captureIframeWithHtmlToImage(iframe: HTMLIFrameElement): Promise<
       },
     }
 
+    // First try with specific content containers if they exist
     try {
-      // First try with the bootstrap-preview div if it exists
-      const previewDiv = iframeDocument.querySelector('.bootstrap-preview')
-      if (previewDiv) {
+      // Check for tailwind-content div (our new implementation)
+      const tailwindContentDiv = iframeDocument.querySelector('.tailwind-content')
+      if (tailwindContentDiv) {
+        console.log('Capturing tailwind-content div')
+        return await htmlToImage.toJpeg(tailwindContentDiv as HTMLElement, optionsWithFetch)
+      }
+
+      // Check for bootstrap-preview div (original implementation)
+      const bootstrapPreviewDiv = iframeDocument.querySelector('.bootstrap-preview')
+      if (bootstrapPreviewDiv) {
         console.log('Capturing bootstrap-preview div')
-        return await htmlToImage.toJpeg(previewDiv as HTMLElement, optionsWithFetch)
+        return await htmlToImage.toJpeg(bootstrapPreviewDiv as HTMLElement, optionsWithFetch)
       }
     } catch (error) {
-      console.warn('Failed to capture bootstrap-preview div:', error)
+      console.warn('Failed to capture specific content container:', error)
       // Continue to try with the body
     }
 

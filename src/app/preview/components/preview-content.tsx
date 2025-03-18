@@ -1,128 +1,102 @@
 'use client'
 
-import { Eye, FileCode } from 'lucide-react'
+import { FileCode } from 'lucide-react'
 import { toast } from 'sonner'
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Button } from '@/components/ui/button'
 import { captureIframeScreenshot } from '@/lib/screenshot'
-import { IframeWrapper } from '@/utils/iframe-wrapper'
-import { generateCustomCSS } from '../services/theme-generator'
-import { useStyleStore } from '../store/style-store'
-import { getOriginalContent, loadContentFromStorage } from '../utils/content-loader'
-import { ButtonSchemeSelector } from './button-scheme-selector'
-import { ColorSchemeSelector } from './color-scheme-selector'
+import { useCssStore } from '../stores/css-store'
+import { loadContentFromStorage } from '../utils/content-loader'
+import { processContentWithCustomCss, processTailwindContent } from '../utils/css-processor'
 import { CopyButton } from './copy-button'
+import { CustomCssDialog } from './custom-css-dialog'
 import { deviceConfigs, DeviceSelector, type DeviceType } from './device-selector'
-import { FontSchemeSelector } from './font-scheme-selector'
-import { HashNavigationHandler } from './hash-navigation-handler'
 import { LoadingSpinner } from './loading-spinner'
-import { getIframeContent, PreviewFrame } from './preview-frame'
 import { PublishProjectDialog } from './publish-project-dialog'
 
 export function PreviewContent() {
   const searchParams = useSearchParams()
   const contentId = searchParams.get('id')
   const [content, setContent] = useState<string>('')
+  const [processedContent, setProcessedContent] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [device, setDevice] = useState<DeviceType>('desktop')
-
-  // Use the zustand store for customization options
-  const { customOptions, setColorScheme, setFontScheme, setButtonScheme } = useStyleStore()
-  const [customCSS, setCustomCSS] = useState<string>('')
-
-  // Preview mode to show the style preview component
-  const [previewMode, setPreviewMode] = useState<boolean>(false)
-
+  const [iframeHeight, setIframeHeight] = useState<number>(600)
   const [isCapturing, setIsCapturing] = useState(false)
+  const [uniqueKey, setUniqueKey] = useState<number>(Date.now()) // Used to force iframe reload
+  const iframeRef = useRef<HTMLIFrameElement>(null)
   const originalDeviceRef = useRef<DeviceType>('desktop')
-  const iframeRef = useRef<HTMLIFrameElement | null>(null)
 
-  // Create a unique key based on the full URL including hash
-  const urlKey = typeof window !== 'undefined' ? window.location.href : ''
+  // Access custom CSS from store
+  const { customCss } = useCssStore()
 
   // Load content on mount
   useEffect(() => {
-    const htmlContent = loadContentFromStorage(contentId)
-    setContent(htmlContent)
-    setLoading(false)
-  }, [contentId])
+    loadAndProcessContent()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Generate custom CSS when the customization options change
+  // Re-process content when custom CSS changes
   useEffect(() => {
-    const css = generateCustomCSS(customOptions)
-    setCustomCSS(css)
+    loadAndProcessContent()
+  }, [customCss]) // eslint-disable-line react-hooks/exhaustive-deps
 
-    // If iframe exists, send theme change message
-    const iframe = iframeRef.current || document.querySelector('iframe')
-    if (iframe?.contentWindow) {
-      iframe.contentWindow.postMessage(
-        {
-          type: 'themeChange',
-          css: css,
-        },
-        '*',
-      )
+  const loadAndProcessContent = () => {
+    try {
+      const htmlContent = loadContentFromStorage(contentId)
+      setContent(htmlContent)
+
+      // Process the content with custom CSS if available, otherwise use Tailwind CSS
+      if (customCss) {
+        const contentWithCustomCss = processContentWithCustomCss(htmlContent, customCss)
+        setProcessedContent(contentWithCustomCss)
+      } else {
+        const tailwindContent = processTailwindContent(htmlContent)
+        setProcessedContent(tailwindContent)
+      }
+    } catch (error) {
+      console.error('Error processing content:', error)
+      toast.error('Error processing content')
+    } finally {
+      setLoading(false)
     }
-  }, [customOptions])
+  }
 
-  // Store iframe reference
+  // Handle forcing iframe reload
+  const handleReloadPage = () => {
+    // Change the unique key to force a complete iframe reload
+    setUniqueKey(Date.now())
+    // Re-process the content
+    loadAndProcessContent()
+  }
+
+  // Listen for messages from the iframe to adjust height
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      // Use a timeout to ensure the iframe is fully rendered
-      setTimeout(() => {
-        iframeRef.current = document.querySelector('iframe')
-      }, 500)
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data && event.data.type === 'resize') {
+        const newHeight = Math.max(event.data.height, 600)
+        setIframeHeight(newHeight)
+      }
     }
-  }, [content, device])
+
+    window.addEventListener('message', handleMessage)
+    return () => {
+      window.removeEventListener('message', handleMessage)
+    }
+  }, [])
+
+  // Store current device in ref for screenshot capture
+  useEffect(() => {
+    originalDeviceRef.current = device
+  }, [device])
 
   // Handle device change
   const handleDeviceChange = (newDevice: DeviceType) => {
     setDevice(newDevice)
-    originalDeviceRef.current = newDevice
-  }
-
-  // Handle customization changes
-  const handleColorSchemeChange = (schemeId: string) => {
-    setColorScheme(schemeId)
-    toast.success(`Color scheme updated`)
-  }
-
-  const handleFontSchemeChange = (schemeId: string) => {
-    setFontScheme(schemeId)
-    toast.success(`Font scheme updated`)
-  }
-
-  const handleButtonSchemeChange = (schemeId: string) => {
-    setButtonScheme(schemeId)
-    toast.success(`Button style updated`)
-  }
-
-  // Toggle preview mode
-  const togglePreviewMode = () => {
-    setPreviewMode((prev) => !prev)
-    toast.success(previewMode ? 'Showing actual content' : 'Showing style preview')
   }
 
   // Get content for copying
   const getContentToCopy = async (): Promise<string> => {
-    // First try to get the original content from localStorage
-    const originalContent = getOriginalContent(contentId)
-    if (originalContent) {
-      return originalContent
-    }
-
-    // If we couldn't get the original content, try to get it from the iframe
-    const iframe = iframeRef.current || document.querySelector('iframe')!
-    const iframeContent = getIframeContent(iframe)
-
-    // If we got content from the iframe, return it
-    if (iframeContent) {
-      return iframeContent
-    }
-
-    // Fallback to the iframe template
-    return IframeWrapper(content)
+    return content
   }
 
   // Get screenshot for publishing
@@ -142,69 +116,44 @@ export function PreviewContent() {
         await new Promise((resolve) => setTimeout(resolve, 1000))
       }
 
-      // Ensure we have the latest iframe reference
-      const iframe = document.querySelector('iframe')
-      if (!iframe) {
+      // Ensure iframe is available
+      if (!iframeRef.current) {
         console.error('No iframe found for screenshot')
-        toast.error('截图失败，无法获取截图')
         return null
       }
 
-      // Wait for iframe content to be fully loaded
-      if (iframe.contentDocument?.readyState !== 'complete') {
-        // Wait for iframe to load
-        await new Promise<void>((resolve) => {
-          const handleLoad = () => resolve()
-          iframe.addEventListener('load', handleLoad, { once: true })
-          setTimeout(resolve, 3000) // Increased timeout to 3 seconds
-        })
-      }
+      // Check if we can access the iframe content
+      try {
+        // Try accessing the iframe content - this will throw if access is denied
+        const iframeDoc = iframeRef.current.contentDocument
+        const iframeWin = iframeRef.current.contentWindow
 
-      // Check for images in the iframe
-      const images = iframe.contentDocument?.querySelectorAll('img') || []
-
-      // Wait for all images to load
-      if (images.length > 0) {
-        // Create a promise for each image
-        const imagePromises = Array.from(images).map((img) => {
-          if (img.complete) return Promise.resolve()
-          return new Promise<void>((resolve) => {
-            img.addEventListener('load', () => resolve(), { once: true })
-            img.addEventListener('error', () => resolve(), { once: true }) // Resolve on error too
-            // Add a timeout in case the image never loads
-            setTimeout(resolve, 2000) // Increased timeout to 2 seconds
-          })
-        })
-
-        // Wait for all images to load with a timeout
-        await Promise.all(imagePromises)
-      }
-
-      // Wait a bit more to ensure all resources are loaded
-      await new Promise((resolve) => setTimeout(resolve, 2000)) // Increased to 2 seconds
-      // Try to capture the screenshot with multiple attempts
-      let screenshot = null
-      let attempts = 0
-      const maxAttempts = 3
-
-      while (!screenshot && attempts < maxAttempts) {
-        attempts++
-        try {
-          screenshot = await captureIframeScreenshot('iframe')
-          if (!screenshot) {
-            console.warn(`Attempt ${attempts} failed, ${maxAttempts - attempts} attempts remaining`)
-            // Wait before trying again
-            if (attempts < maxAttempts) {
-              await new Promise((resolve) => setTimeout(resolve, 1000))
-            }
-          }
-        } catch (error) {
-          console.error(`Screenshot attempt ${attempts} error:`, error)
-          if (attempts < maxAttempts) {
-            await new Promise((resolve) => setTimeout(resolve, 1000))
-          }
+        if (!iframeDoc || !iframeWin) {
+          throw new Error('Cannot access iframe content - document or window is null')
         }
+
+        // Check if the document is fully loaded
+        if (iframeDoc.readyState !== 'complete') {
+          console.log('Waiting for iframe document to complete loading...')
+          await new Promise<void>((resolve) => {
+            const loadHandler = () => resolve()
+            iframeRef.current?.addEventListener('load', loadHandler, { once: true })
+            // Timeout after 3 seconds in case it never completes
+            setTimeout(resolve, 3000)
+          })
+        }
+      } catch (error) {
+        console.error('Cannot access iframe content:', error)
+        toast.error('Cannot access iframe content. Screenshot failed.')
+        return null
       }
+
+      // Wait for any pending height changes
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+
+      // Capture the screenshot
+      console.log('Attempting to capture iframe screenshot...')
+      const screenshot = await captureIframeScreenshot('iframe')
 
       // Restore original device if changed
       if (currentDevice !== 'desktop') {
@@ -212,14 +161,17 @@ export function PreviewContent() {
       }
 
       if (screenshot) {
-        toast.success('截图成功!')
+        toast.success('Screenshot captured successfully!')
       } else {
-        toast.error('截图失败，请查看控制台获取详细信息。')
+        toast.error('Failed to capture screenshot')
       }
 
       return screenshot
     } catch (error) {
       console.error('Failed to capture screenshot:', error)
+      toast.error(
+        'Screenshot capture failed: ' + (error instanceof Error ? error.message : 'Unknown error'),
+      )
       return null
     } finally {
       setIsCapturing(false)
@@ -230,38 +182,37 @@ export function PreviewContent() {
     return <LoadingSpinner />
   }
 
-  const iframeContent = IframeWrapper(content, customCSS, previewMode)
   const currentDevice = deviceConfigs[device]
+  const isDesktop = device === 'desktop'
 
   return (
-    <div key={urlKey} className="flex min-h-screen flex-col bg-zinc-100 dark:bg-zinc-900">
-      {/* Main header with title and primary actions */}
-      <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white px-6 py-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+    <div className="flex min-h-screen flex-col bg-neutral-50 dark:bg-neutral-900">
+      {/* Header with actions */}
+      <header className="sticky top-0 z-10 border-b border-neutral-200 bg-white px-6 py-3 shadow-sm dark:border-neutral-800 dark:bg-neutral-950">
         <div className="container mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
-              <FileCode className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800">
+              <FileCode className="h-4 w-4 text-neutral-600 dark:text-neutral-400" />
             </div>
             <div>
-              <h1 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">HTML 预览</h1>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">查看生成的组件</p>
+              <h1 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                HTML Preview
+              </h1>
+              <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                View generated component
+              </p>
             </div>
           </div>
 
+          {/* Action buttons */}
           <div className="flex items-center gap-2">
-            {/* Toggle preview mode */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={togglePreviewMode}
-              className="flex items-center gap-1 text-xs"
-            >
-              <Eye className="h-3 w-3" />
-              {previewMode ? 'Show Content' : 'Style Preview'}
-            </Button>
+            <DeviceSelector onDeviceChange={handleDeviceChange} initialDevice={device} />
 
-            {/* Action buttons */}
+            {/* CustomCssDialog with reload handler */}
+            <CustomCssDialog onReloadPage={handleReloadPage} />
+
             <CopyButton getContentToCopy={getContentToCopy} />
+
             <PublishProjectDialog
               htmlContent={content}
               getScreenshot={getScreenshot}
@@ -271,52 +222,51 @@ export function PreviewContent() {
         </div>
       </header>
 
-      {/* Secondary header for style adjustments */}
-      <div className="border-b border-zinc-200 bg-white px-6 py-2 dark:border-zinc-800 dark:bg-zinc-950">
-        <div className="container mx-auto flex flex-wrap items-center justify-between gap-2">
-          {/* Device selector */}
-          <DeviceSelector onDeviceChange={handleDeviceChange} initialDevice={device} />
-
-          {/* Style selectors */}
-          <div className="flex flex-wrap gap-2">
-            <ColorSchemeSelector
-              onChange={handleColorSchemeChange}
-              currentScheme={customOptions.colorScheme}
-            />
-            <FontSchemeSelector
-              onChange={handleFontSchemeChange}
-              currentScheme={customOptions.fontScheme}
-            />
-            <ButtonSchemeSelector
-              onChange={handleButtonSchemeChange}
-              currentScheme={customOptions.buttonScheme}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Preview frame */}
-      <main className="flex-1 overflow-auto bg-zinc-100 dark:bg-zinc-900">
-        <div className="container mx-auto min-h-[800px] px-4 py-8">
-          <div className="h-full min-h-[800px]">
-            <PreviewFrame
-              content={iframeContent}
-              deviceConfig={currentDevice}
-              deviceType={device}
-            />
+      {/* Content preview area */}
+      <main className="flex-1 overflow-auto p-6">
+        <div
+          className="mx-auto"
+          style={{
+            width: currentDevice.width,
+            maxWidth: isDesktop ? '100%' : currentDevice.width,
+            transition: 'width 0.3s ease',
+          }}
+        >
+          <div
+            className={`relative overflow-hidden rounded-lg border border-neutral-200 bg-white p-0 shadow-sm dark:border-neutral-800 dark:bg-neutral-950 ${
+              !isDesktop ? 'mx-auto' : 'w-full max-w-full'
+            }`}
+          >
+            {/* Preview Content */}
+            <div
+              className="bg-white dark:bg-neutral-950"
+              style={{
+                height: !isDesktop ? currentDevice.height : `${iframeHeight}px`,
+                transition: 'height 0.3s ease',
+                overflow: !isDesktop ? 'hidden' : 'visible',
+              }}
+            >
+              <iframe
+                key={uniqueKey} // This forces a re-render of the iframe when uniqueKey changes
+                ref={iframeRef}
+                srcDoc={processedContent}
+                className="h-full w-full border-0"
+                title="Tailwind Preview"
+                sandbox="allow-scripts allow-same-origin allow-modals allow-forms allow-popups"
+                loading="lazy"
+                onLoad={() => {
+                  // Try to force a resize after load
+                  if (iframeRef.current?.contentWindow) {
+                    setTimeout(() => {
+                      iframeRef.current?.contentWindow?.postMessage('checkSize', '*')
+                    }, 200)
+                  }
+                }}
+              />
+            </div>
           </div>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="border-t border-zinc-200 bg-white py-4 dark:border-zinc-800 dark:bg-zinc-950">
-        <div className="container mx-auto px-6 text-center text-xs text-zinc-500 dark:text-zinc-400">
-          <p>LiveCanvas Builder Preview</p>
-        </div>
-      </footer>
-
-      {/* Hash navigation handler */}
-      <HashNavigationHandler />
     </div>
   )
 }
