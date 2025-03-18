@@ -252,7 +252,7 @@ export function PreviewContent() {
                 srcDoc={processedContent}
                 className="h-full w-full border-0"
                 title="Tailwind Preview"
-                sandbox="allow-scripts allow-same-origin allow-modals allow-forms allow-popups"
+                sandbox="allow-scripts allow-same-origin allow-modals allow-forms allow-popups allow-popups-to-escape-sandbox"
                 loading="lazy"
                 onLoad={() => {
                   // Try to force a resize after load
