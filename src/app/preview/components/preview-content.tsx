@@ -4,6 +4,7 @@ import { FileCode } from 'lucide-react'
 import { toast } from 'sonner'
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { env } from '@/env'
 import { captureIframeScreenshot } from '@/lib/screenshot'
 import { useCssStore } from '../stores/css-store'
 import { loadContentFromStorage } from '../utils/content-loader'
@@ -255,12 +256,38 @@ export function PreviewContent() {
                 sandbox="allow-scripts allow-same-origin allow-modals allow-forms allow-popups allow-popups-to-escape-sandbox"
                 loading="lazy"
                 onLoad={() => {
-                  // Try to force a resize after load
-                  if (iframeRef.current?.contentWindow) {
+                  if (!iframeRef.current?.contentWindow) return
+
+                  // Try to access the iframe's document to inject scripts if needed
+                  try {
+                    const iframeWindow = iframeRef.current.contentWindow as any
+                    const iframeDoc = iframeRef.current.contentDocument
+
+                    // Check if Tailwind loaded by looking for its object
                     setTimeout(() => {
-                      iframeRef.current?.contentWindow?.postMessage('checkSize', '*')
-                    }, 200)
+                      if (iframeWindow && iframeDoc) {
+                        // Check if Tailwind is already loaded
+                        if (
+                          !iframeWindow.tailwind &&
+                          !iframeDoc.querySelector('script[src*="/assets/js/tailwind-fallback.js"]')
+                        ) {
+                          console.log('Tailwind not detected in iframe, injecting local version...')
+
+                          // Create and inject the script
+                          const script = iframeDoc.createElement('script')
+                          script.src = env.NEXT_PUBLIC_TAILWIND_FALLBACK_PATH
+                          iframeDoc.head.appendChild(script)
+                        }
+                      }
+                    }, 500) // Give it some time to load
+                  } catch (e) {
+                    console.error('Could not access iframe content:', e)
                   }
+
+                  // Try to force a resize after load
+                  setTimeout(() => {
+                    iframeRef.current?.contentWindow?.postMessage('checkSize', '*')
+                  }, 200)
                 }}
               />
             </div>

@@ -27,6 +27,8 @@ export const env = createEnv({
     // NEXT_PUBLIC_CLIENTVAR: z.string(),
     NEXT_PUBLIC_IMAGE_PLACEHOLDER_PREFIX: z.string(),
     NEXT_PUBLIC_BETTER_AUTH_URL: z.string(),
+    NEXT_PUBLIC_TAILWIND_CDN_URL: z.string(),
+    NEXT_PUBLIC_TAILWIND_FALLBACK_PATH: z.string().default('/assets/js/tailwind-fallback.js'),
   },
 
   /**
@@ -41,6 +43,9 @@ export const env = createEnv({
     DATABASE_URL: process.env.DATABASE_URL,
     NEXT_PUBLIC_IMAGE_PLACEHOLDER_PREFIX: process.env.NEXT_PUBLIC_IMAGE_PLACEHOLDER_PREFIX,
     NEXT_PUBLIC_BETTER_AUTH_URL: process.env.NEXT_PUBLIC_BETTER_AUTH_URL,
+    NEXT_PUBLIC_TAILWIND_CDN_URL: process.env.NEXT_PUBLIC_TAILWIND_CDN_URL,
+    NEXT_PUBLIC_TAILWIND_FALLBACK_PATH:
+      process.env.NEXT_PUBLIC_TAILWIND_FALLBACK_PATH || '/assets/js/tailwind-fallback.js',
     PLUNK_API_KEY: process.env.PLUNK_API_KEY,
     PLUNK_API_URL: process.env.PLUNK_API_URL,
     BUNNY_STORAGE_API_KEY: process.env.BUNNY_STORAGE_API_KEY,

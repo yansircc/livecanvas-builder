@@ -25,10 +25,7 @@ export function processTailwindContent(content: string): string {
 
     // Add Tailwind if missing
     if (!hasTailwind) {
-      processedContent = processedContent.replace(
-        '</head>',
-        '<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.0.14/dist/index.global.js" crossorigin="anonymous"></script></head>',
-      )
+      processedContent = processedContent.replace('</head>', `${getTailwindScripts()}</head>`)
     }
 
     // Add AOS if missing
@@ -62,23 +59,8 @@ function wrapContentWithTailwind(fragment: string): string {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tailwind Preview</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.0.14/dist/index.global.js" crossorigin="anonymous"></script>
-    <!-- Fallback basic Tailwind styles in case CDN fails -->
-    <style>
-      /* Minimal Tailwind reset and utilities */
-      *, ::before, ::after { box-sizing: border-box; border-width: 0; border-style: solid; }
-      html { line-height: 1.5; -webkit-text-size-adjust: 100%; tab-size: 4; font-family: ui-sans-serif, system-ui, sans-serif; }
-      body { margin: 0; line-height: inherit; }
-      /* Basic utility classes */
-      .flex { display: flex; }
-      .items-center { align-items: center; }
-      .justify-center { justify-content: center; }
-      .mx-auto { margin-left: auto; margin-right: auto; }
-      .p-4 { padding: 1rem; }
-      .rounded { border-radius: 0.25rem; }
-      .bg-white { background-color: #fff; }
-      .text-center { text-align: center; }
-    </style>
+    ${getTailwindScripts()}
+    ${getTailwindMinimalStyles()}
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet" crossorigin="anonymous">
   </head>
   <body>
@@ -113,26 +95,9 @@ function injectHeadIntoHtml(html: string, includeTailwind = true, includeAOS = t
     '<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">'
 
   if (includeTailwind) {
-    head +=
-      '<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.0.14/dist/index.global.js" crossorigin="anonymous"></script>'
+    head += getTailwindScripts()
     // Add fallback Tailwind styles
-    head += `
-    <!-- Fallback basic Tailwind styles in case CDN fails -->
-    <style>
-      /* Minimal Tailwind reset and utilities */
-      *, ::before, ::after { box-sizing: border-box; border-width: 0; border-style: solid; }
-      html { line-height: 1.5; -webkit-text-size-adjust: 100%; tab-size: 4; font-family: ui-sans-serif, system-ui, sans-serif; }
-      body { margin: 0; line-height: inherit; }
-      /* Basic utility classes */
-      .flex { display: flex; }
-      .items-center { align-items: center; }
-      .justify-center { justify-content: center; }
-      .mx-auto { margin-left: auto; margin-right: auto; }
-      .p-4 { padding: 1rem; }
-      .rounded { border-radius: 0.25rem; }
-      .bg-white { background-color: #fff; }
-      .text-center { text-align: center; }
-    </style>`
+    head += getTailwindMinimalStyles()
   }
 
   if (includeAOS) {
@@ -299,23 +264,8 @@ export function processContentWithCustomCss(
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Preview with Custom CSS</title>
     ${googleFontsLink}
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.0.14/dist/index.global.js" crossorigin="anonymous"></script>
-    <!-- Fallback basic Tailwind styles in case CDN fails -->
-    <style>
-      /* Minimal Tailwind reset and utilities */
-      *, ::before, ::after { box-sizing: border-box; border-width: 0; border-style: solid; }
-      html { line-height: 1.5; -webkit-text-size-adjust: 100%; tab-size: 4; font-family: ui-sans-serif, system-ui, sans-serif; }
-      body { margin: 0; line-height: inherit; }
-      /* Basic utility classes */
-      .flex { display: flex; }
-      .items-center { align-items: center; }
-      .justify-center { justify-content: center; }
-      .mx-auto { margin-left: auto; margin-right: auto; }
-      .p-4 { padding: 1rem; }
-      .rounded { border-radius: 0.25rem; }
-      .bg-white { background-color: #fff; }
-      .text-center { text-align: center; }
-    </style>
+    ${getTailwindScripts()}
+    ${getTailwindMinimalStyles()}
     <style type="text/tailwindcss">
       ${processedCss}
     </style>
@@ -352,27 +302,10 @@ export function processContentWithCustomCss(
       }
 
       // Add Tailwind
-      head +=
-        '<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.0.14/dist/index.global.js" crossorigin="anonymous"></script>'
+      head += getTailwindScripts()
 
       // Add fallback Tailwind styles
-      head += `
-      <!-- Fallback basic Tailwind styles in case CDN fails -->
-      <style>
-        /* Minimal Tailwind reset and utilities */
-        *, ::before, ::after { box-sizing: border-box; border-width: 0; border-style: solid; }
-        html { line-height: 1.5; -webkit-text-size-adjust: 100%; tab-size: 4; font-family: ui-sans-serif, system-ui, sans-serif; }
-        body { margin: 0; line-height: inherit; }
-        /* Basic utility classes */
-        .flex { display: flex; }
-        .items-center { align-items: center; }
-        .justify-center { justify-content: center; }
-        .mx-auto { margin-left: auto; margin-right: auto; }
-        .p-4 { padding: 1rem; }
-        .rounded { border-radius: 0.25rem; }
-        .bg-white { background-color: #fff; }
-        .text-center { text-align: center; }
-      </style>`
+      head += getTailwindMinimalStyles()
 
       // Add custom CSS with type="text/tailwindcss"
       if (processedCss) {
@@ -425,7 +358,7 @@ export function processContentWithCustomCss(
       if (!processedContent.includes('@tailwindcss/browser')) {
         processedContent = processedContent.replace(
           '</head>',
-          '<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.0.14/dist/index.global.js" crossorigin="anonymous"></script>\n<!-- Fallback basic Tailwind styles in case CDN fails -->\n<style>\n  /* Minimal Tailwind reset and utilities */\n  *, ::before, ::after { box-sizing: border-box; border-width: 0; border-style: solid; }\n  html { line-height: 1.5; -webkit-text-size-adjust: 100%; tab-size: 4; font-family: ui-sans-serif, system-ui, sans-serif; }\n  body { margin: 0; line-height: inherit; }\n  /* Basic utility classes */\n  .flex { display: flex; }\n  .items-center { align-items: center; }\n  .justify-center { justify-content: center; }\n  .mx-auto { margin-left: auto; margin-right: auto; }\n  .p-4 { padding: 1rem; }\n  .rounded { border-radius: 0.25rem; }\n  .bg-white { background-color: #fff; }\n  .text-center { text-align: center; }\n</style></head>',
+          `${getTailwindScripts()}\n${getTailwindMinimalStyles()}</head>`,
         )
       }
 
@@ -462,23 +395,8 @@ export function processContentWithCustomCss(
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Preview with Custom CSS</title>
     ${googleFontsLink}
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.0.14/dist/index.global.js" crossorigin="anonymous"></script>
-    <!-- Fallback basic Tailwind styles in case CDN fails -->
-    <style>
-      /* Minimal Tailwind reset and utilities */
-      *, ::before, ::after { box-sizing: border-box; border-width: 0; border-style: solid; }
-      html { line-height: 1.5; -webkit-text-size-adjust: 100%; tab-size: 4; font-family: ui-sans-serif, system-ui, sans-serif; }
-      body { margin: 0; line-height: inherit; }
-      /* Basic utility classes */
-      .flex { display: flex; }
-      .items-center { align-items: center; }
-      .justify-center { justify-content: center; }
-      .mx-auto { margin-left: auto; margin-right: auto; }
-      .p-4 { padding: 1rem; }
-      .rounded { border-radius: 0.25rem; }
-      .bg-white { background-color: #fff; }
-      .text-center { text-align: center; }
-    </style>
+    ${getTailwindScripts()}
+    ${getTailwindMinimalStyles()}
     <style type="text/tailwindcss">
       ${processedCss}
     </style>
@@ -504,4 +422,39 @@ export function processContentWithCustomCss(
 
   // If no custom CSS, just use the regular Tailwind processor
   return processTailwindContent(content)
+}
+
+// Add new function to create tailwind script tags with fallback
+function getTailwindScripts(): string {
+  return `
+<script src="${process.env.NEXT_PUBLIC_TAILWIND_CDN_URL}" crossorigin="anonymous" onerror="loadFallbackTailwind()"></script>
+<script>
+  function loadFallbackTailwind() {
+    console.log('CDN Tailwind failed, loading local fallback...');
+    const script = document.createElement('script');
+    script.src = window.location.origin + '${process.env.NEXT_PUBLIC_TAILWIND_FALLBACK_PATH}';
+    document.head.appendChild(script);
+  }
+</script>
+`
+}
+
+function getTailwindMinimalStyles(): string {
+  return `
+<style>
+      /* Minimal Tailwind reset and utilities */
+      *, ::before, ::after { box-sizing: border-box; border-width: 0; border-style: solid; }
+      html { line-height: 1.5; -webkit-text-size-adjust: 100%; tab-size: 4; font-family: ui-sans-serif, system-ui, sans-serif; }
+      body { margin: 0; line-height: inherit; }
+      /* Basic utility classes */
+      .flex { display: flex; }
+      .items-center { align-items: center; }
+      .justify-center { justify-content: center; }
+      .mx-auto { margin-left: auto; margin-right: auto; }
+      .p-4 { padding: 1rem; }
+      .rounded { border-radius: 0.25rem; }
+      .bg-white { background-color: #fff; }
+      .text-center { text-align: center; }
+    </style>
+  `
 }
