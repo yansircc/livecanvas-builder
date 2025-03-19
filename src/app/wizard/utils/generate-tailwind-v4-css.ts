@@ -1,9 +1,8 @@
-import type { ButtonStyle } from '../components/ComponentPreview'
-import { hexToRgb, rgbToOklch } from './colors-convert'
+import { type ButtonRadius, type ButtonStyle } from '../types'
+import { generateButtonStyleCSS } from './generate-button-styles'
+import { generateColorShades } from './generate-color-shades'
 
-export type ButtonRadius = 'default' | 'full' | 'none' | 'sm'
-
-export interface TailwindConfig {
+interface TailwindConfig {
   primaryColor: string
   secondaryColor: string
   accentColor: string
@@ -14,46 +13,36 @@ export interface TailwindConfig {
   spacing?: string
   buttonStyle?: ButtonStyle
   buttonRadius?: ButtonRadius
+  primaryShades?: Record<string, string>
+  secondaryShades?: Record<string, string>
+  accentShades?: Record<string, string>
+  primaryShade?: string
+  secondaryShade?: string
+  accentShade?: string
 }
 
-// Generate color shades based on a base color with exact hex at 500
-function generateColorShades(baseHex: string): Record<string, string> {
-  const rgb = hexToRgb(baseHex)
-  const oklch = rgbToOklch(rgb.r, rgb.g, rgb.b)
+export function generateTailwindV4CSS(config: TailwindConfig): string {
+  // Use provided shade maps or generate them
+  const primaryShades = config.primaryShades || generateColorShades(config.primaryColor)
+  const secondaryShades = config.secondaryShades || generateColorShades(config.secondaryColor)
+  const accentShades =
+    config.accentShades || (config.accentColor ? generateColorShades(config.accentColor) : {})
 
-  // Generate shades by adjusting lightness and chroma
-  // Keep 500 as the original hex color for exact match
-  return {
-    // Very light shades - closer to white
-    '50': `oklch(0.97 ${(oklch.c * 0.15).toFixed(3)} ${oklch.h.toFixed(3)})`,
-    '100': `oklch(0.95 ${(oklch.c * 0.25).toFixed(3)} ${oklch.h.toFixed(3)})`,
-    '200': `oklch(0.90 ${(oklch.c * 0.35).toFixed(3)} ${oklch.h.toFixed(3)})`,
-    '300': `oklch(0.85 ${(oklch.c * 0.5).toFixed(3)} ${oklch.h.toFixed(3)})`,
+  // Get the base colors from selected shades or defaults
+  const primaryBaseShade = config.primaryShade || '500'
+  const secondaryBaseShade = config.secondaryShade || '500'
+  const accentBaseShade = config.accentShade || '500'
 
-    // Medium shades - around the original color
-    '400': `oklch(0.75 ${(oklch.c * 0.8).toFixed(3)} ${oklch.h.toFixed(3)})`,
-    '500': baseHex, // Original color preserved exactly
-    '600': `oklch(${(oklch.l * 0.85).toFixed(3)} ${(oklch.c * 0.95).toFixed(3)} ${oklch.h.toFixed(3)})`,
-
-    // Dark shades - closer to black
-    '700': `oklch(${(oklch.l * 0.7).toFixed(3)} ${(oklch.c * 0.9).toFixed(3)} ${oklch.h.toFixed(3)})`,
-    '800': `oklch(${(oklch.l * 0.55).toFixed(3)} ${(oklch.c * 0.8).toFixed(3)} ${oklch.h.toFixed(3)})`,
-    '900': `oklch(${(oklch.l * 0.4).toFixed(3)} ${(oklch.c * 0.7).toFixed(3)} ${oklch.h.toFixed(3)})`,
-    '950': `oklch(${(oklch.l * 0.25).toFixed(3)} ${(oklch.c * 0.6).toFixed(3)} ${oklch.h.toFixed(3)})`,
-  }
-}
-
-export function generateCSS(config: TailwindConfig): string {
-  // Generate color shades
-  const primaryShades = generateColorShades(config.primaryColor)
-  const secondaryShades = generateColorShades(config.secondaryColor)
-  const accentShades = config.accentColor ? generateColorShades(config.accentColor) : {}
+  // Use the selected shade value as the base color
+  const primaryBase = primaryShades[primaryBaseShade] || config.primaryColor
+  const secondaryBase = secondaryShades[secondaryBaseShade] || config.secondaryColor
+  const accentBase = accentShades[accentBaseShade] || config.accentColor || '#f471b5'
 
   // Generate button style CSS based on selected style
   const buttonStyleCSS = generateButtonStyleCSS(
     config.buttonStyle || 'default',
-    config.primaryColor,
-    config.secondaryColor,
+    primaryBase, // Use selected shade as base color
+    secondaryBase, // Use selected shade as base color
     config.buttonRadius,
   )
 
@@ -88,11 +77,11 @@ export function generateCSS(config: TailwindConfig): string {
 @layer base {
   :root {
     /* Base colors - preserved as hex at 500 for exact matching */
-    --color-primary: ${config.primaryColor};
+    --color-primary: ${primaryBase};
     --color-primary-foreground: white;
-    --color-secondary: ${config.secondaryColor};
+    --color-secondary: ${secondaryBase};
     --color-secondary-foreground: white;
-    --color-accent: ${config.accentColor || '#f471b5'};
+    --color-accent: ${accentBase};
     --color-accent-foreground: white;
     
     /* Background and foreground colors */
@@ -124,7 +113,7 @@ export function generateCSS(config: TailwindConfig): string {
     /* Border and outline colors */
     --border: oklch(0.89 0.01 240);
     --input: oklch(0.89 0.01 240);
-    --ring: ${primaryShades['500']};
+    --ring: ${primaryBase};
     
     /* Color palette shades */
     /* Primary color shades */
@@ -307,180 +296,4 @@ ${buttonStyleCSS}
 
 /* You can add additional custom styles here */
 `
-}
-
-/**
- * Generate CSS for custom button styles based on the selected style type
- */
-function generateButtonStyleCSS(
-  style: ButtonStyle,
-  primaryColor: string,
-  secondaryColor: string,
-  buttonRadius?: ButtonRadius,
-): string {
-  // Determine button radius based on selection
-  let radius = 'var(--radius)'
-  if (buttonRadius) {
-    switch (buttonRadius) {
-      case 'none':
-        radius = '0'
-        break
-      case 'full':
-        radius = '9999px'
-        break
-      case 'sm':
-        radius = 'var(--radius-sm)'
-        break
-      default:
-        radius = 'var(--radius)'
-    }
-  }
-
-  let primaryButtonCSS = ''
-  let secondaryButtonCSS = ''
-  let ghostButtonCSS = ''
-
-  // Primary button style
-  switch (style) {
-    case 'default':
-      primaryButtonCSS = `
-/* Default solid button style */
-.btn-custom {
-  background-color: var(--color-primary);
-  color: var(--color-primary-foreground);
-  padding: 0.5rem 1rem;
-  border-radius: ${radius};
-  font-weight: 500;
-  transition: background-color 0.2s, transform 0.1s;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.btn-custom:hover {
-  background-color: var(--primary-600);
-}
-.btn-custom:active {
-  transform: translateY(1px);
-}`
-      break
-
-    case 'outline':
-      primaryButtonCSS = `
-/* Outline button style */
-.btn-custom {
-  background-color: transparent;
-  color: var(--color-primary);
-  border: 1px solid var(--color-primary);
-  padding: 0.5rem 1rem;
-  border-radius: ${radius};
-  font-weight: 500;
-  transition: background-color 0.2s, color 0.2s, transform 0.1s;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.btn-custom:hover {
-  background-color: var(--primary-50);
-}
-.btn-custom:active {
-  transform: translateY(1px);
-}`
-      break
-
-    case 'soft':
-      primaryButtonCSS = `
-/* Soft button style */
-.btn-custom {
-  background-color: var(--primary-100);
-  color: var(--primary-900);
-  padding: 0.5rem 1rem;
-  border-radius: ${radius};
-  font-weight: 500;
-  transition: background-color 0.2s, transform 0.1s;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.btn-custom:hover {
-  background-color: var(--primary-200);
-}
-.btn-custom:active {
-  transform: translateY(1px);
-}`
-      break
-
-    case 'gradient':
-      primaryButtonCSS = `
-/* Gradient button style */
-.btn-custom {
-  background: linear-gradient(to right, var(--color-primary), var(--color-secondary));
-  color: var(--color-primary-foreground);
-  padding: 0.5rem 1rem;
-  border-radius: ${radius};
-  font-weight: 500;
-  transition: opacity 0.2s, transform 0.1s;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.btn-custom:hover {
-  opacity: 0.9;
-}
-.btn-custom:active {
-  transform: translateY(1px);
-}`
-      break
-
-    default:
-      primaryButtonCSS = ''
-  }
-
-  // Secondary button style (outline-like style regardless of primary style)
-  secondaryButtonCSS = `
-/* Secondary button style */
-.btn-custom-secondary {
-  background-color: transparent;
-  color: var(--color-primary);
-  border: 1px solid var(--color-primary);
-  padding: 0.5rem 1rem;
-  border-radius: ${radius};
-  font-weight: 500;
-  transition: background-color 0.2s, transform 0.1s;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.btn-custom-secondary:hover {
-  background-color: var(--primary-50);
-}
-.btn-custom-secondary:active {
-  transform: translateY(1px);
-}`
-
-  // Ghost button style
-  ghostButtonCSS = `
-/* Ghost button style */
-.btn-custom-ghost {
-  background-color: transparent;
-  color: var(--color-primary);
-  padding: 0.5rem 1rem;
-  border-radius: ${radius};
-  font-weight: 500;
-  transition: background-color 0.2s, transform 0.1s;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.btn-custom-ghost:hover {
-  background-color: var(--primary-50);
-}
-.btn-custom-ghost:active {
-  transform: translateY(1px);
-}`
-
-  return `${primaryButtonCSS}
-
-${secondaryButtonCSS}
-
-${ghostButtonCSS}`
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { GalleryHorizontal, Home } from 'lucide-react'
+import { GalleryHorizontal, Home, Palette } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ThemeToggle } from '@/components/theme-toggle'
@@ -40,6 +40,16 @@ export function MainNav() {
               >
                 <GalleryHorizontal className="h-4 w-4" />
                 <span>画廊</span>
+              </Button>
+            </Link>
+            <Link href="/wizard">
+              <Button
+                variant={isActive('/wizard') ? 'default' : 'ghost'}
+                className="flex items-center gap-2"
+                size="sm"
+              >
+                <Palette className="h-4 w-4" />
+                <span>样式生成</span>
               </Button>
             </Link>
           </div>
