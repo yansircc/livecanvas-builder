@@ -1,5 +1,4 @@
-import { generateTailwindV4CSS as generateTheme } from '../themes/tailwind-theme'
-import { type BorderRadius, type ButtonRadius, type ButtonStyle } from '../types'
+import { type BorderRadius, type ButtonRadius, type ButtonStyle } from '../../types'
 
 export interface TailwindConfig {
   primaryColor: string
@@ -18,12 +17,4 @@ export interface TailwindConfig {
   primaryShade?: string
   secondaryShade?: string
   accentShade?: string
-}
-
-/**
- * Generate complete Tailwind CSS v4 configuration
- * This is the main entry point for the CSS generation
- */
-export function generateTailwindV4CSS(config: TailwindConfig): string {
-  return generateTheme(config)
 }

@@ -64,5 +64,5 @@ export const BORDER_RADII: { label: string; value: BorderRadius; css: string }[]
   { label: 'Medium', value: 'md', css: '0.375rem' },
   { label: 'Large', value: 'lg', css: '0.5rem' },
   { label: 'Extra Large', value: 'xl', css: '0.75rem' },
-  { label: 'Full', value: 'full', css: '9999px' },
+  { label: 'Full', value: 'full', css: '1.6rem' },
 ]

@@ -1,15 +1,22 @@
+/**
+ * Converts a hex color to RGB
+ */
 export function hexToRgb(hex: string): { r: number; g: number; b: number } {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
-  return result
-    ? {
-        r: parseInt(result[1] ?? '0', 16),
-        g: parseInt(result[2] ?? '0', 16),
-        b: parseInt(result[3] ?? '0', 16),
-      }
-    : { r: 0, g: 0, b: 0 }
+  // Remove # if present
+  hex = hex.replace(/^#/, '')
+
+  // Parse the hex values
+  const r = parseInt(hex.substring(0, 2), 16)
+  const g = parseInt(hex.substring(2, 4), 16)
+  const b = parseInt(hex.substring(4, 6), 16)
+
+  return { r, g, b }
 }
 
-// Improved RGB to Oklch conversion for better accuracy
+/**
+ * Converts RGB color values to OKLCH
+ * Improved implementation for better accuracy
+ */
 export function rgbToOklch(r: number, g: number, b: number): { l: number; c: number; h: number } {
   // This is a simplified approximation - for production use a color library like culori or chroma.js
   // Convert to linear sRGB

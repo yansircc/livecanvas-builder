@@ -1,46 +1,26 @@
 import type { ButtonRadius, ButtonStyle } from '../types'
 
+interface ButtonStyleConfig {
+  buttonRadius: string
+  primaryColor: string
+  secondaryColor: string
+}
+
 /**
- * Generate CSS for custom button styles based on the selected style type
+ * Generate primary button CSS based on style type
  */
-export function generateButtonStyleCSS(
-  style: ButtonStyle,
-  primaryColor: string,
-  secondaryColor: string,
-  buttonRadius?: ButtonRadius,
-): string {
-  // Determine button radius based on selection
-  let radius = 'var(--radius)'
-  if (buttonRadius) {
-    switch (buttonRadius) {
-      case 'none':
-        radius = '0'
-        break
-      case 'full':
-        radius = '9999px'
-        break
-      case 'sm':
-        radius = 'var(--radius-sm)'
-        break
-      default:
-        radius = 'var(--radius)'
-    }
-  }
+function generatePrimaryButtonCSS(style: ButtonStyle, config: ButtonStyleConfig): string {
+  const { buttonRadius } = config
 
-  let primaryButtonCSS = ''
-  let secondaryButtonCSS = ''
-  let ghostButtonCSS = ''
-
-  // Primary button style
   switch (style) {
     case 'default':
-      primaryButtonCSS = `
+      return `
 /* Default solid button style */
 .btn-custom {
   background-color: var(--color-primary);
   color: var(--color-primary-foreground);
   padding: 0.75rem 1.25rem;
-  border-radius: ${radius};
+  border-radius: ${buttonRadius};
   font-weight: 500;
   font-size: 1rem;
   transition: all 0.2s ease-in-out;
@@ -66,17 +46,16 @@ export function generateButtonStyleCSS(
   background-color: var(--primary-700);
   box-shadow: 0 0 0 rgba(0, 0, 0, 0.1) inset;
 }`
-      break
 
     case 'gradient':
-      primaryButtonCSS = `
+      return `
 /* Gradient button style */
 .btn-custom {
   background-image: linear-gradient(to right, var(--color-primary), var(--color-secondary));
   background-color: transparent;
   color: var(--color-primary-foreground);
   padding: 0.75rem 1.25rem;
-  border-radius: ${radius};
+  border-radius: ${buttonRadius};
   font-weight: 500;
   font-size: 1rem;
   transition: all 0.2s ease-in-out;
@@ -104,16 +83,15 @@ export function generateButtonStyleCSS(
   transform: translateY(1px);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }`
-      break
 
     case '3d':
-      primaryButtonCSS = `
+      return `
 /* 3D button style */
 .btn-custom {
   background-color: var(--color-primary);
   color: var(--color-primary-foreground);
   padding: 0.75rem 1.25rem;
-  border-radius: ${radius};
+  border-radius: ${buttonRadius};
   font-weight: 500;
   font-size: 1rem;
   border-bottom: 1px solid var(--primary-700);
@@ -140,23 +118,28 @@ export function generateButtonStyleCSS(
   top: 3px;
   box-shadow: var(--primary-700) 1px 1px 0 0;
 }`
-      break
 
     default:
-      primaryButtonCSS = ''
+      return ''
   }
+}
 
-  // Secondary button style (outline-like style regardless of primary style)
+/**
+ * Generate secondary button CSS based on style type
+ */
+function generateSecondaryButtonCSS(style: ButtonStyle, config: ButtonStyleConfig): string {
+  const { buttonRadius } = config
+
   switch (style) {
     case 'default':
-      secondaryButtonCSS = `
+      return `
 /* Secondary button style */
 .btn-custom-secondary {
   background-color: transparent;
   color: var(--color-primary);
   border: 1px solid var(--color-primary);
   padding: 0.75rem 1.25rem;
-  border-radius: ${radius};
+  border-radius: ${buttonRadius};
   font-weight: 500;
   font-size: 1rem;
   transition: all 0.2s ease-in-out;
@@ -181,16 +164,15 @@ export function generateButtonStyleCSS(
   background-color: var(--primary-100);
   box-shadow: none;
 }`
-      break
 
     case 'gradient':
-      secondaryButtonCSS = `
+      return `
 /* Secondary button style with gradient border */
 .btn-custom-secondary {
   background-color: transparent;
   color: var(--color-primary);
   padding: 0.75rem 1.25rem;
-  border-radius: ${radius};
+  border-radius: ${buttonRadius};
   font-weight: 500;
   font-size: 1rem;
   transition: all 0.2s ease-in-out;
@@ -203,7 +185,7 @@ export function generateButtonStyleCSS(
   position: relative;
   z-index: 1;
   border: 1px solid transparent;
-  background-image: linear-gradient(${radius}, white, white), linear-gradient(to right, var(--color-primary), var(--color-secondary));
+  background-image: linear-gradient(${buttonRadius}, white, white), linear-gradient(to right, var(--color-primary), var(--color-secondary));
   background-origin: border-box;
   background-clip: padding-box, border-box;
 }
@@ -219,16 +201,15 @@ export function generateButtonStyleCSS(
   transform: translateY(1px);
   box-shadow: none;
 }`
-      break
 
     case '3d':
-      secondaryButtonCSS = `
+      return `
 /* 3D Secondary button style */
 .btn-custom-secondary {
   background-color: white;
   color: var(--color-primary);
   padding: 0.75rem 1.25rem;
-  border-radius: ${radius};
+  border-radius: ${buttonRadius};
   font-weight: 500;
   font-size: 1rem;
   border: 2px solid var(--color-primary);
@@ -255,17 +236,16 @@ export function generateButtonStyleCSS(
   top: 3px;
   box-shadow: var(--color-primary) 1px 1px 0 0;
 }`
-      break
 
     default:
-      secondaryButtonCSS = `
+      return `
 /* Secondary button style */
 .btn-custom-secondary {
   background-color: transparent;
   color: var(--color-primary);
   border: 1px solid var(--color-primary);
   padding: 0.75rem 1.25rem;
-  border-radius: ${radius};
+  border-radius: ${buttonRadius};
   font-weight: 500;
   font-size: 1rem;
   transition: all 0.2s ease-in-out;
@@ -288,18 +268,24 @@ export function generateButtonStyleCSS(
   transform: translateY(1px);
 }`
   }
+}
 
-  // Ghost button style
+/**
+ * Generate ghost button CSS based on style type
+ */
+function generateGhostButtonCSS(style: ButtonStyle, config: ButtonStyleConfig): string {
+  const { buttonRadius } = config
+
   switch (style) {
     case 'default':
     case 'gradient':
-      ghostButtonCSS = `
+      return `
 /* Ghost button style */
 .btn-custom-ghost {
   background-color: transparent;
   color: var(--color-primary);
   padding: 0.75rem 1.25rem;
-  border-radius: ${radius};
+  border-radius: ${buttonRadius};
   font-weight: 500;
   font-size: 1rem;
   transition: all 0.2s ease-in-out;
@@ -322,16 +308,15 @@ export function generateButtonStyleCSS(
   transform: translateY(1px);
   background-color: var(--primary-100);
 }`
-      break
 
     case '3d':
-      ghostButtonCSS = `
+      return `
 /* 3D Ghost button style */
 .btn-custom-ghost {
   background-color: transparent;
   color: var(--color-primary);
   padding: 0.75rem 1.25rem;
-  border-radius: ${radius};
+  border-radius: ${buttonRadius};
   font-weight: 500;
   font-size: 1rem;
   border: 2px dashed var(--color-primary);
@@ -358,16 +343,15 @@ export function generateButtonStyleCSS(
   top: 3px;
   box-shadow: var(--color-primary) 1px 1px 0 0;
 }`
-      break
 
     default:
-      ghostButtonCSS = `
+      return `
 /* Ghost button style */
 .btn-custom-ghost {
   background-color: transparent;
   color: var(--color-primary);
   padding: 0.75rem 1.25rem;
-  border-radius: ${radius};
+  border-radius: ${buttonRadius};
   font-weight: 500;
   font-size: 1rem;
   transition: all 0.2s ease-in-out;
@@ -391,10 +375,48 @@ export function generateButtonStyleCSS(
   background-color: var(--primary-100);
 }`
   }
+}
 
-  return `${primaryButtonCSS}
+/**
+ * Generate all button styles based on the provided configuration
+ */
+export function generateButtonStyles(
+  style: ButtonStyle = 'default',
+  primaryColor: string,
+  secondaryColor: string,
+  buttonRadiusOption?: ButtonRadius,
+): string {
+  // Determine button radius based on selection
+  let radius = 'var(--radius)'
+  if (buttonRadiusOption) {
+    switch (buttonRadiusOption) {
+      case 'none':
+        radius = '0'
+        break
+      case 'full':
+        radius = '9999px'
+        break
+      case 'sm':
+        radius = 'var(--radius-sm)'
+        break
+      default:
+        radius = 'var(--radius)'
+    }
+  }
 
-${secondaryButtonCSS}
+  const config: ButtonStyleConfig = {
+    buttonRadius: radius,
+    primaryColor,
+    secondaryColor,
+  }
 
-${ghostButtonCSS}`
+  const primaryCSS = generatePrimaryButtonCSS(style, config)
+  const secondaryCSS = generateSecondaryButtonCSS(style, config)
+  const ghostCSS = generateGhostButtonCSS(style, config)
+
+  return `${primaryCSS}
+
+${secondaryCSS}
+
+${ghostCSS}`
 }

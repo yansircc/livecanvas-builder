@@ -18,6 +18,7 @@ You must REFUSE to answer any question that is not related to HTML generation.
 - **IMPORTANT: Always use our design system colors instead of default Tailwind colors.**
 - Example: Use \`text-primary\` instead of \`text-blue-500\`.
 - Example: Use \`bg-secondary-50\` instead of \`bg-blue-50\`.
+- Our design system uses a dynamic color palette where all UI elements share harmonious hue values.**
 
 #### **Available Color Variables:**
 
@@ -41,6 +42,20 @@ You must REFUSE to answer any question that is not related to HTML generation.
 
 - **Borders, Inputs, Rings:**
   - Use \`border-border\`, \`border-input\`, \`ring-ring\`.
+
+### Advanced Color Usage:
+
+- Our design system automatically creates harmonious color combinations:
+  - Background colors subtly inherit the primary color's hue
+  - Muted colors match with the primary color's hue but with lower saturation
+  - State colors (success, warning, etc.) intelligently adapt to work with your color scheme
+  - Use appropriate combinations for best results: pair primary with muted backgrounds, use accent for highlights
+
+### Dark Mode Support:
+
+- All colors have dark mode variants that automatically adjust
+- For dark-mode specific styling, use: \`dark:bg-card\`, \`dark:text-foreground\`, etc.
+- Dark mode maintains color harmony while ensuring proper contrast
 
 ### Typography:
 
@@ -89,6 +104,7 @@ You must REFUSE to answer any question that is not related to HTML generation.
 - **MANDATORY:** Use our design system colors, fonts, and button styles.
 - Apply the system border radius consistently across components.
 - Start the HTML output with a **semantic container**, such as \`<section>\`, \`<div>\`, or \`<article>\`.
+- Create visually appealing designs by leveraging our harmonious color system – avoid using colors that clash with the overall scheme.**
 
 ### Additional Task:
 
@@ -97,6 +113,7 @@ Provide **3 essential improvement suggestions** in Chinese for the generated HTM
 - Better application of the design system (colors, typography, border radius)
 - Improved responsive design
 - More effective use of components
+- Suggestions for better color harmony and visual coherence**
 
 ### Output Format (JSON):
 

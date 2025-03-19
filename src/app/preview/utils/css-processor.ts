@@ -1,148 +1,306 @@
 /**
- * Process HTML content to ensure it has Tailwind CSS properly incorporated
- * @param content The HTML content to process
- * @returns The processed HTML with Tailwind CSS
+ * CSS Processor for HTML content
+ * Handles Tailwind CSS, AOS animations, and custom CSS injection
  */
+
+// Types
+interface ResourceOptions {
+  includeTailwind?: boolean
+  includeAOS?: boolean
+  includeGoogleFonts?: boolean
+}
+
+// Main processors
 export function processTailwindContent(content: string): string {
-  // Check if content already has Tailwind or includes a head tag
   const hasTailwind = content.includes('tailwindcss') || content.includes('@tailwindcss/browser')
   const hasHeadTag = content.includes('<head>') && content.includes('</head>')
   const hasAOS = content.includes('aos@2.3.1') || content.includes('aos.js')
+  const hasHtmlStructure = content.includes('<html') && content.includes('<body')
 
-  // If the content is just a fragment (no html/body tags), wrap it
-  if (!content.includes('<html') && !content.includes('<body')) {
-    return wrapContentWithTailwind(content)
+  // Handle different content types
+  if (!hasHtmlStructure) {
+    return wrapFragment(content)
   }
 
-  // If it has html/body but no head, add a head with Tailwind
   if (!hasHeadTag) {
-    return injectHeadIntoHtml(content, !hasTailwind, !hasAOS)
+    return injectHead(content, { includeTailwind: !hasTailwind, includeAOS: !hasAOS })
   }
 
-  // If it has a head tag but is missing Tailwind or AOS
-  if (hasHeadTag && (!hasTailwind || !hasAOS)) {
+  // Inject missing resources if needed
+  let processedContent = content
+
+  if (hasHeadTag && !hasTailwind) {
+    processedContent = injectIntoHead(processedContent, getTailwindResources())
+  }
+
+  if (hasHeadTag && !hasAOS) {
+    processedContent = injectIntoHead(processedContent, getAOSStylesheet())
+    processedContent = injectIntoBody(processedContent, getAOSScripts())
+  }
+
+  return addResizeScript(processedContent)
+}
+
+export function processContentWithCustomCss(
+  content: string,
+  customCss: string | null | undefined,
+): string {
+  if (!customCss) {
+    return processTailwindContent(content)
+  }
+
+  const hasHtmlTag = content.includes('<html')
+  const hasBodyTag = content.includes('<body')
+  const hasHeadTag = content.includes('<head>') && content.includes('</head>')
+  const hasAOS = content.includes('aos@2.3.1') || content.includes('aos.js')
+
+  // Process CSS
+  const { processedCss, googleFontsLink } = processCustomCss(customCss)
+
+  // Fragment - wrap in complete HTML
+  if (!hasHtmlTag && !hasBodyTag) {
+    return createCompleteHtml(content, processedCss, googleFontsLink)
+  }
+
+  // Has HTML/body but no head
+  if (hasHtmlTag && hasBodyTag && !hasHeadTag) {
+    return injectHead(
+      content,
+      {
+        includeTailwind: true,
+        includeAOS: !hasAOS,
+      },
+      processedCss,
+      googleFontsLink,
+    )
+  }
+
+  // Has head - inject resources
+  if (hasHeadTag) {
     let processedContent = content
 
-    // Add Tailwind if missing
-    if (!hasTailwind) {
-      processedContent = processedContent.replace('</head>', `${getTailwindScripts()}</head>`)
+    if (googleFontsLink && !processedContent.includes('fonts.googleapis.com')) {
+      processedContent = injectIntoHead(processedContent, googleFontsLink)
     }
 
-    // Add AOS if missing
+    if (!processedContent.includes('@tailwindcss/browser')) {
+      processedContent = injectIntoHead(processedContent, getTailwindResources())
+    }
+
+    if (processedCss) {
+      processedContent = injectIntoHead(processedContent, getCustomCssStyle(processedCss))
+    }
+
     if (!hasAOS) {
-      processedContent = processedContent.replace(
-        '</head>',
-        '<link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet" crossorigin="anonymous">\n</head>',
-      )
-      processedContent = processedContent.replace(
-        '</body>',
-        '<script src="https://unpkg.com/aos@2.3.1/dist/aos.js" crossorigin="anonymous"></script>\n<script>document.addEventListener("DOMContentLoaded", function() { AOS.init(); });</script>\n</body>',
-      )
+      processedContent = injectIntoHead(processedContent, getAOSStylesheet())
+      processedContent = injectIntoBody(processedContent, getAOSScripts())
     }
 
     return addResizeScript(processedContent)
   }
 
-  // Return as is if it already has everything, but add resize script
-  return addResizeScript(content)
+  // Fallback - wrap content
+  return createCompleteHtml(content, processedCss, googleFontsLink)
 }
 
-/**
- * Wrap a HTML fragment with proper HTML structure and Tailwind CSS
- * @param fragment The HTML fragment to wrap
- * @returns The wrapped HTML with Tailwind CSS
- */
-function wrapContentWithTailwind(fragment: string): string {
-  return addResizeScript(`<!DOCTYPE html>
+// HTML Structure Helpers
+function wrapFragment(fragment: string): string {
+  const html = `<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tailwind Preview</title>
-    ${getTailwindScripts()}
+    ${getTailwindResources()}
     ${getTailwindMinimalStyles()}
-    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet" crossorigin="anonymous">
+    ${getAOSStylesheet()}
   </head>
   <body>
     <div class="tailwind-content">
       ${fragment}
     </div>
-    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js" crossorigin="anonymous"></script>
-    <script>
-      document.addEventListener("DOMContentLoaded", function() {
-        if (typeof AOS !== 'undefined') {
-          AOS.init({
-            duration: 800,
-            once: false,
-            mirror: true,
-          });
-        }
-      });
-    </script>
+    ${getAOSScripts()}
   </body>
-</html>`)
+</html>`
+
+  return addResizeScript(html)
 }
 
-/**
- * Inject head with Tailwind CSS and/or AOS into existing HTML
- * @param html The HTML to inject into
- * @param includeTailwind Whether to include Tailwind
- * @param includeAOS Whether to include AOS
- * @returns The HTML with head injected
- */
-function injectHeadIntoHtml(html: string, includeTailwind = true, includeAOS = true): string {
-  let head =
+function injectHead(
+  html: string,
+  options: ResourceOptions,
+  customCss?: string,
+  googleFontsLink?: string,
+): string {
+  const { includeTailwind = true, includeAOS = true } = options
+
+  let headContent =
     '<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">'
 
+  if (googleFontsLink) {
+    headContent += googleFontsLink
+  }
+
   if (includeTailwind) {
-    head += getTailwindScripts()
-    // Add fallback Tailwind styles
-    head += getTailwindMinimalStyles()
+    headContent += getTailwindResources()
+    headContent += getTailwindMinimalStyles()
+  }
+
+  if (customCss) {
+    headContent += getCustomCssStyle(customCss)
   }
 
   if (includeAOS) {
-    head +=
-      '<link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet" crossorigin="anonymous">'
+    headContent += getAOSStylesheet()
   }
 
-  head += '</head>'
+  headContent += '</head>'
 
-  let processedHtml = html
+  let processedHtml = html.replace('<body', `${headContent}<body`)
 
-  if (html.includes('<html') && html.includes('<body')) {
-    processedHtml = html.replace('<body', `${head}<body`)
-  } else {
-    processedHtml = `<!DOCTYPE html><html lang="en">${head}<body>${html}</body></html>`
-  }
-
-  // Add AOS initialization
   if (includeAOS) {
-    processedHtml = processedHtml.replace(
-      '</body>',
-      `
-    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js" crossorigin="anonymous"></script>
-    <script>
-      document.addEventListener("DOMContentLoaded", function() {
-        if (typeof AOS !== 'undefined') {
-          AOS.init({
-            duration: 800,
-            once: false,
-            mirror: true,
-          });
-        }
-      });
-    </script>
-    </body>`,
-    )
+    processedHtml = injectIntoBody(processedHtml, getAOSScripts())
   }
 
   return addResizeScript(processedHtml)
 }
 
+function createCompleteHtml(content: string, customCss?: string, googleFontsLink?: string): string {
+  return addResizeScript(`<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preview with Custom CSS</title>
+    ${googleFontsLink || ''}
+    ${getTailwindResources()}
+    ${getTailwindMinimalStyles()}
+    ${customCss ? getCustomCssStyle(customCss) : ''}
+    ${getAOSStylesheet()}
+  </head>
+  <body>
+    ${content}
+    ${getAOSScripts()}
+  </body>
+</html>`)
+}
+
+// String Manipulation Helpers
+function injectIntoHead(html: string, content: string): string {
+  return html.replace('</head>', `${content}</head>`)
+}
+
+function injectIntoBody(html: string, content: string): string {
+  return html.replace('</body>', `${content}</body>`)
+}
+
+// Resource Generators
+function getTailwindResources(): string {
+  return `
+<script src="${process.env.NEXT_PUBLIC_TAILWIND_CDN_URL}" crossorigin="anonymous" onerror="loadFallbackTailwind()"></script>
+<script>
+  function loadFallbackTailwind() {
+    console.log('CDN Tailwind failed, loading local fallback...');
+    const script = document.createElement('script');
+    script.src = window.location.origin + '${process.env.NEXT_PUBLIC_TAILWIND_FALLBACK_PATH}';
+    document.head.appendChild(script);
+  }
+</script>`
+}
+
+function getTailwindMinimalStyles(): string {
+  return `
+<style>
+  /* Minimal Tailwind reset and utilities */
+  *, ::before, ::after { box-sizing: border-box; border-width: 0; border-style: solid; }
+  html { line-height: 1.5; -webkit-text-size-adjust: 100%; tab-size: 4; font-family: ui-sans-serif, system-ui, sans-serif; }
+  body { margin: 0; line-height: inherit; }
+  /* Basic utility classes */
+  .flex { display: flex; }
+  .items-center { align-items: center; }
+  .justify-center { justify-content: center; }
+  .mx-auto { margin-left: auto; margin-right: auto; }
+  .p-4 { padding: 1rem; }
+  .rounded { border-radius: 0.25rem; }
+  .bg-white { background-color: #fff; }
+  .text-center { text-align: center; }
+</style>`
+}
+
+function getAOSStylesheet(): string {
+  return '<link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet" crossorigin="anonymous">'
+}
+
+function getAOSScripts(): string {
+  return `
+<script src="https://unpkg.com/aos@2.3.1/dist/aos.js" crossorigin="anonymous"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    if (typeof AOS !== 'undefined') {
+      AOS.init({
+        duration: 800,
+        once: false,
+        mirror: true,
+      });
+    }
+  });
+</script>`
+}
+
+function getCustomCssStyle(css: string): string {
+  return `
+<style type="text/tailwindcss">
+  ${css}
+</style>`
+}
+
+// CSS Processing
+function processCustomCss(css: string): { processedCss: string; googleFontsLink: string } {
+  // Handle tailwind imports
+  let processedCss = css
+  const importsTailwind = css.includes('@import') && css.includes('tailwindcss')
+
+  if (importsTailwind) {
+    processedCss = processedCss.replace(/@import\s+(['"])tailwindcss\1;?/g, '')
+  }
+
+  // Extract Google Fonts
+  const fontFamilies = new Set<string>()
+  const fontFaceRegex = /@font-face\s*{\s*font-family:\s*["']([^"']+)["'];/g
+  let fontMatch
+
+  while ((fontMatch = fontFaceRegex.exec(processedCss)) !== null) {
+    if (fontMatch[1]) {
+      fontFamilies.add(fontMatch[1])
+    }
+  }
+
+  // Fix incorrect Google Fonts usage
+  processedCss = processedCss.replace(
+    /@font-face\s*{\s*font-family:\s*["']([^"']+)["'];\s*src:\s*url\(["']https:\/\/fonts\.googleapis\.com\/css2\?family=([^&"']+).*?["']\);\s*}/g,
+    (match) => {
+      return `/* ${match} */\n/* Replaced with proper Google Fonts import */`
+    },
+  )
+
+  // Create Google Fonts link
+  const googleFontsLink =
+    fontFamilies.size > 0
+      ? `
+<!-- Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=${Array.from(fontFamilies)
+          .map((f) => f.replace(/\s+/g, '+'))
+          .join('&family=')}&display=swap" rel="stylesheet">
+`
+      : ''
+
+  return { processedCss, googleFontsLink }
+}
+
 /**
  * Add a script to dynamically resize the iframe based on content height
- * @param html The HTML to add the resize script to
- * @returns The HTML with resize script added
  */
 function addResizeScript(html: string): string {
   const resizeScript = `
@@ -189,272 +347,5 @@ function addResizeScript(html: string): string {
   window.addEventListener('orientationchange', updateParentHeight);
 </script>
 `
-
-  // Add the resize script before the closing body tag
-  return html.replace('</body>', `${resizeScript}</body>`)
-}
-
-/**
- * Process HTML content with custom CSS
- * @param content Original HTML content
- * @param customCss Custom CSS to inject
- * @returns HTML content with custom CSS injected
- */
-export function processContentWithCustomCss(
-  content: string,
-  customCss: string | null | undefined,
-): string {
-  // Check if content already includes certain elements
-  const hasHtmlTag = content.includes('<html')
-  const hasBodyTag = content.includes('<body')
-  const hasHeadTag = content.includes('<head>') && content.includes('</head>')
-  const hasAOS = content.includes('aos@2.3.1') || content.includes('aos.js')
-
-  // Check if custom CSS imports tailwindcss (handle with or without semicolon)
-  const importsTailwind =
-    (customCss?.includes('@import') && customCss?.includes('tailwindcss')) || false
-
-  // Prepare custom CSS by removing problematic imports for TailwindCSS v4
-  let processedCss = customCss
-  if (importsTailwind && processedCss) {
-    // Remove the tailwind import as we'll include the CDN
-    processedCss = processedCss.replace(/@import\s+(['"])tailwindcss\1;?/g, '')
-  }
-
-  // Fix Google Fonts imports in @font-face declarations
-  if (processedCss) {
-    // Extract font names from @font-face declarations that use Google Fonts
-    const fontFamilies = new Set<string>()
-    const fontFaceRegex = /@font-face\s*{\s*font-family:\s*["']([^"']+)["'];/g
-    let fontMatch
-
-    while ((fontMatch = fontFaceRegex.exec(processedCss)) !== null) {
-      if (fontMatch[1]) {
-        fontFamilies.add(fontMatch[1])
-      }
-    }
-
-    // Convert incorrect @font-face declarations with Google Fonts URLs to comments
-    processedCss = processedCss.replace(
-      /@font-face\s*{\s*font-family:\s*["']([^"']+)["'];\s*src:\s*url\(["']https:\/\/fonts\.googleapis\.com\/css2\?family=([^&"']+).*?["']\);\s*}/g,
-      (match) => {
-        return `/* ${match} */\n/* Replaced with proper Google Fonts import */`
-      },
-    )
-
-    // Generate Google Fonts link if needed
-    const googleFontsLink =
-      fontFamilies.size > 0
-        ? `
-<!-- Google Fonts -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=${Array.from(fontFamilies)
-            .map((f) => f.replace(/\s+/g, '+'))
-            .join('&family=')}&display=swap" rel="stylesheet">
-`
-        : ''
-
-    // If the content is just a fragment (no html/body tags), wrap it with custom CSS
-    if (!hasHtmlTag && !hasBodyTag) {
-      return `<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Preview with Custom CSS</title>
-    ${googleFontsLink}
-    ${getTailwindScripts()}
-    ${getTailwindMinimalStyles()}
-    <style type="text/tailwindcss">
-      ${processedCss}
-    </style>
-    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet" crossorigin="anonymous">
-  </head>
-  <body>
-    <div class="tailwind-content">
-      ${content}
-    </div>
-    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js" crossorigin="anonymous"></script>
-    <script>
-      document.addEventListener("DOMContentLoaded", function() {
-        if (typeof AOS !== 'undefined') {
-          AOS.init({
-            duration: 800,
-            once: false,
-            mirror: true,
-          });
-        }
-      });
-    </script>
-  </body>
-</html>`
-    }
-
-    // If it has html/body but no head, inject a head with custom CSS
-    if (hasHtmlTag && hasBodyTag && !hasHeadTag) {
-      let head =
-        '<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">'
-
-      // Add Google Fonts if needed
-      if (googleFontsLink) {
-        head += googleFontsLink
-      }
-
-      // Add Tailwind
-      head += getTailwindScripts()
-
-      // Add fallback Tailwind styles
-      head += getTailwindMinimalStyles()
-
-      // Add custom CSS with type="text/tailwindcss"
-      if (processedCss) {
-        head += `<style type="text/tailwindcss">
-  ${processedCss}
-</style>`
-      }
-
-      // Add AOS CSS
-      head +=
-        '<link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet" crossorigin="anonymous">'
-      head += '</head>'
-
-      let processedHtml = content.replace('<body', `${head}<body`)
-
-      // Add AOS initialization if needed
-      if (!hasAOS) {
-        processedHtml = processedHtml.replace(
-          '</body>',
-          `
-          <script src="https://unpkg.com/aos@2.3.1/dist/aos.js" crossorigin="anonymous"></script>
-          <script>
-            document.addEventListener("DOMContentLoaded", function() {
-              if (typeof AOS !== 'undefined') {
-                AOS.init({
-                  duration: 800,
-                  once: false,
-                  mirror: true,
-                });
-              }
-            });
-          </script>
-          </body>`,
-        )
-      }
-
-      return addResizeScript(processedHtml)
-    }
-
-    // If it has a head tag, inject the custom CSS into it
-    if (hasHeadTag) {
-      let processedContent = content
-
-      // Add Google Fonts if needed
-      if (googleFontsLink && !processedContent.includes('fonts.googleapis.com')) {
-        processedContent = processedContent.replace('</head>', `${googleFontsLink}</head>`)
-      }
-
-      // Add Tailwind if missing
-      if (!processedContent.includes('@tailwindcss/browser')) {
-        processedContent = processedContent.replace(
-          '</head>',
-          `${getTailwindScripts()}\n${getTailwindMinimalStyles()}</head>`,
-        )
-      }
-
-      // Add custom CSS with type="text/tailwindcss"
-      if (processedCss) {
-        processedContent = processedContent.replace(
-          '</head>',
-          `<style type="text/tailwindcss">
-  ${processedCss}
-</style></head>`,
-        )
-      }
-
-      // Add AOS if missing
-      if (!hasAOS) {
-        processedContent = processedContent.replace(
-          '</head>',
-          '<link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet" crossorigin="anonymous">\n</head>',
-        )
-        processedContent = processedContent.replace(
-          '</body>',
-          '<script src="https://unpkg.com/aos@2.3.1/dist/aos.js" crossorigin="anonymous"></script>\n<script>document.addEventListener("DOMContentLoaded", function() { AOS.init(); });</script>\n</body>',
-        )
-      }
-
-      return addResizeScript(processedContent)
-    }
-
-    // Fallback - wrap the content in a complete HTML structure
-    return addResizeScript(`<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Preview with Custom CSS</title>
-    ${googleFontsLink}
-    ${getTailwindScripts()}
-    ${getTailwindMinimalStyles()}
-    <style type="text/tailwindcss">
-      ${processedCss}
-    </style>
-    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet" crossorigin="anonymous">
-  </head>
-  <body>
-    ${content}
-    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js" crossorigin="anonymous"></script>
-    <script>
-      document.addEventListener("DOMContentLoaded", function() {
-        if (typeof AOS !== 'undefined') {
-          AOS.init({
-            duration: 800,
-            once: false,
-            mirror: true,
-          });
-        }
-      });
-    </script>
-  </body>
-</html>`)
-  }
-
-  // If no custom CSS, just use the regular Tailwind processor
-  return processTailwindContent(content)
-}
-
-// Add new function to create tailwind script tags with fallback
-function getTailwindScripts(): string {
-  return `
-<script src="${process.env.NEXT_PUBLIC_TAILWIND_CDN_URL}" crossorigin="anonymous" onerror="loadFallbackTailwind()"></script>
-<script>
-  function loadFallbackTailwind() {
-    console.log('CDN Tailwind failed, loading local fallback...');
-    const script = document.createElement('script');
-    script.src = window.location.origin + '${process.env.NEXT_PUBLIC_TAILWIND_FALLBACK_PATH}';
-    document.head.appendChild(script);
-  }
-</script>
-`
-}
-
-function getTailwindMinimalStyles(): string {
-  return `
-<style>
-      /* Minimal Tailwind reset and utilities */
-      *, ::before, ::after { box-sizing: border-box; border-width: 0; border-style: solid; }
-      html { line-height: 1.5; -webkit-text-size-adjust: 100%; tab-size: 4; font-family: ui-sans-serif, system-ui, sans-serif; }
-      body { margin: 0; line-height: inherit; }
-      /* Basic utility classes */
-      .flex { display: flex; }
-      .items-center { align-items: center; }
-      .justify-center { justify-content: center; }
-      .mx-auto { margin-left: auto; margin-right: auto; }
-      .p-4 { padding: 1rem; }
-      .rounded { border-radius: 0.25rem; }
-      .bg-white { background-color: #fff; }
-      .text-center { text-align: center; }
-    </style>
-  `
+  return injectIntoBody(html, resizeScript)
 }
