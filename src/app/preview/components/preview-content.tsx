@@ -53,11 +53,9 @@ export function PreviewContent() {
             </div>
             <div>
               <h1 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                DaisyUI Preview
+                UI 预览
               </h1>
-              <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                Preview with your HTML
-              </p>
+              <p className="text-xs text-neutral-500 dark:text-neutral-400">预览你的 HTML</p>
             </div>
           </div>
 
@@ -74,7 +72,7 @@ export function PreviewContent() {
         {/* Preview area */}
         <div className="container mx-auto flex h-full flex-col rounded-lg border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-950">
           <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-2 dark:border-neutral-800">
-            <h2 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Preview</h2>
+            <h2 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">预览</h2>
 
             {/* Device selector - moved from header to preview bar */}
             <div className="flex items-center rounded-md border border-neutral-200 bg-white p-1 dark:border-neutral-800 dark:bg-neutral-900">
@@ -85,7 +83,7 @@ export function PreviewContent() {
                     ? 'bg-neutral-100 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100'
                     : 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100'
                 }`}
-                title="Mobile view"
+                title="移动视图"
               >
                 <Smartphone className="h-3.5 w-3.5" />
               </button>
@@ -96,7 +94,7 @@ export function PreviewContent() {
                     ? 'bg-neutral-100 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100'
                     : 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100'
                 }`}
-                title="Tablet view"
+                title="平板视图"
               >
                 <Tablet className="h-3.5 w-3.5" />
               </button>
@@ -107,7 +105,7 @@ export function PreviewContent() {
                     ? 'bg-neutral-100 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100'
                     : 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100'
                 }`}
-                title="Desktop view"
+                title="桌面视图"
               >
                 <Monitor className="h-3.5 w-3.5" />
               </button>
@@ -154,7 +152,7 @@ export function PreviewContent() {
                     ref={iframeRef}
                     srcDoc={iframeContent}
                     className="h-full w-full border-0"
-                    title="DaisyUI Preview"
+                    title="UI 预览"
                     sandbox="allow-scripts allow-same-origin allow-modals allow-forms"
                     loading="lazy"
                     onLoad={() => {

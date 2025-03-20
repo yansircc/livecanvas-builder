@@ -112,7 +112,7 @@ export function MyProjects({ userId }: MyProjectsProps) {
     <Card className="border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
       <CardHeader>
         <CardTitle>我的项目</CardTitle>
-        <CardDescription>管理您创建的项目</CardDescription>
+        <CardDescription>管理你创建的项目</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Search input */}
@@ -177,7 +177,7 @@ export function MyProjects({ userId }: MyProjectsProps) {
               没有找到项目
             </h3>
             <p className="mt-1 text-zinc-500 dark:text-zinc-400">
-              {searchQuery ? '尝试不同的搜索词' : '创建您的第一个项目以开始'}
+              {searchQuery ? '尝试不同的搜索词' : '创建你的第一个项目以开始'}
             </p>
             <Button
               className="bg-primary hover:bg-primary/90 text-primary-foreground mt-4"

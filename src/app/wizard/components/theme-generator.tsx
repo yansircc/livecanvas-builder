@@ -1,5 +1,6 @@
 'use client'
 
+import { toast } from 'sonner'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -96,6 +97,8 @@ export function ThemeGenerator() {
     })
 
     setGeneratedCSS(css)
+
+    toast.success('主题生成成功！')
   }
 
   // Copy generated CSS to clipboard
@@ -115,8 +118,8 @@ export function ThemeGenerator() {
     <div className="space-y-8">
       <Tabs defaultValue="colors" className="w-full">
         <TabsList className="mb-4">
-          <TabsTrigger value="colors">Colors</TabsTrigger>
-          <TabsTrigger value="fonts">Fonts</TabsTrigger>
+          <TabsTrigger value="colors">颜色</TabsTrigger>
+          <TabsTrigger value="fonts">字体</TabsTrigger>
         </TabsList>
 
         <TabsContent value="colors" className="space-y-6">
@@ -124,7 +127,7 @@ export function ThemeGenerator() {
 
           {selectedColor && recommendedSchemes.length > 0 && (
             <div className="space-y-4">
-              <h3 className="text-lg font-medium">Recommended Color Schemes</h3>
+              <h3 className="text-lg font-medium">推荐的颜色方案</h3>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 {recommendedSchemes.map((scheme) => (
@@ -189,12 +192,12 @@ export function ThemeGenerator() {
           disabled={!selectedColor}
           className="w-full sm:w-auto"
         >
-          Generate Theme
+          生成主题
         </Button>
 
         {generatedCSS && (
           <Button onClick={handleCopyCSS} variant="outline" className="w-full sm:w-auto">
-            {copySuccess ? 'Copied!' : 'Copy CSS'}
+            {copySuccess ? '已复制！' : '复制 CSS'}
           </Button>
         )}
       </div>
@@ -202,9 +205,9 @@ export function ThemeGenerator() {
       {generatedCSS && (
         <Card>
           <CardHeader>
-            <CardTitle>Generated Theme</CardTitle>
+            <CardTitle>生成的主题</CardTitle>
             <CardDescription>
-              Your DaisyUI theme is ready! Copy the CSS below to use in your project.
+              你的 UI 主题已准备就绪！复制下面的 CSS 以在你的项目中使用。
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -212,13 +215,6 @@ export function ThemeGenerator() {
               <pre className="text-sm">
                 <code>{generatedCSS}</code>
               </pre>
-            </div>
-            <div className="mt-4 flex justify-end">
-              <Button variant="outline" asChild>
-                <a href="/preview" target="_blank" rel="noopener noreferrer">
-                  Preview Theme
-                </a>
-              </Button>
             </div>
           </CardContent>
         </Card>

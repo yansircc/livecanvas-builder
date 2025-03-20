@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { faqExample } from '../examples/faq'
+import { notFoundExample } from '../mock-htmls/404'
 // import { createTaosInitScript } from '../utils/animation-utils'
 import { processCss } from '../utils/css-processor'
 
@@ -155,7 +155,7 @@ export function usePreview() {
 
     // If no content was found in sessionStorage, use example
     if (!content) {
-      content = faqExample
+      content = notFoundExample
     }
 
     setHtmlContent(content)

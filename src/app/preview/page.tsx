@@ -1,13 +1,10 @@
 import { Suspense } from 'react'
+import { LoadingSpinner } from './components/loading-spinner'
 import { PreviewContent } from './components/preview-content'
 
 export default function PreviewPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex h-screen w-full items-center justify-center">Loading preview...</div>
-      }
-    >
+    <Suspense fallback={<LoadingSpinner />}>
       <PreviewContent />
     </Suspense>
   )

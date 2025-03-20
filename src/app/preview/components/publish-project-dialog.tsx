@@ -171,10 +171,10 @@ export function PublishProjectDialog({
             {isCapturingScreenshot ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                <span className="sr-only md:not-sr-only">Preparing Screenshot...</span>
+                <span className="sr-only md:not-sr-only">准备截图...</span>
               </>
             ) : (
-              <span className="sr-only md:not-sr-only">Publish</span>
+              <span className="sr-only md:not-sr-only">发布</span>
             )}
           </Button>
         )}

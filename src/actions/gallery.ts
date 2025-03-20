@@ -171,7 +171,7 @@ export async function deleteProject(projectId: string) {
     if (!existingProject) {
       return {
         success: false,
-        error: '项目未找到或您没有权限删除它',
+        error: '项目未找到或你没有权限删除它',
       }
     }
 

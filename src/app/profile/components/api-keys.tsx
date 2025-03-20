@@ -51,7 +51,7 @@ export function ApiKeys() {
     <Card className="border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
       <CardHeader>
         <CardTitle>API密钥</CardTitle>
-        <CardDescription>管理您的AiMaxHub API密钥以生成内容</CardDescription>
+        <CardDescription>管理你的AiMaxHub API密钥以生成内容</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-2">
@@ -65,7 +65,7 @@ export function ApiKeys() {
                 type={showKey ? 'text' : 'password'}
                 value={key}
                 onChange={(e) => setKey(e.target.value)}
-                placeholder="输入您的AiMaxHub API密钥"
+                placeholder="输入你的AiMaxHub API密钥"
                 className="border-zinc-200 bg-white pr-10 dark:border-zinc-700 dark:bg-zinc-800"
               />
               <Button
@@ -97,7 +97,7 @@ export function ApiKeys() {
             </Button>
           </div>
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            您的API密钥存储在本地，不会发送给我们的服务器
+            你的API密钥存储在本地，不会发送给我们的服务器
           </p>
         </div>
 
@@ -115,7 +115,7 @@ export function ApiKeys() {
                 AiMaxHub
               </a>
             </li>
-            <li>导航到您的账户设置</li>
+            <li>导航到你的账户设置</li>
             <li>生成一个新的API密钥</li>
             <li>复制并粘贴到这里</li>
           </ol>

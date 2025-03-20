@@ -51,11 +51,11 @@ export function ThemeSwitcher({
               dropdown.classList.toggle('hidden')
             }
           }}
-          title="Switch theme"
+          title="切换主题"
         >
           <Palette className="h-3.5 w-3.5" />
           <span className="max-w-[80px] overflow-hidden text-ellipsis whitespace-nowrap">
-            {currentTheme || 'Theme'}
+            {currentTheme || '主题'}
           </span>
         </button>
       </div>
@@ -65,7 +65,7 @@ export function ThemeSwitcher({
         className="absolute right-0 z-50 mt-1 hidden w-48 rounded-md border border-neutral-200 bg-white py-1 shadow-lg dark:border-neutral-800 dark:bg-neutral-900"
       >
         <div className="px-3 py-1.5 text-xs font-medium text-neutral-500 dark:text-neutral-400">
-          Available themes
+          可用主题
         </div>
         <div className="my-1 h-px bg-neutral-200 dark:bg-neutral-800"></div>
         {availableThemes.map((theme) => (

@@ -21,7 +21,7 @@ export default function VerificationSuccessPage() {
         </CardHeader>
         <CardContent className="px-8">
           <p className="text-center text-sm text-zinc-500 dark:text-zinc-400">
-            你现在点击下方按钮，登录您的账户
+            你现在点击下方按钮，登录你的账户
           </p>
         </CardContent>
         <CardFooter className="flex flex-col space-y-3 px-8 pb-10">

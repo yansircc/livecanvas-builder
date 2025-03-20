@@ -26,24 +26,20 @@ export function CssMissingDialog({ open, onClose }: CssMissingDialogProps) {
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Custom CSS Required</DialogTitle>
+          <DialogTitle>需要自定义 CSS</DialogTitle>
           <DialogDescription>
-            To preview components with your design system, you need to create a custom CSS theme
-            first.
+            要预览组件与你的组件库，你需要先创建一个自定义 CSS 主题。
           </DialogDescription>
         </DialogHeader>
         <div className="my-4 text-sm">
-          <p className="mb-2">Without a custom theme, your components may not display correctly.</p>
-          <p>
-            The theme wizard will help you create a custom theme that can be used with your
-            components.
-          </p>
+          <p className="mb-2">没有自定义主题，你的组件可能无法正确显示。</p>
+          <p>主题向导将帮助你创建一个自定义主题，可以与你的组件一起使用。</p>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} className="mt-2 sm:mt-0">
-            Continue Without Theme
+            继续使用默认主题
           </Button>
-          <Button onClick={handleRedirectToWizard}>Create Theme</Button>
+          <Button onClick={handleRedirectToWizard}>创建主题</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

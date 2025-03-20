@@ -23,7 +23,7 @@ function waitForIframeLoad(iframe: HTMLIFrameElement, timeout = 5000): Promise<v
     // Set up timeout
     const timeoutId = setTimeout(() => {
       iframe.removeEventListener('load', handleLoad)
-      console.warn('Iframe load timeout reached')
+      console.warn('Iframe 加载超时')
       resolve()
     }, timeout)
 
@@ -41,7 +41,7 @@ export async function captureIframeScreenshot(iframeSelector: string): Promise<s
   try {
     const iframe = document.querySelector(iframeSelector) as HTMLIFrameElement
     if (!iframe) {
-      console.error('Iframe not found:', iframeSelector)
+      console.error('Iframe 未找到:', iframeSelector)
       return null
     }
 

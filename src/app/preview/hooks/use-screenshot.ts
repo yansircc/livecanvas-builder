@@ -54,8 +54,8 @@ export function useScreenshot({ iframeRef, device, setDevice }: UseScreenshotPro
           })
         }
       } catch (error) {
-        console.error('Cannot access iframe content:', error)
-        toast.error('Cannot access iframe content. Screenshot failed.')
+        console.error('无法访问 iframe 内容:', error)
+        toast.error('无法访问 iframe 内容。截图失败。')
         return null
       }
 
@@ -63,7 +63,7 @@ export function useScreenshot({ iframeRef, device, setDevice }: UseScreenshotPro
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
       // Capture the screenshot
-      console.log('Attempting to capture iframe screenshot...')
+      console.log('尝试捕获 iframe 截图...')
       const screenshot = await captureIframeScreenshot('iframe')
 
       // Restore original device if changed
@@ -72,17 +72,15 @@ export function useScreenshot({ iframeRef, device, setDevice }: UseScreenshotPro
       }
 
       if (screenshot) {
-        toast.success('Screenshot captured successfully!')
+        toast.success('截图成功！')
       } else {
-        toast.error('Failed to capture screenshot')
+        toast.error('截图失败')
       }
 
       return screenshot
     } catch (error) {
-      console.error('Failed to capture screenshot:', error)
-      toast.error(
-        'Screenshot capture failed: ' + (error instanceof Error ? error.message : 'Unknown error'),
-      )
+      console.error('截图失败:', error)
+      toast.error('截图失败: ' + (error instanceof Error ? error.message : '未知错误'))
       return null
     } finally {
       setIsCapturing(false)

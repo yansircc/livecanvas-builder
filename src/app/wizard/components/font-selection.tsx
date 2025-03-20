@@ -75,7 +75,7 @@ export function FontSelection({ selectedFonts, onFontChange }: FontSelectionProp
     <div className="space-y-6">
       <div className="space-y-4">
         <div>
-          <Label className="mb-2 block">Heading Font</Label>
+          <Label className="mb-2 block">标题字体</Label>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {FONT_OPTIONS.heading.map((font) => (
               <FontCard
@@ -90,7 +90,7 @@ export function FontSelection({ selectedFonts, onFontChange }: FontSelectionProp
         </div>
 
         <div>
-          <Label className="mb-2 block">Body Font</Label>
+          <Label className="mb-2 block">正文字体</Label>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {FONT_OPTIONS.body.map((font) => (
               <FontCard
@@ -105,7 +105,7 @@ export function FontSelection({ selectedFonts, onFontChange }: FontSelectionProp
         </div>
 
         <div>
-          <Label className="mb-2 block">Monospace Font</Label>
+          <Label className="mb-2 block">等宽字体</Label>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {FONT_OPTIONS.mono.map((font) => (
               <FontCard

@@ -248,7 +248,7 @@ const EnhancedFormClient = ({
                       <div className="relative">
                         <div className="overflow-hidden">
                           <Textarea
-                            placeholder="描述您想要生成的HTML..."
+                            placeholder="描述你想要生成的HTML..."
                             className="h-[150px] w-full resize-none rounded-xl rounded-b-none border-0 bg-zinc-100 px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-500 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none dark:bg-zinc-800 dark:text-zinc-100"
                             style={{ boxShadow: 'none' }}
                             {...field}
@@ -345,7 +345,7 @@ const EnhancedFormClient = ({
                                         </div>
                                       ) : (
                                         <p className="text-xs">
-                                          您尚未设置背景信息。请在个人资料页面添加背景信息，以便AI更好地理解您的需求。
+                                          你尚未设置背景信息。请在个人资料页面添加背景信息，以便AI更好地理解你的需求。
                                         </p>
                                       )}
                                     </TooltipContent>

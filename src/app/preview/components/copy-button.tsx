@@ -16,7 +16,7 @@ export function CopyButton({ getContentToCopy }: CopyButtonProps) {
       const content = getContentToCopy()
       await navigator.clipboard.writeText(content)
       setCopied(true)
-      toast.success('Code copied to clipboard')
+      toast.success('代码已复制到剪贴板')
 
       // Reset copied state after 2 seconds
       setTimeout(() => {
@@ -24,7 +24,7 @@ export function CopyButton({ getContentToCopy }: CopyButtonProps) {
       }, 2000)
     } catch (error) {
       console.error('Failed to copy:', error)
-      toast.error('Failed to copy code')
+      toast.error('复制失败')
     }
   }, [getContentToCopy])
 
@@ -37,13 +37,13 @@ export function CopyButton({ getContentToCopy }: CopyButtonProps) {
             size="icon"
             className="h-8 w-8"
             onClick={handleCopy}
-            aria-label="Copy code"
+            aria-label="复制代码"
           >
             {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
           </Button>
         </TooltipTrigger>
         <TooltipContent>
-          <p>Copy HTML</p>
+          <p>复制 HTML</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

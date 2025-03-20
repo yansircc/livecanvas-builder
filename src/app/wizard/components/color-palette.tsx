@@ -22,7 +22,7 @@ interface ColorPaletteProps {
 export function ColorPalette({ onColorSelect, selectedColor }: ColorPaletteProps) {
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-medium">Tailwind Colors</h3>
+      <h3 className="text-lg font-medium">UI 颜色</h3>
 
       <div className="grid grid-cols-1 gap-1 md:grid-cols-22">
         {tailwindColorEntries.map(([colorName, colorObj]) => {

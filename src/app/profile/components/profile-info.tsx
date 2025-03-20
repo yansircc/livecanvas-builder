@@ -220,7 +220,7 @@ export function ProfileInfo({ user }: ProfileInfoProps) {
   }
 
   if (!user) {
-    return <div>请登录以查看您的个人信息</div>
+    return <div>请登录以查看你的个人信息</div>
   }
 
   if (isLoadingUserData) {
@@ -228,7 +228,7 @@ export function ProfileInfo({ user }: ProfileInfoProps) {
       <Card className="border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
         <CardHeader>
           <CardTitle>个人信息</CardTitle>
-          <CardDescription>正在加载您的个人信息...</CardDescription>
+          <CardDescription>正在加载你的个人信息...</CardDescription>
         </CardHeader>
         <CardContent className="flex items-center justify-center py-12">
           <div className="border-primary h-8 w-8 animate-spin rounded-full border-b-2"></div>
@@ -243,7 +243,7 @@ export function ProfileInfo({ user }: ProfileInfoProps) {
         <div>
           <CardTitle>个人信息</CardTitle>
           <CardDescription>
-            {isEditMode ? '编辑您的个人信息和头像' : '查看您的个人信息和头像'}
+            {isEditMode ? '编辑你的个人信息和头像' : '查看你的个人信息和头像'}
           </CardDescription>
         </div>
         <Button
@@ -280,7 +280,7 @@ export function ProfileInfo({ user }: ProfileInfoProps) {
           </div>
           <div className="flex flex-col space-y-2">
             <div className="text-sm text-zinc-700 dark:text-zinc-300">
-              {isEditMode ? '上传一个新的头像图片。JPG, PNG或GIF, 最大5MB。' : '您的个人头像'}
+              {isEditMode ? '上传一个新的头像图片。JPG, PNG或GIF, 最大5MB。' : '你的个人头像'}
             </div>
             {isEditMode && (
               <div className="flex items-center space-x-2">
@@ -328,7 +328,7 @@ export function ProfileInfo({ user }: ProfileInfoProps) {
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="您的昵称"
+              placeholder="你的昵称"
               className="border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800"
             />
           ) : (
@@ -375,7 +375,7 @@ export function ProfileInfo({ user }: ProfileInfoProps) {
               id="backgroundInfo"
               value={backgroundInfo}
               onChange={handleBackgroundInfoChange}
-              placeholder="请输入您的背景信息，这将用于AI生成更符合您需求的内容"
+              placeholder="请输入你的背景信息，这将用于AI生成更符合你需求的内容"
               className="min-h-[150px] resize-y border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800"
               maxLength={MAX_BACKGROUND_LENGTH}
             />
@@ -385,7 +385,7 @@ export function ProfileInfo({ user }: ProfileInfoProps) {
             </div>
           )}
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            此信息将用于AI生成时的上下文，帮助AI更好地理解您的需求
+            此信息将用于AI生成时的上下文，帮助AI更好地理解你的需求
           </p>
         </div>
       </CardContent>

@@ -393,7 +393,7 @@ export function generateColorHarmonies(primaryColor: string): Array<{
   // 返回的配色方案均基于色彩学中的经典理论
   return [
     {
-      name: 'Complementary',
+      name: '互补色',
       description: '基于互补色理论，采用色轮上180°对立的颜色，形成鲜明对比的配色方案。',
       colors: {
         // 主色保持原样
@@ -405,7 +405,7 @@ export function generateColorHarmonies(primaryColor: string): Array<{
       },
     },
     {
-      name: 'Analogous',
+      name: '相似色',
       description: '基于相似色理论，选择主色两侧30°范围内的颜色，营造和谐、宁静的视觉效果。',
       colors: {
         primary: primaryOklch,
@@ -416,7 +416,7 @@ export function generateColorHarmonies(primaryColor: string): Array<{
       },
     },
     {
-      name: 'Triadic',
+      name: '三色',
       description: '基于三色理论，使用色轮上均匀分布（120°间隔）的颜色，平衡且充满活力。',
       colors: {
         primary: primaryOklch,
@@ -427,7 +427,7 @@ export function generateColorHarmonies(primaryColor: string): Array<{
       },
     },
     {
-      name: 'Split Complementary',
+      name: '分裂互补色',
       description: '在互补色基础上向两侧各偏移30°，既保留对比又降低紧张感，形成更柔和的配色。',
       colors: {
         primary: primaryOklch,
@@ -438,7 +438,7 @@ export function generateColorHarmonies(primaryColor: string): Array<{
       },
     },
     {
-      name: 'Monochromatic',
+      name: '单色',
       description: '基于单色理论，通过调整亮度和饱和度生成主色的不同变体，层次丰富又统一。',
       colors: {
         primary: primaryOklch,
