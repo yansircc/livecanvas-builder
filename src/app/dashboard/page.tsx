@@ -23,12 +23,13 @@ export default function Page() {
     handleNewConversation,
     handleTaskClick,
     setShowDialog,
+    isFormDisabled,
   } = useTaskManager()
 
   // Reset state on initial load
   const { resetState } = useAppStore()
   useEffect(() => {
-    resetState({ keepUserSettings: true, keepVersions: false })
+    resetState({ keepUserSettings: true, keepVersions: false, keepTaskHistory: true })
   }, [resetState])
 
   // Clear message when code is cleared
@@ -68,6 +69,8 @@ export default function Page() {
                   advices={advices}
                   onAdviceClick={handleAdviceClick}
                   initialMessage={currentMessage}
+                  isFormDisabled={isFormDisabled}
+                  currentTaskId={taskId}
                 />
               </div>
 
@@ -78,6 +81,7 @@ export default function Page() {
                   validationResult={validationResult}
                   isLoading={isLoading}
                   modelId={model}
+                  taskId={taskId}
                 />
               </div>
             </div>

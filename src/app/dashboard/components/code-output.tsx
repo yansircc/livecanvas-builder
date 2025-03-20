@@ -22,6 +22,7 @@ interface CodeOutputProps {
   validationResult: ValidationResult
   isLoading?: boolean
   modelId?: ModelId
+  taskId?: string | null
 }
 
 export function CodeOutput({
@@ -29,6 +30,7 @@ export function CodeOutput({
   validationResult,
   isLoading = false,
   modelId,
+  taskId,
 }: CodeOutputProps) {
   const [copied, setCopied] = useState(false)
   const { processedHtml, usage } = useAppStore()
@@ -99,7 +101,7 @@ export function CodeOutput({
               </Tooltip>
             </TooltipProvider>
           )}
-          <VersionSelector />
+          <VersionSelector taskId={taskId} />
           <div className="flex gap-2">
             <Button
               variant="outline"

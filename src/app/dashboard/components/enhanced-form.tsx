@@ -27,6 +27,8 @@ interface EnhancedFormProps {
   advices: string[]
   onAdviceClick: (advice: string) => void
   initialMessage?: string
+  isFormDisabled?: boolean
+  currentTaskId?: string | null
 }
 
 interface FormValues {
@@ -67,6 +69,7 @@ const EnhancedFormClient = ({
   advices,
   onAdviceClick,
   initialMessage = '',
+  isFormDisabled = false,
 }: EnhancedFormProps) => {
   const { model, context, setState } = useAppStore()
   const [isClient, setIsClient] = useState(false)
@@ -220,8 +223,10 @@ const EnhancedFormClient = ({
                 <FormLabel className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
                   AI 模型
                 </FormLabel>
-                <Select value={model} onValueChange={handleModelChange}>
-                  <SelectTrigger className="w-full">
+                <Select value={model} onValueChange={handleModelChange} disabled={isFormDisabled}>
+                  <SelectTrigger
+                    className={cn('w-full', isFormDisabled && 'cursor-not-allowed opacity-50')}
+                  >
                     <SelectValue placeholder="选择AI模型" />
                   </SelectTrigger>
                   <SelectContent>
@@ -249,8 +254,12 @@ const EnhancedFormClient = ({
                         <div className="overflow-hidden">
                           <Textarea
                             placeholder="描述您想要生成的HTML..."
-                            className="h-[150px] w-full resize-none rounded-xl rounded-b-none border-0 bg-zinc-100 px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-500 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none dark:bg-zinc-800 dark:text-zinc-100"
+                            className={cn(
+                              'h-[150px] w-full resize-none rounded-xl rounded-b-none border-0 bg-zinc-100 px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-500 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none dark:bg-zinc-800 dark:text-zinc-100',
+                              isFormDisabled && 'cursor-not-allowed opacity-50',
+                            )}
                             style={{ boxShadow: 'none' }}
+                            disabled={isFormDisabled}
                             {...field}
                           />
                         </div>
@@ -357,8 +366,10 @@ const EnhancedFormClient = ({
                           <div className="absolute right-3 bottom-3">
                             <button
                               type="submit"
+                              disabled={isLoading || isFormDisabled}
                               className={cn(
                                 'flex h-8 w-8 items-center justify-center rounded-lg transition-colors',
+                                isLoading || isFormDisabled ? 'cursor-not-allowed opacity-70' : '',
                                 field.value
                                   ? 'bg-sky-500/15 text-sky-500'
                                   : 'bg-zinc-200/50 text-zinc-500 hover:text-zinc-700 dark:bg-zinc-700/50 dark:text-zinc-400 dark:hover:text-zinc-300',
