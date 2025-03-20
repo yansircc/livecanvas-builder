@@ -47,6 +47,10 @@ export function ProjectCard({
           width={600}
           height={400}
           className="h-full w-full object-cover object-center transition-transform duration-300 group-hover:scale-105"
+          priority={false}
+          loading="lazy"
+          placeholder="blur"
+          blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+P+/HgAFeAJcUZXpJgAAAABJRU5ErkJggg=="
         />
       </div>
       <div className="p-4">
@@ -83,6 +87,9 @@ export function ProjectCard({
                   width={24}
                   height={24}
                   className="h-full w-full object-cover"
+                  loading="lazy"
+                  placeholder="blur"
+                  blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+P+/HgAFeAJcUZXpJgAAAABJRU5ErkJggg=="
                 />
               ) : project.user?.name ? (
                 <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">

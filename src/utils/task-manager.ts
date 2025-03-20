@@ -76,6 +76,7 @@ export async function submitTask(params: TaskSubmitParams): Promise<TaskResponse
         apiKey: params.apiKey,
         model: params.model,
       }),
+      // POST requests are not cached by default, so no cache options needed
     })
 
     if (!response.ok) {
@@ -99,7 +100,17 @@ export async function submitTask(params: TaskSubmitParams): Promise<TaskResponse
  */
 export async function checkTaskStatus(taskId: string): Promise<TaskResponse> {
   try {
-    const response = await fetch(`/api/task-status?taskId=${taskId}`)
+    // Use a cache strategy based on whether we've seen a completed status for this task before
+    const cachedStatus = sessionStorage.getItem(`task-status-${taskId}`)
+    const isCompletedBefore =
+      cachedStatus && ['completed', 'error'].includes(JSON.parse(cachedStatus).status)
+
+    const response = await fetch(`/api/task-status?taskId=${taskId}`, {
+      // For completed tasks, use the Next.js cache with revalidation
+      // For in-progress tasks, bypass cache
+      cache: isCompletedBefore ? 'force-cache' : 'no-store',
+      next: isCompletedBefore ? { revalidate: 60 } : undefined,
+    })
 
     if (!response.ok) {
       // 如果是404错误，可能是任务还没有开始处理
@@ -117,6 +128,21 @@ export async function checkTaskStatus(taskId: string): Promise<TaskResponse> {
     }
 
     const result = (await response.json()) as TaskResponse
+
+    // Cache the status for subsequent requests
+    if (result.status === 'completed' || result.status === 'error') {
+      try {
+        sessionStorage.setItem(
+          `task-status-${taskId}`,
+          JSON.stringify({
+            status: result.status,
+            timestamp: Date.now(),
+          }),
+        )
+      } catch (_err) {
+        // Ignore storage errors
+      }
+    }
 
     // 记录原始状态，用于调试
     console.log(

@@ -1,37 +1,43 @@
+import { cache } from 'react'
 import { getPublishedProjects, getUserFavorites, getUserProjects } from '@/actions/gallery'
 import { getServerSession } from '@/lib/auth-server'
+import { type Project } from '@/types'
 import GalleryClient from './components/gallery-client'
 
-// Configure page options for caching
-export const dynamic = 'force-dynamic'
+// Remove force-dynamic to allow caching
+// export const dynamic = 'force-dynamic'
 
 // Add caching to data fetching functions
-async function getProjects() {
-  // Use Next.js cache for data fetching
+const getProjects = cache(async () => {
+  // Use fetch with Next.js caching
   const publishedResult = await getPublishedProjects()
-  return publishedResult.data || []
-}
+  return (publishedResult.data || []) as Project[]
+})
 
-async function getFavorites() {
+const getFavorites = cache(async () => {
   const session = await getServerSession()
-  if (!session) return []
+  if (!session) return [] as Project[]
 
   const favoritesResult = await getUserFavorites()
-  return favoritesResult.success ? favoritesResult.data || [] : []
-}
+  // Explicitly filter out any null values from favorites and cast to Project[]
+  const favorites = favoritesResult.success
+    ? ((favoritesResult.data || []).filter(Boolean) as Project[])
+    : ([] as Project[])
+  return favorites
+})
 
-async function getUserProjectsList() {
+const getUserProjectsList = cache(async () => {
   const session = await getServerSession()
-  if (!session) return []
+  if (!session) return [] as Project[]
 
   const userProjectsResult = await getUserProjects()
-  return userProjectsResult.success ? userProjectsResult.data || [] : []
-}
+  return userProjectsResult.success
+    ? ((userProjectsResult.data || []) as Project[])
+    : ([] as Project[])
+})
 
-// Add cache configuration using metadata export
-export const metadata = {
-  revalidate: 60, // Revalidate at most once per minute
-}
+// Add cache configuration
+export const revalidate = 60 // Revalidate at most once per minute
 
 // Create a ProjectsLoader component that loads data and renders the client
 async function ProjectsLoader() {

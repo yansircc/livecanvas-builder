@@ -15,7 +15,6 @@ interface TabContentMyProjectsProps {
 }
 
 export function TabContentMyProjects({
-  isLoading,
   projects,
   viewMode,
   interactions,

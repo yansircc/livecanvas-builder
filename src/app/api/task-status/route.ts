@@ -12,6 +12,9 @@ interface TaskStatusResponse {
   originalStatus?: string
 }
 
+// Enable caching for completed tasks with revalidation every 60 seconds
+export const revalidate = 60
+
 export async function GET(request: Request) {
   // Get the task ID from the URL query parameters
   const url = new URL(request.url)
@@ -63,7 +66,23 @@ export async function GET(request: Request) {
       originalStatus: result.status,
     }
 
-    return NextResponse.json(response)
+    // Use different cache headers based on task status
+    // For completed/error tasks, cache with revalidation
+    // For processing tasks, no cache
+    if (status === 'completed' || status === 'error') {
+      return NextResponse.json(response, {
+        headers: {
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+        },
+      })
+    } else {
+      // For processing tasks, don't cache
+      return NextResponse.json(response, {
+        headers: {
+          'Cache-Control': 'no-store, max-age=0',
+        },
+      })
+    }
   } catch (error) {
     console.error('Error fetching task status:', error)
 
@@ -74,7 +93,12 @@ export async function GET(request: Request) {
         status: 'error',
         error: error instanceof Error ? error.message : 'Failed to fetch task status',
       },
-      { status: 500 },
+      {
+        status: 500,
+        headers: {
+          'Cache-Control': 'no-store, max-age=0',
+        },
+      },
     )
   }
 }

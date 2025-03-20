@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useCallback, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import Footer from '@/components/footer'
 import { MainNav } from '@/components/main-nav'
@@ -71,18 +71,86 @@ export default function Page() {
     isFormDisabled,
   } = useTaskManager()
 
-  // Reset state on initial load
+  // Reset state on initial load while preserving cached data
   const { resetState } = useAppStore()
-  useEffect(() => {
-    resetState({ keepUserSettings: true, keepVersions: false, keepTaskHistory: true })
+
+  // Implement client-side caching of state
+  const initializeFromCache = useCallback(() => {
+    try {
+      // Check sessionStorage for cached state
+      const cachedState = sessionStorage.getItem('dashboard-state')
+      if (cachedState) {
+        const parsedState = JSON.parse(cachedState)
+        // Only use cache if it's less than 1 hour old
+        const isCacheValid = Date.now() - parsedState.timestamp < 60 * 60 * 1000
+
+        if (isCacheValid) {
+          // First reset state
+          resetState({
+            keepUserSettings: true,
+            keepVersions: false,
+            keepTaskHistory: true,
+          })
+
+          // Then manually set each cached state property
+          const data = parsedState.data
+          if (data.code !== undefined) {
+            useAppStore.getState().setState('code', data.code)
+          }
+          if (data.advices !== undefined) {
+            useAppStore.getState().setState('advices', data.advices)
+          }
+          if (data.validationResult !== undefined) {
+            useAppStore.getState().setState('validationResult', data.validationResult)
+          }
+          if (data.model !== undefined) {
+            useAppStore.getState().setState('model', data.model)
+          }
+
+          return true
+        }
+      }
+    } catch (error) {
+      console.error('Error restoring cached state:', error)
+    }
+    return false
   }, [resetState])
 
-  // Clear message when code is cleared
   useEffect(() => {
-    if (code === null) {
-      // This is handled in the hook now
+    // Try to restore from cache first
+    const restored = initializeFromCache()
+
+    // If no valid cache, reset to defaults
+    if (!restored) {
+      resetState({ keepUserSettings: true, keepVersions: false, keepTaskHistory: true })
     }
-  }, [code])
+  }, [resetState, initializeFromCache])
+
+  // Cache current state when it changes
+  useEffect(() => {
+    if (code !== null) {
+      try {
+        // Store current state in sessionStorage
+        const stateToCache = {
+          code,
+          advices,
+          validationResult,
+          model,
+          taskId,
+        }
+
+        sessionStorage.setItem(
+          'dashboard-state',
+          JSON.stringify({
+            timestamp: Date.now(),
+            data: stateToCache,
+          }),
+        )
+      } catch (error) {
+        console.error('Error caching state:', error)
+      }
+    }
+  }, [code, advices, validationResult, model, taskId])
 
   const handleAdviceClick = (advice: string) => {
     console.log('建议点击:', advice)

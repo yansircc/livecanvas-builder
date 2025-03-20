@@ -15,7 +15,6 @@ interface TabContentAllProps {
 }
 
 export function TabContentAll({
-  isLoading,
   projects,
   viewMode,
   interactions,

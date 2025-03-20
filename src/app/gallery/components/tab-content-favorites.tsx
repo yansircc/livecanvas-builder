@@ -15,7 +15,6 @@ interface TabContentFavoritesProps {
 }
 
 export function TabContentFavorites({
-  isLoading,
   projects,
   viewMode,
   interactions,

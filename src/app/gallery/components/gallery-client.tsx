@@ -92,6 +92,33 @@ export default function GalleryClient({
 
   // Load user interactions on mount - but with less visual impact
   useEffect(() => {
+    // Skip if interactions already loaded or no session
+    if (interactionsLoaded || !session) {
+      return
+    }
+
+    // Store cache timestamp in sessionStorage to avoid unnecessary refetches
+    const cachedTimestamp = sessionStorage.getItem('gallery-interactions-timestamp')
+    if (cachedTimestamp) {
+      const timestamp = parseInt(cachedTimestamp, 10)
+      // Only refetch if cache is older than 5 minutes
+      if (Date.now() - timestamp < 5 * 60 * 1000) {
+        try {
+          const cachedInteractions = sessionStorage.getItem('gallery-interactions')
+          if (cachedInteractions) {
+            setProjectInteractions((prev) => ({
+              ...prev,
+              ...JSON.parse(cachedInteractions),
+            }))
+            setInteractionsLoaded(true)
+            return
+          }
+        } catch (error) {
+          console.error('Error parsing cached interactions:', error)
+        }
+      }
+    }
+
     async function loadInteractions() {
       if (!session) {
         return
@@ -112,10 +139,19 @@ export default function GalleryClient({
         )
 
         // Merge with existing interactions to avoid UI jumps
-        setProjectInteractions((prev) => ({
-          ...prev,
-          ...interactions,
-        }))
+        setProjectInteractions((prev) => {
+          const newInteractions = { ...prev, ...interactions }
+
+          // Cache interactions for future visits
+          try {
+            sessionStorage.setItem('gallery-interactions', JSON.stringify(interactions))
+            sessionStorage.setItem('gallery-interactions-timestamp', Date.now().toString())
+          } catch (error) {
+            console.error('Error caching interactions:', error)
+          }
+
+          return newInteractions
+        })
         setInteractionsLoaded(true)
       } catch (error) {
         console.error('Failed to load interactions:', error)
@@ -125,7 +161,7 @@ export default function GalleryClient({
     }
 
     void loadInteractions()
-  }, [session, initialAllProjects])
+  }, [session, initialAllProjects, interactionsLoaded])
 
   // Filter projects based on search query and selected tags
   const filterProjects = useCallback(

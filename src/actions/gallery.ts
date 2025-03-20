@@ -2,13 +2,14 @@
 
 import { and, desc, eq, sql } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
+import { cache } from 'react'
 import { revalidatePath } from 'next/cache'
 import { db } from '@/db'
 import { favorite, like, project, user } from '@/db/schema'
 import { getServerSession } from '@/lib/auth-server'
 
-// Get all published projects
-export async function getPublishedProjects() {
+// Get all published projects with caching
+export const getPublishedProjects = cache(async () => {
   try {
     // Use a simpler query without relations
     const projects = await db
@@ -42,23 +43,39 @@ export async function getPublishedProjects() {
     console.error('Failed to get published projects:', error)
     return { success: false, error: 'Failed to get published projects' }
   }
-}
+})
 
-// Get a single project by ID
-export async function getProjectById(projectId: string) {
+// Get a single project by ID with caching
+export const getProjectById = cache(async (projectId: string) => {
   try {
     const projectData = await db.select().from(project).where(eq(project.id, projectId)).limit(1)
 
-    if (projectData.length === 0) {
+    if (projectData.length === 0 || !projectData[0]) {
       return { success: false, error: 'Project not found' }
     }
 
-    return { success: true, data: projectData[0] }
+    // Fetch user information
+    const userData = await db
+      .select({
+        id: user.id,
+        name: user.name,
+        image: user.image,
+      })
+      .from(user)
+      .where(eq(user.id, projectData[0].userId))
+      .limit(1)
+
+    const projectWithUser = {
+      ...projectData[0],
+      user: userData.length > 0 ? userData[0] : undefined,
+    }
+
+    return { success: true, data: projectWithUser }
   } catch (error) {
     console.error('Failed to get project:', error)
     return { success: false, error: 'Failed to get project' }
   }
-}
+})
 
 // Create a new project
 export async function createProject(data: {
@@ -271,22 +288,23 @@ export async function favoriteProject(projectId: string) {
   }
 }
 
-// Check if user has liked or favorited a project
-export async function getUserInteractions(projectId: string) {
+// Cache user interactions for better performance
+export const getUserInteractions = cache(async (projectId: string) => {
   try {
     const session = await getServerSession()
     if (!session) {
-      return { success: true, data: { hasLiked: false, hasFavorited: false } }
+      return { success: false, error: 'Not authenticated' }
     }
 
-    const [userLike, userFavorite] = await Promise.all([
-      db.query.like.findFirst({
-        where: and(eq(like.projectId, projectId), eq(like.userId, session.user.id)),
-      }),
-      db.query.favorite.findFirst({
-        where: and(eq(favorite.projectId, projectId), eq(favorite.userId, session.user.id)),
-      }),
-    ])
+    // Check if the user has liked the project
+    const userLike = await db.query.like.findFirst({
+      where: and(eq(like.projectId, projectId), eq(like.userId, session.user.id)),
+    })
+
+    // Check if the user has favorited the project
+    const userFavorite = await db.query.favorite.findFirst({
+      where: and(eq(favorite.projectId, projectId), eq(favorite.userId, session.user.id)),
+    })
 
     return {
       success: true,
@@ -296,41 +314,39 @@ export async function getUserInteractions(projectId: string) {
       },
     }
   } catch (error) {
-    console.error('获取用户互动失败:', error)
-    return { success: false, error: '获取用户互动失败' }
+    console.error('Failed to get user interactions:', error)
+    return { success: false, error: 'Failed to get user interactions' }
   }
-}
+})
 
-// Get user's favorite projects
-export async function getUserFavorites() {
+// Cache user favorites for better performance
+export const getUserFavorites = cache(async () => {
   try {
     const session = await getServerSession()
     if (!session) {
-      return { success: false, error: '未授权' }
+      return { success: false, error: 'Not authenticated' }
     }
 
-    // Get the user's favorite project IDs
+    // Get the user's favorites
     const userFavorites = await db
-      .select()
+      .select({
+        projectId: favorite.projectId,
+      })
       .from(favorite)
       .where(eq(favorite.userId, session.user.id))
 
-    if (userFavorites.length === 0) {
-      return { success: true, data: [] }
-    }
+    // Get the details of each favorited project
+    const favoriteProjects = await Promise.all(
+      userFavorites.map(async (f) => {
+        const projectData = await db
+          .select()
+          .from(project)
+          .where(eq(project.id, f.projectId))
+          .limit(1)
 
-    // Get the projects for those IDs
-    const favoriteProjectIds = userFavorites.map((fav) => fav.projectId)
+        if (projectData.length === 0 || !projectData[0]) return null
 
-    // Get projects with user information
-    const projectsWithUsers = []
-    for (const projectId of favoriteProjectIds) {
-      const projectData = await db.select().from(project).where(eq(project.id, projectId)).limit(1)
-
-      if (projectData.length > 0) {
-        const p = projectData[0] as typeof project.$inferSelect
-
-        // Get user information
+        // Fetch user information
         const userData = await db
           .select({
             id: user.id,
@@ -338,29 +354,34 @@ export async function getUserFavorites() {
             image: user.image,
           })
           .from(user)
-          .where(eq(user.id, p.userId))
+          .where(eq(user.id, projectData[0].userId))
           .limit(1)
 
-        projectsWithUsers.push({
-          ...p,
+        return {
+          ...projectData[0],
           user: userData.length > 0 ? userData[0] : undefined,
-        })
-      }
-    }
+        }
+      }),
+    )
 
-    return { success: true, data: projectsWithUsers }
+    // Filter out any null values (projects that were deleted)
+    const validFavorites = favoriteProjects.filter(
+      (project): project is NonNullable<typeof project> => project !== null,
+    )
+
+    return { success: true, data: validFavorites }
   } catch (error) {
-    console.error('获取用户收藏失败:', error)
-    return { success: false, error: '获取用户收藏失败' }
+    console.error('Failed to get user favorites:', error)
+    return { success: false, error: 'Failed to get user favorites' }
   }
-}
+})
 
-// Get user's projects
-export async function getUserProjects() {
+// Cache user projects for better performance
+export const getUserProjects = cache(async () => {
   try {
     const session = await getServerSession()
     if (!session) {
-      return { success: false, error: '未授权' }
+      return { success: false, error: 'Not authenticated' }
     }
 
     // Get the user's projects
@@ -370,19 +391,19 @@ export async function getUserProjects() {
       .where(eq(project.userId, session.user.id))
       .orderBy(desc(project.createdAt))
 
-    // Add user information from the session
+    // Add user information to each project
     const projectsWithUser = userProjects.map((p) => ({
       ...p,
       user: {
         id: session.user.id,
-        name: session.user.name,
+        name: session.user.name || '',
         image: session.user.image || null,
       },
     }))
 
     return { success: true, data: projectsWithUser }
   } catch (error) {
-    console.error('获取用户项目失败:', error)
-    return { success: false, error: '获取用户项目失败' }
+    console.error('Failed to get user projects:', error)
+    return { success: false, error: 'Failed to get user projects' }
   }
-}
+})
