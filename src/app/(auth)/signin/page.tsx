@@ -1,7 +1,7 @@
 'use client'
 
 import { Github } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -12,13 +12,24 @@ import { cn } from '@/lib/utils'
 
 export default function Page() {
   const router = useRouter()
-  const _searchParams = useSearchParams()
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const showGithub = false
   const showGoogle = false
+
+  // Get redirect URL from query parameters
+  const redirectPath = searchParams.get('redirect')
+
+  // Set error message if it exists in query parameters
+  useEffect(() => {
+    const errorMessage = searchParams.get('error')
+    if (errorMessage) {
+      setError(decodeURIComponent(errorMessage))
+    }
+  }, [searchParams])
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -55,8 +66,12 @@ export default function Page() {
             }
           },
           onSuccess: () => {
-            // Redirect to dashboard or home page on successful login
-            router.push('/')
+            // Redirect to the original requested URL or dashboard
+            if (redirectPath) {
+              router.push(redirectPath)
+            } else {
+              router.push('/dashboard')
+            }
           },
         },
       )

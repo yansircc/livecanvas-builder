@@ -102,11 +102,24 @@ const EnhancedFormClient = ({
             setLocalContext(data.user.backgroundInfo)
             setState('context', data.user.backgroundInfo)
           }
+        } else if (response.status === 401 || response.status === 403) {
+          // Handle unauthorized access - redirect to signin page
+          console.warn('Authentication required, redirecting to login...')
+          window.location.href = '/signin'
+          return
         } else {
           console.error('Failed to fetch user context:', response.statusText)
         }
       } catch (error) {
+        // Only log the error without crashing the app
         console.error('Error fetching user context:', error)
+
+        // If error contains "Unauthorized", redirect to login
+        if (error instanceof Error && error.message.includes('Unauthorized')) {
+          console.warn('Authentication required, redirecting to login...')
+          window.location.href = '/signin'
+          return
+        }
       } finally {
         setIsLoadingContext(false)
       }
@@ -224,9 +237,7 @@ const EnhancedFormClient = ({
                   AI 模型
                 </FormLabel>
                 <Select value={model} onValueChange={handleModelChange} disabled={isFormDisabled}>
-                  <SelectTrigger
-                    className={cn('w-full', isFormDisabled && 'cursor-not-allowed opacity-50')}
-                  >
+                  <SelectTrigger className={cn('w-full', isFormDisabled && 'cursor-not-allowed')}>
                     <SelectValue placeholder="选择AI模型" />
                   </SelectTrigger>
                   <SelectContent>
@@ -256,7 +267,7 @@ const EnhancedFormClient = ({
                             placeholder="描述您想要生成的HTML..."
                             className={cn(
                               'h-[150px] w-full resize-none rounded-xl rounded-b-none border-0 bg-zinc-100 px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-500 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none dark:bg-zinc-800 dark:text-zinc-100',
-                              isFormDisabled && 'cursor-not-allowed opacity-50',
+                              isFormDisabled && 'cursor-not-allowed',
                             )}
                             style={{ boxShadow: 'none' }}
                             disabled={isFormDisabled}
@@ -369,7 +380,7 @@ const EnhancedFormClient = ({
                               disabled={isLoading || isFormDisabled}
                               className={cn(
                                 'flex h-8 w-8 items-center justify-center rounded-lg transition-colors',
-                                isLoading || isFormDisabled ? 'cursor-not-allowed opacity-70' : '',
+                                isLoading || isFormDisabled ? 'cursor-not-allowed' : '',
                                 field.value
                                   ? 'bg-sky-500/15 text-sky-500'
                                   : 'bg-zinc-200/50 text-zinc-500 hover:text-zinc-700 dark:bg-zinc-700/50 dark:text-zinc-400 dark:hover:text-zinc-300',

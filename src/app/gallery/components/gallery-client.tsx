@@ -34,7 +34,10 @@ export default function GalleryClient({
   const [allProjects, setAllProjects] = useState<Project[]>(initialAllProjects)
   const [favoriteProjects, setFavoriteProjects] = useState<Project[]>(initialFavoriteProjects)
   const [myProjects, setMyProjects] = useState<Project[]>(initialMyProjects)
-  const [isLoading, setIsLoading] = useState(false)
+
+  // Use isInteractionsLoading instead of general isLoading to be more specific
+  const [isInteractionsLoading, setIsInteractionsLoading] = useState(false)
+  const [_interactionsLoaded, setInteractionsLoaded] = useState(false)
 
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
   const [projectInteractions, setProjectInteractions] = useState<
@@ -66,9 +69,12 @@ export default function GalleryClient({
   // Load user interactions on mount
   useEffect(() => {
     async function loadInteractions() {
-      if (!session) return
+      if (!session) {
+        return
+      }
 
-      setIsLoading(true)
+      // Only show loading state for interactions after initial page load
+      setIsInteractionsLoading(true)
       try {
         const interactions: Record<string, { hasLiked: boolean; hasFavorited: boolean }> = {}
 
@@ -82,10 +88,11 @@ export default function GalleryClient({
         )
 
         setProjectInteractions(interactions)
+        setInteractionsLoaded(true)
       } catch (error) {
         console.error('Failed to load interactions:', error)
       } finally {
-        setIsLoading(false)
+        setIsInteractionsLoading(false)
       }
     }
 
@@ -392,7 +399,7 @@ export default function GalleryClient({
             </TabsList>
             <TabsContent value="all" className="mt-6">
               <TabContentAll
-                isLoading={isLoading}
+                isLoading={isInteractionsLoading}
                 projects={filteredProjects}
                 viewMode={viewMode}
                 interactions={projectInteractions}
@@ -403,7 +410,7 @@ export default function GalleryClient({
             </TabsContent>
             <TabsContent value="favorites" className="mt-6">
               <TabContentFavorites
-                isLoading={isLoading}
+                isLoading={isInteractionsLoading}
                 projects={filteredFavorites}
                 viewMode={viewMode}
                 interactions={projectInteractions}
@@ -414,7 +421,7 @@ export default function GalleryClient({
             </TabsContent>
             <TabsContent value="my-projects" className="mt-6">
               <TabContentMyProjects
-                isLoading={isLoading}
+                isLoading={isInteractionsLoading}
                 projects={filteredUserProjects}
                 viewMode={viewMode}
                 interactions={projectInteractions}

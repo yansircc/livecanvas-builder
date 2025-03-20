@@ -1,14 +1,59 @@
 'use client'
 
 import { useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import Footer from '@/components/footer'
 import { MainNav } from '@/components/main-nav'
+import { Card } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useAppStore } from '@/store/use-app-store'
-import { CodeOutput } from './components/code-output'
-import { ConfirmDialog } from './components/confirm-dialog'
-import { EnhancedForm } from './components/enhanced-form'
 import { TaskHistory } from './components/task-history'
 import { useTaskManager } from './hooks/use-task-manager'
+
+// Dynamically import heavy components
+const CodeOutput = dynamic(
+  () => import('./components/code-output').then((mod) => ({ default: mod.CodeOutput })),
+  {
+    loading: () => (
+      <Card className="h-full p-6">
+        <Skeleton className="mb-4 h-8 w-1/2" />
+        <Skeleton className="h-[400px] w-full" />
+      </Card>
+    ),
+    ssr: false,
+  },
+)
+
+const EnhancedForm = dynamic(
+  () => import('./components/enhanced-form').then((mod) => ({ default: mod.EnhancedForm })),
+  {
+    loading: () => (
+      <Card className="p-6">
+        <Skeleton className="mb-4 h-8 w-3/4" />
+        <Skeleton className="mb-6 h-40 w-full" />
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-1/2" />
+          <div className="flex flex-wrap gap-2">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-8 w-24 rounded-full" />
+            ))}
+          </div>
+        </div>
+        <div className="mt-4 flex justify-end">
+          <Skeleton className="h-10 w-24" />
+        </div>
+      </Card>
+    ),
+    ssr: false,
+  },
+)
+
+const ConfirmDialog = dynamic(
+  () => import('./components/confirm-dialog').then((mod) => ({ default: mod.ConfirmDialog })),
+  {
+    ssr: false,
+  },
+)
 
 export default function Page() {
   const { isLoading, code, advices, validationResult, model } = useAppStore()

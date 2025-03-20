@@ -1,8 +1,5 @@
-// Create a server component for data fetching with caching
-import { Suspense } from 'react'
 import { getPublishedProjects, getUserFavorites, getUserProjects } from '@/actions/gallery'
 import { getServerSession } from '@/lib/auth-server'
-import { type Project } from '@/types'
 import GalleryClient from './components/gallery-client'
 
 // Configure page options for caching
@@ -36,7 +33,8 @@ export const metadata = {
   revalidate: 60, // Revalidate at most once per minute
 }
 
-export default async function GalleryPage() {
+// Create a ProjectsLoader component that loads data and renders the client
+async function ProjectsLoader() {
   // Fetch data in parallel with caching
   const [allProjects, favoriteProjects, myProjects] = await Promise.all([
     getProjects(),
@@ -48,19 +46,16 @@ export default async function GalleryPage() {
   const session = await getServerSession()
 
   return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-zinc-950">
-          Loading...
-        </div>
-      }
-    >
-      <GalleryClient
-        initialAllProjects={allProjects}
-        initialFavoriteProjects={favoriteProjects}
-        initialMyProjects={myProjects}
-        hasSession={!!session}
-      />
-    </Suspense>
+    <GalleryClient
+      initialAllProjects={allProjects}
+      initialFavoriteProjects={favoriteProjects}
+      initialMyProjects={myProjects}
+      hasSession={!!session}
+    />
   )
+}
+
+export default function GalleryPage() {
+  // Let Next.js loading.tsx handle the loading state
+  return <ProjectsLoader />
 }

@@ -2,7 +2,6 @@
 
 import { type Project } from '@/types'
 import { EmptyState } from './empty-state'
-import { LoadingSpinner } from './loading-spinner'
 import { ProjectList } from './project-list'
 
 interface TabContentFavoritesProps {
@@ -24,22 +23,26 @@ export function TabContentFavorites({
   onLike,
   onFavorite,
 }: TabContentFavoritesProps) {
-  if (isLoading) {
-    return <LoadingSpinner />
-  }
-
+  // Project data is already loaded, we're just waiting for interactions
   if (projects.length === 0) {
     return <EmptyState message="你还没有收藏任何项目" />
   }
 
   return (
-    <ProjectList
-      projects={projects}
-      viewMode={viewMode}
-      interactions={interactions}
-      onSelect={onSelect}
-      onLike={onLike}
-      onFavorite={onFavorite}
-    />
+    <div className="relative">
+      {isLoading && (
+        <div className="absolute top-0 right-4 z-10">
+          <div className="border-primary h-5 w-5 animate-spin rounded-full border-2 border-t-transparent"></div>
+        </div>
+      )}
+      <ProjectList
+        projects={projects}
+        viewMode={viewMode}
+        interactions={interactions}
+        onSelect={onSelect}
+        onLike={onLike}
+        onFavorite={onFavorite}
+      />
+    </div>
   )
 }
