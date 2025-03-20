@@ -16,6 +16,8 @@ export interface Version {
   advices: string[]
   prompt: string
   parentId: string | null
+  // New field to associate versions with tasks
+  taskId: string
   // Complete form data
   formData: {
     message: string
@@ -36,7 +38,7 @@ export interface TaskItem {
   id: string
   timestamp: number
   message: string
-  status: 'processing' | 'completed' | 'error'
+  status: 'idle' | 'processing' | 'completed' | 'error'
   error?: string
   code?: string | null
   advices?: string[]
@@ -91,7 +93,7 @@ interface AppState extends SettableState {
   addTask: (taskId: string, message: string) => void
   updateTaskStatus: (
     taskId: string,
-    status: 'processing' | 'completed' | 'error',
+    status: 'idle' | 'processing' | 'completed' | 'error',
     error?: string,
     output?: {
       code: string | null
@@ -110,6 +112,7 @@ interface AppState extends SettableState {
     keepVersions?: boolean
     keepUserSettings?: boolean
     keepContext?: boolean
+    keepTaskHistory?: boolean
   }) => void
 }
 
@@ -235,6 +238,9 @@ const stateCreator: StateCreator<AppState, [], [], AppState> = (set, get) => ({
     const { code, processedHtml, advices, currentVersionIndex, versions, usage } = get()
     if (!code) return // Don't add version if no code was generated
 
+    // Default task ID uses timestamp (fallback if we can't get the task history)
+    const taskId = Date.now().toString()
+
     // Determine the parent version based on the current index
     const parentId =
       currentVersionIndex >= 0 &&
@@ -251,6 +257,7 @@ const stateCreator: StateCreator<AppState, [], [], AppState> = (set, get) => ({
       advices,
       prompt,
       parentId, // Add parent reference
+      taskId, // Associate with current task
       usage, // Add usage information
       formData: formData ?? {
         message: prompt,
@@ -296,7 +303,7 @@ const stateCreator: StateCreator<AppState, [], [], AppState> = (set, get) => ({
       id: taskId,
       timestamp: Date.now(),
       message,
-      status: 'processing',
+      status: 'idle',
     }
     set((state) => ({
       taskHistory: [...state.taskHistory, newTask],
@@ -323,11 +330,44 @@ const stateCreator: StateCreator<AppState, [], [], AppState> = (set, get) => ({
           : task,
       ),
     }))
+
+    // If task is completed with output, add a version with the proper taskId
+    if (status === 'completed' && output?.code) {
+      const state = get()
+      const newVersion: Version = {
+        id: Date.now().toString(),
+        timestamp: Date.now(),
+        code: output.code,
+        processedHtml: output.processedHtml || state.processedHtml,
+        advices: output.advices || [],
+        prompt: state.taskHistory.find((task) => task.id === taskId)?.message || '',
+        parentId: null,
+        taskId,
+        usage: output.usage,
+        formData: {
+          message: state.taskHistory.find((task) => task.id === taskId)?.message || '',
+          model: state.model,
+          apiKey: state.apiKey,
+          context: state.context,
+        },
+      }
+
+      const newVersions = [...state.versions, newVersion]
+      set({
+        versions: newVersions,
+        currentVersionIndex: newVersions.length - 1,
+      })
+    }
   },
 
   // 重置方法
   resetState: (options = {}) => {
-    const { keepVersions = false, keepUserSettings = false, keepContext = false } = options
+    const {
+      keepVersions = false,
+      keepUserSettings = false,
+      keepContext = false,
+      keepTaskHistory = true,
+    } = options
 
     set((_state) => ({
       isLoading: false,
@@ -339,7 +379,8 @@ const stateCreator: StateCreator<AppState, [], [], AppState> = (set, get) => ({
         errors: [],
       },
       usage: undefined,
-      // Keep taskHistory on reset
+      // Keep taskHistory only if specified
+      ...(keepTaskHistory ? {} : { taskHistory: [] }),
       ...(keepUserSettings
         ? {}
         : {

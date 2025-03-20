@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useAppStore } from '@/store/use-app-store'
 import { useDialog } from './use-dialog'
 import { useHtmlProcessor } from './use-html-processor'
@@ -7,7 +7,7 @@ import { useTaskStatus } from './use-task-status'
 import { useTaskSubmission, type FormValues } from './use-task-submission'
 
 export function useTaskManager() {
-  const { resetState, taskHistory, setState } = useAppStore()
+  const { resetState, taskHistory, setState, isLoading, addTask, updateTaskStatus } = useAppStore()
 
   // Local state
   const [currentMessage, setCurrentMessage] = useState('')
@@ -15,6 +15,21 @@ export function useTaskManager() {
   const [taskStatus, setTaskStatus] = useState<'processing' | 'completed' | 'error' | null>(null)
   const [taskError, setTaskError] = useState<string | null>(null)
   const [isPolling, setIsPolling] = useState(false)
+
+  // Create initial task if none exists
+  useEffect(() => {
+    if (taskHistory.length === 0) {
+      const initialTaskId = Date.now().toString()
+      addTask(initialTaskId, '')
+      setTaskId(initialTaskId)
+    } else if (!taskId && taskHistory.length > 0) {
+      // Set current task to the most recent one if not set
+      const latestTask = taskHistory[taskHistory.length - 1]
+      if (latestTask) {
+        setTaskId(latestTask.id)
+      }
+    }
+  }, [taskHistory, taskId, addTask])
 
   // Import hooks
   const { renderTemplateToHtml } = useHtmlProcessor()
@@ -51,14 +66,9 @@ export function useTaskManager() {
   )
 
   // Dialog management
-  const {
-    showDialog,
-    setShowDialog,
-    pendingSubmission,
-    setPendingSubmission,
-    handleDialogConfirm,
-    handleDialogCancel,
-  } = useDialog(processSubmission)
+  // We keep this only for compatibility, but won't use it for task processing
+  const { showDialog, setShowDialog, pendingSubmission, handleDialogConfirm, handleDialogCancel } =
+    useDialog(processSubmission)
 
   // Check if current task is processing
   const isCurrentTaskProcessing = useCallback(() => {
@@ -67,29 +77,52 @@ export function useTaskManager() {
     return currentTask?.status === 'processing'
   }, [taskId, taskHistory])
 
+  // Check if any task is processing (used to disable form)
+  const isAnyTaskProcessing = useCallback(() => {
+    return taskHistory.some((task) => task.status === 'processing')
+  }, [taskHistory])
+
+  // Check if the current task (by ID) is processing
+  const isFormDisabled = useCallback(() => {
+    if (!taskId) return false
+    const currentTask = taskHistory.find((task) => task.id === taskId)
+    return currentTask?.status === 'processing'
+  }, [taskId, taskHistory])
+
   // Handle form submission
   const handleSubmit = useCallback(
     async (data: FormValues) => {
-      // Check if current task is still processing
-      if (isCurrentTaskProcessing()) {
-        // Store the submission and show dialog
-        setPendingSubmission(data)
-        setShowDialog(true)
+      // If already loading or the current task is processing, prevent submission
+      if (isLoading || isFormDisabled()) {
         return
       }
 
-      // Continue with normal submission
+      // If we have a current task ID, update its status to 'processing'
+      if (taskId) {
+        updateTaskStatus(taskId, 'processing')
+      }
+
+      // Process submission directly - no more dialog
       void processSubmission(data, false)
     },
-    [isCurrentTaskProcessing, processSubmission, setPendingSubmission, setShowDialog],
+    [processSubmission, isLoading, isFormDisabled, taskId, updateTaskStatus],
   )
 
   // Handle new conversation
   const handleNewConversation = useCallback(() => {
-    resetState({ keepUserSettings: true, keepVersions: false })
+    // Reset state while keeping task history
+    resetState({ keepUserSettings: true, keepVersions: true, keepTaskHistory: true })
+
+    // Create a new task
+    const newTaskId = Date.now().toString()
+    addTask(newTaskId, '')
+
+    // Reset local state and set to new task
     setCurrentMessage('')
-    setTaskId(null)
-  }, [resetState])
+    setTaskId(newTaskId)
+    setTaskStatus(null)
+    setTaskError(null)
+  }, [resetState, addTask])
 
   // Handle task click
   const handleTaskClick = useCallback(
@@ -149,6 +182,7 @@ export function useTaskManager() {
     isPolling,
     showDialog,
     pendingSubmission,
+    isFormDisabled: isFormDisabled(),
 
     // Actions
     handleSubmit,
@@ -163,5 +197,6 @@ export function useTaskManager() {
     processTaskOutput,
     handleTaskStatusUpdate,
     isCurrentTaskProcessing,
+    isAnyTaskProcessing,
   }
 }
