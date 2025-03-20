@@ -1,5 +1,3 @@
-import Footer from '@/components/footer'
-import { MainNav } from '@/components/main-nav'
 import { Card, CardContent, CardFooter } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -7,8 +5,6 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 export default function GalleryLoading() {
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950">
-      <MainNav />
-
       <main className="flex-1 py-6">
         <div className="container mx-auto px-4">
           {/* Tabs Skeleton */}
@@ -47,8 +43,6 @@ export default function GalleryLoading() {
           </Tabs>
         </div>
       </main>
-
-      <Footer />
     </div>
   )
 }

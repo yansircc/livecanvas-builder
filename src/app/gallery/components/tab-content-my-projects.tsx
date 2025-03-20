@@ -30,11 +30,6 @@ export function TabContentMyProjects({
 
   return (
     <div className="relative">
-      {isLoading && (
-        <div className="absolute top-0 right-4 z-10">
-          <div className="border-primary h-5 w-5 animate-spin rounded-full border-2 border-t-transparent"></div>
-        </div>
-      )}
       <ProjectList
         projects={projects}
         viewMode={viewMode}

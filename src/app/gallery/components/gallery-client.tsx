@@ -35,14 +35,38 @@ export default function GalleryClient({
   const [favoriteProjects, setFavoriteProjects] = useState<Project[]>(initialFavoriteProjects)
   const [myProjects, setMyProjects] = useState<Project[]>(initialMyProjects)
 
-  // Use isInteractionsLoading instead of general isLoading to be more specific
+  // Use a subtle loading state that doesn't block UI
   const [isInteractionsLoading, setIsInteractionsLoading] = useState(false)
-  const [_interactionsLoaded, setInteractionsLoaded] = useState(false)
+  const [interactionsLoaded, setInteractionsLoaded] = useState(false)
 
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
+  // Initialize interactions with empty state for all projects to avoid UI jumps
   const [projectInteractions, setProjectInteractions] = useState<
     Record<string, { hasLiked: boolean; hasFavorited: boolean }>
-  >({})
+  >(() => {
+    // Pre-populate with default values for all projects
+    const defaults: Record<string, { hasLiked: boolean; hasFavorited: boolean }> = {}
+
+    // For favorites, we know the user has favorited them
+    initialFavoriteProjects.forEach((project) => {
+      defaults[project.id] = { hasLiked: false, hasFavorited: true }
+    })
+
+    // For other projects, assume not liked/favorited
+    initialAllProjects.forEach((project) => {
+      if (!defaults[project.id]) {
+        defaults[project.id] = { hasLiked: false, hasFavorited: false }
+      }
+    })
+
+    initialMyProjects.forEach((project) => {
+      if (!defaults[project.id]) {
+        defaults[project.id] = { hasLiked: false, hasFavorited: false }
+      }
+    })
+
+    return defaults
+  })
 
   // Extract all unique tags from projects
   const availableTags = useMemo(() => {
@@ -66,14 +90,14 @@ export default function GalleryClient({
     return Array.from(tagSet).sort()
   }, [allProjects, favoriteProjects, myProjects])
 
-  // Load user interactions on mount
+  // Load user interactions on mount - but with less visual impact
   useEffect(() => {
     async function loadInteractions() {
       if (!session) {
         return
       }
 
-      // Only show loading state for interactions after initial page load
+      // Only show subtle loading state for interactions after initial page load
       setIsInteractionsLoading(true)
       try {
         const interactions: Record<string, { hasLiked: boolean; hasFavorited: boolean }> = {}
@@ -87,7 +111,11 @@ export default function GalleryClient({
           }),
         )
 
-        setProjectInteractions(interactions)
+        // Merge with existing interactions to avoid UI jumps
+        setProjectInteractions((prev) => ({
+          ...prev,
+          ...interactions,
+        }))
         setInteractionsLoaded(true)
       } catch (error) {
         console.error('Failed to load interactions:', error)
