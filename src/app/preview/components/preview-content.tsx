@@ -1,6 +1,7 @@
 'use client'
 
-import { FileCode, Monitor, Smartphone, Tablet } from 'lucide-react'
+import { Monitor, Smartphone, Tablet } from 'lucide-react'
+import { MainNav } from '@/components/main-nav'
 import { usePreview } from '../hooks/use-preview'
 import { useScreenshot } from '../hooks/use-screenshot'
 import { CopyButton } from './copy-button'
@@ -45,27 +46,7 @@ export function PreviewContent() {
       <CssMissingDialog open={showCssMissingDialog} onClose={handleCloseCssMissingDialog} />
 
       {/* Header with actions */}
-      <header className="sticky top-0 z-10 border-b border-neutral-200 bg-white px-6 py-3 shadow-sm dark:border-neutral-800 dark:bg-neutral-950">
-        <div className="container mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800">
-              <FileCode className="h-4 w-4 text-neutral-600 dark:text-neutral-400" />
-            </div>
-            <div>
-              <h1 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                UI 预览
-              </h1>
-              <p className="text-xs text-neutral-500 dark:text-neutral-400">预览你的 HTML</p>
-            </div>
-          </div>
-
-          <PublishProjectDialog
-            htmlContent={getContentToCopy()}
-            getScreenshot={getScreenshot}
-            isCapturingScreenshot={isCapturing}
-          />
-        </div>
-      </header>
+      <MainNav />
 
       {/* Main content area - Only Preview */}
       <main className="flex-1 p-4">
@@ -123,6 +104,13 @@ export function PreviewContent() {
 
               {/* Copy HTML Button */}
               <CopyButton getContentToCopy={getContentToCopy} />
+
+              {/* Publish Project Dialog */}
+              <PublishProjectDialog
+                htmlContent={getContentToCopy()}
+                getScreenshot={getScreenshot}
+                isCapturingScreenshot={isCapturing}
+              />
             </div>
           </div>
           <div className="flex-1 overflow-auto p-4">

@@ -181,7 +181,7 @@ export function PublishProjectDialog({
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>发布项目到画廊</DialogTitle>
+          <DialogTitle>发布项目到作品集</DialogTitle>
           <DialogDescription>
             分享你的创作到 LiveCanvas 社区，让更多人看到你的作品。
           </DialogDescription>
