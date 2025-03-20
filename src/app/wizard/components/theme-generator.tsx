@@ -215,7 +215,7 @@ export function ThemeGenerator() {
             </div>
             <div className="mt-4 flex justify-end">
               <Button variant="outline" asChild>
-                <a href="/daisy-preview" target="_blank" rel="noopener noreferrer">
+                <a href="/preview" target="_blank" rel="noopener noreferrer">
                   Preview Theme
                 </a>
               </Button>

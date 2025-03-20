@@ -1,66 +1,51 @@
-'use client'
-
 import { Check, Copy } from 'lucide-react'
-import { useState } from 'react'
+import { toast } from 'sonner'
+import * as React from 'react'
 import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
-import { replaceImagePlaceholders } from '@/utils/replace-image-placeholders'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 interface CopyButtonProps {
-  getContentToCopy: () => Promise<string>
+  getContentToCopy: () => string
 }
 
 export function CopyButton({ getContentToCopy }: CopyButtonProps) {
-  const [copied, setCopied] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const [copied, setCopied] = React.useState(false)
 
-  const handleCopy = async () => {
-    if (isLoading || copied) return
-
-    setIsLoading(true)
+  const handleCopy = React.useCallback(async () => {
     try {
-      // Get the content to copy
-      const htmlContent = await getContentToCopy()
-
-      // Replace image placeholder paths with CDN URLs
-      const processedContent = replaceImagePlaceholders(htmlContent)
-
-      // Copy to clipboard
-      await navigator.clipboard.writeText(processedContent)
-
-      // Show success state
+      const content = getContentToCopy()
+      await navigator.clipboard.writeText(content)
       setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch (err) {
-      console.error('Failed to copy HTML content:', err)
-    } finally {
-      setIsLoading(false)
+      toast.success('Code copied to clipboard')
+
+      // Reset copied state after 2 seconds
+      setTimeout(() => {
+        setCopied(false)
+      }, 2000)
+    } catch (error) {
+      console.error('Failed to copy:', error)
+      toast.error('Failed to copy code')
     }
-  }
+  }, [getContentToCopy])
 
   return (
-    <Button
-      type="button"
-      variant="outline"
-      size="sm"
-      onClick={handleCopy}
-      disabled={isLoading}
-      className={cn(
-        copied &&
-          'border-green-200 bg-green-50 text-green-600 dark:border-green-800 dark:bg-green-900/10 dark:text-green-400',
-      )}
-      title={copied ? 'Copied!' : 'Copy HTML code'}
-    >
-      {copied ? (
-        <Check className="h-4 w-4" />
-      ) : isLoading ? (
-        <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
-      ) : (
-        <Copy className="h-4 w-4" />
-      )}
-      <span className="sr-only md:not-sr-only md:ml-2">
-        {copied ? 'Copied' : isLoading ? 'Copying...' : 'Copy'}
-      </span>
-    </Button>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={handleCopy}
+            aria-label="Copy code"
+          >
+            {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>Copy HTML</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   )
 }

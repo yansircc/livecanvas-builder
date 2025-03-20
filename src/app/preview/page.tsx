@@ -1,13 +1,13 @@
-'use client'
-
 import { Suspense } from 'react'
-import { LoadingSpinner } from './components/loading-spinner'
 import { PreviewContent } from './components/preview-content'
 
-// Main page component with Suspense boundary
 export default function PreviewPage() {
   return (
-    <Suspense fallback={<LoadingSpinner />}>
+    <Suspense
+      fallback={
+        <div className="flex h-screen w-full items-center justify-center">Loading preview...</div>
+      }
+    >
       <PreviewContent />
     </Suspense>
   )
