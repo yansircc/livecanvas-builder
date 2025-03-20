@@ -354,7 +354,7 @@ const EnhancedFormClient = ({
                                         </div>
                                       ) : (
                                         <p className="text-xs">
-                                          您尚未设置背景信息。请在个人资料页面添加背景信息，以便AI更好地理解您的需求。
+                                          你尚未设置背景信息。请在个人资料页面添加背景信息，以便AI更好地理解你的需求。
                                         </p>
                                       )}
                                     </TooltipContent>

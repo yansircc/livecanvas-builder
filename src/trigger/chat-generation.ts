@@ -49,7 +49,12 @@ export const chatGenerationTask = task({
     // Check if the selected model can output structured data
     const canOutputStructuredData = canModelOutputStructuredData(selectedModelId)
 
-    // Build contextual prompt
+    // // Fetch daisyUI tutorial
+    // const uiTutorial = await fetchDaisyUIPrompt()
+
+    // // Build contextual prompt
+    // const contextualPrompt = buildContextualPrompt(message, context, history, uiTutorial)
+
     const contextualPrompt = buildContextualPrompt(message, context, history)
 
     try {
@@ -69,12 +74,23 @@ export const chatGenerationTask = task({
 })
 
 /**
+ * Fetch daisyUI contextual prompt
+ * @link https://daisyui.com/llms.txt
+ */
+async function fetchDaisyUIPrompt() {
+  const response = await fetch('https://daisyui.com/llms.txt')
+  const uiTutorial = await response.text()
+  return uiTutorial
+}
+
+/**
  * Build contextual prompt
  */
 function buildContextualPrompt(
   message: string,
   context?: string,
   history?: { prompt: string; response?: string }[],
+  uiTutorial?: string,
 ): string {
   let contextualPrompt = PROMPT
 
@@ -93,6 +109,11 @@ function buildContextualPrompt(
       }
     })
     contextualPrompt += '\n\n### Current Request:'
+  }
+
+  // Add daisyUI tutorial if available
+  if (uiTutorial) {
+    contextualPrompt += `\n\n### DaisyUI Tutorial:\n${uiTutorial}`
   }
 
   // Add the current message

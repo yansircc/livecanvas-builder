@@ -24,7 +24,7 @@ export function MainNav() {
           <div className="hidden items-center space-x-1 md:flex">
             <Link href="/">
               <Button
-                variant={isActive('/') ? 'default' : 'ghost'}
+                variant={isActive('/dashboard') ? 'default' : 'ghost'}
                 className="flex items-center gap-2"
                 size="sm"
               >
@@ -39,7 +39,7 @@ export function MainNav() {
                 size="sm"
               >
                 <GalleryHorizontal className="h-4 w-4" />
-                <span>画廊</span>
+                <span>作品集</span>
               </Button>
             </Link>
             <Link href="/wizard">
@@ -49,7 +49,7 @@ export function MainNav() {
                 size="sm"
               >
                 <Palette className="h-4 w-4" />
-                <span>样式生成</span>
+                <span>调样式</span>
               </Button>
             </Link>
           </div>

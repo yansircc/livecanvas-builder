@@ -67,7 +67,7 @@ export default function VerifyEmailPage() {
             <Mail className="h-6 w-6 text-blue-600 dark:text-blue-300" />
           </div>
           <div className="space-y-2 text-center">
-            <CardTitle className="text-2xl font-bold">验证您的邮箱</CardTitle>
+            <CardTitle className="text-2xl font-bold">验证你的邮箱</CardTitle>
             {email && <p className="text-muted-foreground text-sm">{email}</p>}
           </div>
         </CardHeader>
@@ -75,7 +75,7 @@ export default function VerifyEmailPage() {
           <div className="space-y-4">
             {!errorMessage && (
               <p className="text-center text-sm text-zinc-500 dark:text-zinc-400">
-                我们已向您的邮箱发送了验证链接。如果没有看到邮件，请检查垃圾邮件文件夹。
+                我们已向你的邮箱发送了验证链接。如果没有看到邮件，请检查垃圾邮件文件夹。
               </p>
             )}
 
@@ -91,7 +91,7 @@ export default function VerifyEmailPage() {
               <Alert className="bg-green-50 text-green-800 dark:bg-green-900/30 dark:text-green-300">
                 <CheckCircle className="h-4 w-4" />
                 <AlertTitle>邮箱已发送</AlertTitle>
-                <AlertDescription>我们已向您的邮箱发送了新的验证邮件</AlertDescription>
+                <AlertDescription>我们已向你的邮箱发送了新的验证邮件</AlertDescription>
               </Alert>
             )}
 

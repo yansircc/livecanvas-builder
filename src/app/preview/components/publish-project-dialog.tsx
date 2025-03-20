@@ -171,17 +171,17 @@ export function PublishProjectDialog({
             {isCapturingScreenshot ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                <span className="sr-only md:not-sr-only">Preparing Screenshot...</span>
+                <span className="sr-only md:not-sr-only">准备截图...</span>
               </>
             ) : (
-              <span className="sr-only md:not-sr-only">Publish</span>
+              <span className="sr-only md:not-sr-only">发布</span>
             )}
           </Button>
         )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>发布项目到画廊</DialogTitle>
+          <DialogTitle>发布项目到作品集</DialogTitle>
           <DialogDescription>
             分享你的创作到 LiveCanvas 社区，让更多人看到你的作品。
           </DialogDescription>

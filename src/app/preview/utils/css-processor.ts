@@ -1,351 +1,127 @@
 /**
- * CSS Processor for HTML content
- * Handles Tailwind CSS, AOS animations, and custom CSS injection
+ * Extract CSS blocks with properly balanced braces
  */
+export const extractCssBlock = (
+  css: string,
+  pattern: RegExp,
+): { match: string | null; content: string | null } => {
+  const startMatch = pattern.exec(css)
+  if (!startMatch) return { match: null, content: null }
 
-// Types
-interface ResourceOptions {
-  includeTailwind?: boolean
-  includeAOS?: boolean
-  includeGoogleFonts?: boolean
-}
+  const startIndex = startMatch.index
+  const openingBraceIndex = css.indexOf('{', startIndex)
+  if (openingBraceIndex === -1) return { match: null, content: null }
 
-// Main processors
-export function processTailwindContent(content: string): string {
-  const hasTailwind = content.includes('tailwindcss') || content.includes('@tailwindcss/browser')
-  const hasHeadTag = content.includes('<head>') && content.includes('</head>')
-  const hasAOS = content.includes('aos@2.3.1') || content.includes('aos.js')
-  const hasHtmlStructure = content.includes('<html') && content.includes('<body')
+  let braceCount = 1
+  let currentIndex = openingBraceIndex + 1
 
-  // Handle different content types
-  if (!hasHtmlStructure) {
-    return wrapFragment(content)
+  while (braceCount > 0 && currentIndex < css.length) {
+    const char = css[currentIndex]
+    if (char === '{') braceCount++
+    if (char === '}') braceCount--
+    currentIndex++
   }
 
-  if (!hasHeadTag) {
-    return injectHead(content, { includeTailwind: !hasTailwind, includeAOS: !hasAOS })
-  }
+  if (braceCount !== 0) return { match: null, content: null }
 
-  // Inject missing resources if needed
-  let processedContent = content
+  const fullMatch = css.substring(startIndex, currentIndex)
+  const content = css.substring(openingBraceIndex + 1, currentIndex - 1)
 
-  if (hasHeadTag && !hasTailwind) {
-    processedContent = injectIntoHead(processedContent, getTailwindResources())
-  }
-
-  if (hasHeadTag && !hasAOS) {
-    processedContent = injectIntoHead(processedContent, getAOSStylesheet())
-    processedContent = injectIntoBody(processedContent, getAOSScripts())
-  }
-
-  return addResizeScript(processedContent)
-}
-
-export function processContentWithCustomCss(
-  content: string,
-  customCss: string | null | undefined,
-): string {
-  if (!customCss) {
-    return processTailwindContent(content)
-  }
-
-  const hasHtmlTag = content.includes('<html')
-  const hasBodyTag = content.includes('<body')
-  const hasHeadTag = content.includes('<head>') && content.includes('</head>')
-  const hasAOS = content.includes('aos@2.3.1') || content.includes('aos.js')
-
-  // Process CSS
-  const { processedCss, googleFontsLink } = processCustomCss(customCss)
-
-  // Fragment - wrap in complete HTML
-  if (!hasHtmlTag && !hasBodyTag) {
-    return createCompleteHtml(content, processedCss, googleFontsLink)
-  }
-
-  // Has HTML/body but no head
-  if (hasHtmlTag && hasBodyTag && !hasHeadTag) {
-    return injectHead(
-      content,
-      {
-        includeTailwind: true,
-        includeAOS: !hasAOS,
-      },
-      processedCss,
-      googleFontsLink,
-    )
-  }
-
-  // Has head - inject resources
-  if (hasHeadTag) {
-    let processedContent = content
-
-    if (googleFontsLink && !processedContent.includes('fonts.googleapis.com')) {
-      processedContent = injectIntoHead(processedContent, googleFontsLink)
-    }
-
-    if (!processedContent.includes('@tailwindcss/browser')) {
-      processedContent = injectIntoHead(processedContent, getTailwindResources())
-    }
-
-    if (processedCss) {
-      processedContent = injectIntoHead(processedContent, getCustomCssStyle(processedCss))
-    }
-
-    if (!hasAOS) {
-      processedContent = injectIntoHead(processedContent, getAOSStylesheet())
-      processedContent = injectIntoBody(processedContent, getAOSScripts())
-    }
-
-    return addResizeScript(processedContent)
-  }
-
-  // Fallback - wrap content
-  return createCompleteHtml(content, processedCss, googleFontsLink)
-}
-
-// HTML Structure Helpers
-function wrapFragment(fragment: string): string {
-  const html = `<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tailwind Preview</title>
-    ${getTailwindResources()}
-    ${getTailwindMinimalStyles()}
-    ${getAOSStylesheet()}
-  </head>
-  <body>
-    <div class="tailwind-content">
-      ${fragment}
-    </div>
-    ${getAOSScripts()}
-  </body>
-</html>`
-
-  return addResizeScript(html)
-}
-
-function injectHead(
-  html: string,
-  options: ResourceOptions,
-  customCss?: string,
-  googleFontsLink?: string,
-): string {
-  const { includeTailwind = true, includeAOS = true } = options
-
-  let headContent =
-    '<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">'
-
-  if (googleFontsLink) {
-    headContent += googleFontsLink
-  }
-
-  if (includeTailwind) {
-    headContent += getTailwindResources()
-    headContent += getTailwindMinimalStyles()
-  }
-
-  if (customCss) {
-    headContent += getCustomCssStyle(customCss)
-  }
-
-  if (includeAOS) {
-    headContent += getAOSStylesheet()
-  }
-
-  headContent += '</head>'
-
-  let processedHtml = html.replace('<body', `${headContent}<body`)
-
-  if (includeAOS) {
-    processedHtml = injectIntoBody(processedHtml, getAOSScripts())
-  }
-
-  return addResizeScript(processedHtml)
-}
-
-function createCompleteHtml(content: string, customCss?: string, googleFontsLink?: string): string {
-  return addResizeScript(`<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Preview with Custom CSS</title>
-    ${googleFontsLink || ''}
-    ${getTailwindResources()}
-    ${getTailwindMinimalStyles()}
-    ${customCss ? getCustomCssStyle(customCss) : ''}
-    ${getAOSStylesheet()}
-  </head>
-  <body>
-    ${content}
-    ${getAOSScripts()}
-  </body>
-</html>`)
-}
-
-// String Manipulation Helpers
-function injectIntoHead(html: string, content: string): string {
-  return html.replace('</head>', `${content}</head>`)
-}
-
-function injectIntoBody(html: string, content: string): string {
-  return html.replace('</body>', `${content}</body>`)
-}
-
-// Resource Generators
-function getTailwindResources(): string {
-  return `
-<script src="${process.env.NEXT_PUBLIC_TAILWIND_CDN_URL}" crossorigin="anonymous" onerror="loadFallbackTailwind()"></script>
-<script>
-  function loadFallbackTailwind() {
-    console.log('CDN Tailwind failed, loading local fallback...');
-    const script = document.createElement('script');
-    script.src = window.location.origin + '${process.env.NEXT_PUBLIC_TAILWIND_FALLBACK_PATH}';
-    document.head.appendChild(script);
-  }
-</script>`
-}
-
-function getTailwindMinimalStyles(): string {
-  return `
-<style>
-  /* Minimal Tailwind reset and utilities */
-  *, ::before, ::after { box-sizing: border-box; border-width: 0; border-style: solid; }
-  html { line-height: 1.5; -webkit-text-size-adjust: 100%; tab-size: 4; font-family: ui-sans-serif, system-ui, sans-serif; }
-  body { margin: 0; line-height: inherit; }
-  /* Basic utility classes */
-  .flex { display: flex; }
-  .items-center { align-items: center; }
-  .justify-center { justify-content: center; }
-  .mx-auto { margin-left: auto; margin-right: auto; }
-  .p-4 { padding: 1rem; }
-  .rounded { border-radius: 0.25rem; }
-  .bg-white { background-color: #fff; }
-  .text-center { text-align: center; }
-</style>`
-}
-
-function getAOSStylesheet(): string {
-  return '<link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet" crossorigin="anonymous">'
-}
-
-function getAOSScripts(): string {
-  return `
-<script src="https://unpkg.com/aos@2.3.1/dist/aos.js" crossorigin="anonymous"></script>
-<script>
-  document.addEventListener("DOMContentLoaded", function() {
-    if (typeof AOS !== 'undefined') {
-      AOS.init({
-        duration: 800,
-        once: false,
-        mirror: true,
-      });
-    }
-  });
-</script>`
-}
-
-function getCustomCssStyle(css: string): string {
-  return `
-<style type="text/tailwindcss">
-  ${css}
-</style>`
-}
-
-// CSS Processing
-function processCustomCss(css: string): { processedCss: string; googleFontsLink: string } {
-  // Handle tailwind imports
-  let processedCss = css
-  const importsTailwind = css.includes('@import') && css.includes('tailwindcss')
-
-  if (importsTailwind) {
-    processedCss = processedCss.replace(/@import\s+(['"])tailwindcss\1;?/g, '')
-  }
-
-  // Extract Google Fonts
-  const fontFamilies = new Set<string>()
-  const fontFaceRegex = /@font-face\s*{\s*font-family:\s*["']([^"']+)["'];/g
-  let fontMatch
-
-  while ((fontMatch = fontFaceRegex.exec(processedCss)) !== null) {
-    if (fontMatch[1]) {
-      fontFamilies.add(fontMatch[1])
-    }
-  }
-
-  // Fix incorrect Google Fonts usage
-  processedCss = processedCss.replace(
-    /@font-face\s*{\s*font-family:\s*["']([^"']+)["'];\s*src:\s*url\(["']https:\/\/fonts\.googleapis\.com\/css2\?family=([^&"']+).*?["']\);\s*}/g,
-    (match) => {
-      return `/* ${match} */\n/* Replaced with proper Google Fonts import */`
-    },
-  )
-
-  // Create Google Fonts link
-  const googleFontsLink =
-    fontFamilies.size > 0
-      ? `
-<!-- Google Fonts -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=${Array.from(fontFamilies)
-          .map((f) => f.replace(/\s+/g, '+'))
-          .join('&family=')}&display=swap" rel="stylesheet">
-`
-      : ''
-
-  return { processedCss, googleFontsLink }
+  return { match: fullMatch, content }
 }
 
 /**
- * Add a script to dynamically resize the iframe based on content height
+ * Process CSS from localStorage to properly format it for iframe injection
  */
-function addResizeScript(html: string): string {
-  const resizeScript = `
-<script>
-  // Function to notify parent about content height
-  function updateParentHeight() {
-    // Calculate the scrollHeight of document
-    const height = Math.max(
-      document.body.scrollHeight,
-      document.body.offsetHeight,
-      document.documentElement.scrollHeight,
-      document.documentElement.offsetHeight,
-      document.documentElement.clientHeight
-    );
-    
-    // Send message to parent window
-    if (window.parent && window.parent !== window) {
-      window.parent.postMessage({ type: 'resize', height: height }, '*');
+export const processCss = (
+  customCss: string | null,
+): {
+  daisyThemeVars: string
+  tailwindDirectives: string
+  fontImports: string[]
+  themeNames: string[]
+} => {
+  let daisyThemeVars = ''
+  let tailwindDirectives = ''
+  const fontImports: string[] = []
+  const themeNames: string[] = []
+
+  if (!customCss) {
+    return { daisyThemeVars, tailwindDirectives, fontImports, themeNames }
+  }
+
+  // Extract font imports if any
+  const fontImportRegex = /@import url\(['"]([^'"]+)['"]\);/g
+  let fontMatch: RegExpExecArray | null
+  while ((fontMatch = fontImportRegex.exec(customCss)) !== null) {
+    if (fontMatch && fontMatch[1]) {
+      fontImports.push(fontMatch[1])
     }
   }
-  
-  // Update height on load
-  window.addEventListener('load', function() {
-    // Allow small delay for rendering
-    setTimeout(updateParentHeight, 100);
-    
-    // Monitor for image loads
-    document.querySelectorAll('img').forEach(img => {
-      if (!img.complete) {
-        img.addEventListener('load', updateParentHeight);
-        img.addEventListener('error', updateParentHeight);
+
+  // Extract DaisyUI theme variables (similar to test.css format)
+  const themeRegex = /@plugin\s*"daisyui\/theme"\s*{([^}]*)}/g
+  let match: RegExpExecArray | null
+
+  while ((match = themeRegex.exec(customCss)) !== null) {
+    const themeContent = match[1]
+    if (!themeContent) continue
+    const nameMatch = /name:\s*'([^']*)'/.exec(themeContent)
+    const defaultMatch = /default:\s*(true|false)/.exec(themeContent)
+    // const prefersdarkMatch = /prefersdark:\s*(true|false)/.exec(themeContent)
+
+    if (nameMatch && nameMatch[1]) {
+      const themeName = nameMatch[1]
+      const isDefault = defaultMatch && defaultMatch[1] === 'true'
+      // const isPrefersDark = prefersdarkMatch && prefersdarkMatch[1] === 'true'
+
+      // Add theme name to the list
+      themeNames.push(themeName)
+
+      // Format variables similar to test.css
+      let selector = `:root`
+
+      // Add data-theme selector for all themes, not just non-light/dark ones
+      if (isDefault) {
+        selector = `:root, :root:has(input.theme-controller[value=${themeName}]:checked)`
       }
-    });
-    
-    // Create a ResizeObserver to watch for DOM changes
-    if (typeof ResizeObserver !== 'undefined') {
-      const resizeObserver = new ResizeObserver(updateParentHeight);
-      resizeObserver.observe(document.body);
+
+      // Always add [data-theme=themeName] for all themes
+      selector += `, [data-theme=${themeName}]`
+
+      // Extract all CSS variables
+      let cssVars = ''
+      const varRegex = /--[^:]+:[^;]+;/g
+      let varMatch: RegExpExecArray | null
+      while ((varMatch = varRegex.exec(themeContent)) !== null) {
+        cssVars += `  ${varMatch[0]}\n`
+      }
+
+      // Add color-scheme if present
+      const colorSchemeMatch = /color-scheme:\s*'([^']*)'/.exec(themeContent)
+      if (colorSchemeMatch && colorSchemeMatch[1]) {
+        cssVars = `  color-scheme: ${colorSchemeMatch[1]};\n${cssVars}`
+      }
+
+      daisyThemeVars += `${selector} {\n${cssVars}}\n`
     }
-  });
-  
-  // Also update on window resize and orientation change
-  window.addEventListener('resize', updateParentHeight);
-  window.addEventListener('orientationchange', updateParentHeight);
-</script>
-`
-  return injectIntoBody(html, resizeScript)
+  }
+
+  // Extract @theme, @layer components, @layer utilities directives with proper brace handling
+  const themeDirective = extractCssBlock(customCss, /@theme\s*{/)
+  if (themeDirective.content) {
+    tailwindDirectives += `@theme {\n${themeDirective.content}\n}\n\n`
+  }
+
+  const componentsDirective = extractCssBlock(customCss, /@layer\s+components\s*{/)
+  if (componentsDirective.content) {
+    tailwindDirectives += `@layer components {\n${componentsDirective.content}\n}\n\n`
+  }
+
+  const utilitiesDirective = extractCssBlock(customCss, /@layer\s+utilities\s*{/)
+  if (utilitiesDirective.content) {
+    tailwindDirectives += `@layer utilities {\n${utilitiesDirective.content}\n}\n\n`
+  }
+
+  return { daisyThemeVars, tailwindDirectives, fontImports, themeNames }
 }

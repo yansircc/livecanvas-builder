@@ -72,7 +72,7 @@ export function UserAuthMenu() {
         <DialogHeader>
           <DialogTitle>认证</DialogTitle>
           <DialogDescription>
-            登录到您的账户或创建一个新账户以保存您的工作并访问更多功能。
+            登录到你的账户或创建一个新账户以保存你的工作并访问更多功能。
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-2 pt-4">

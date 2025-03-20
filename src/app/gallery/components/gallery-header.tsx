@@ -35,7 +35,7 @@ export function GalleryHeader({
   return (
     <div className="mb-6 space-y-4">
       <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-        <h1 className="text-2xl font-bold">作品画廊</h1>
+        <h1 className="text-2xl font-bold">作品作品集</h1>
         <div className="flex w-full items-center gap-4 sm:w-auto">
           <div className="relative flex-1 sm:w-64 sm:flex-none">
             <Search className="absolute top-1/2 left-2 h-4 w-4 -translate-y-1/2 text-zinc-400" />

@@ -38,7 +38,7 @@ export default async function Home() {
         </h1>
         <p className="text-muted-foreground mb-10 max-w-2xl text-xl">
           LiveCanvas Builder 是一个强大的工具，利用 Aihubmax 为 LiveCanvas 生成兼容 Tailwind CSS 的
-          HTML 代码。通过简单的提示，您可以创建美观、响应式的网页组件。
+          HTML 代码。通过简单的提示，你可以创建美观、响应式的网页组件。
         </p>
         <div className="flex flex-col gap-4 sm:flex-row">
           <Link href="/signup">
@@ -82,7 +82,7 @@ export default async function Home() {
             </div>
             <h3 className="mb-2 text-xl font-semibold">实时预览</h3>
             <p className="text-muted-foreground">
-              通过响应式设备模拟立即预览您生成的 HTML，确保在所有设备上完美显示。
+              通过响应式设备模拟立即预览你生成的 HTML，确保在所有设备上完美显示。
             </p>
           </div>
         </div>
