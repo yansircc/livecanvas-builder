@@ -4,8 +4,8 @@ export function usePreview() {
   // Open preview window
   const openPreview = useCallback((html: string) => {
     const contentId = Date.now().toString()
-    localStorage.setItem(`preview_content_${contentId}`, html)
-    window.open(`/preview?id=${contentId}`, '_blank')
+    sessionStorage.setItem(`preview_content_${contentId}`, html)
+    window.open(`/daisy-preview?id=${contentId}`, '_blank')
   }, [])
 
   return {

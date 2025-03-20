@@ -44,9 +44,13 @@ export function generateThemeCSS(props: ThemeGenerationProps): string {
   const error = 'oklch(71% 0.194 13.428)' // Red
   const errorContent = generateContentColor(error)
 
-  // Generate neutral colors
-  const neutral = 'oklch(26% 0.079 36.259)' // Neutral/gray color
+  // Generate neutral colors for light theme
+  const neutral = 'oklch(20.5% 0 0)' // Neutral/gray color for light theme
   const neutralContent = generateContentColor(neutral)
+
+  // Generate neutral colors for dark theme
+  const darkNeutral = 'oklch(97% 0 0)' // Lighter neutral/gray color for dark theme
+  const darkNeutralContent = generateContentColor(darkNeutral)
 
   // Generate base colors based on primary
   const { base100, base200, base300, baseContent } = generateBaseColors(primaryOklch)
@@ -155,8 +159,8 @@ export function generateThemeCSS(props: ThemeGenerationProps): string {
   --color-secondary-content: ${secondaryContent};
   --color-accent: ${accentOklch};
   --color-accent-content: ${accentContent};
-  --color-neutral: ${neutral};
-  --color-neutral-content: ${neutralContent};
+  --color-neutral: ${darkNeutral};
+  --color-neutral-content: ${darkNeutralContent};
   --color-info: ${info};
   --color-info-content: ${infoContent};
   --color-success: ${success};

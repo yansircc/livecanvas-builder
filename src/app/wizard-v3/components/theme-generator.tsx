@@ -213,6 +213,13 @@ export function ThemeGenerator() {
                 <code>{generatedCSS}</code>
               </pre>
             </div>
+            <div className="mt-4 flex justify-end">
+              <Button variant="outline" asChild>
+                <a href="/daisy-preview" target="_blank" rel="noopener noreferrer">
+                  Preview Theme
+                </a>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
