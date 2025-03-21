@@ -1,9 +1,9 @@
 import { tasks } from '@trigger.dev/sdk/v3'
+import { getServerSession } from '@/lib/auth-server'
 import { chatGenerationTask } from '@/trigger/chat-generation'
 
-// Allow streaming responses up to 120 seconds
-export const maxDuration = 120
-
+// Allow streaming responses up to 10 minutes
+export const maxDuration = 600
 interface ChatRequestBody {
   message: string
   context?: string
@@ -38,6 +38,13 @@ function createErrorResponse(message: string, status = 500): Response {
 
 export async function POST(req: Request) {
   try {
+    const session = await getServerSession()
+    if (!session) {
+      return createErrorResponse('Unauthorized', 401)
+    }
+
+    const { user } = session
+
     const body = (await req.json()) as ChatRequestBody
 
     // Extract message, context, history, and optional API key and model from the request
@@ -49,15 +56,20 @@ export async function POST(req: Request) {
     // 所有请求都发送到 Trigger.dev 处理
     try {
       // 触发 Trigger.dev 任务
-      const handle = await tasks.trigger(chatGenerationTask.id, {
-        message,
-        context,
-        history,
-        model: selectedModelId,
-        callbackUrl,
-        // 传递精准模式选项
-        precisionMode,
-      })
+      const handle = await tasks.trigger(
+        chatGenerationTask.id,
+        {
+          message,
+          context,
+          history,
+          model: selectedModelId,
+          callbackUrl,
+          precisionMode,
+        },
+        {
+          tags: [user.email],
+        },
+      )
 
       // 返回任务已开始的响应
       return new Response(

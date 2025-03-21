@@ -1,7 +1,8 @@
-import { createAnthropic } from '@ai-sdk/anthropic'
+// import { createAnthropic } from '@ai-sdk/anthropic'
 import { createDeepSeek } from '@ai-sdk/deepseek'
 import { createOpenAI } from '@ai-sdk/openai'
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
+import { createOpenRouter } from '@openrouter/ai-sdk-provider'
 import { createQwen } from 'qwen-ai-provider'
 import { env } from '@/env'
 
@@ -31,7 +32,7 @@ export const LLM_LIST: Record<string, LLM> = {
     availableModels: [
       {
         name: 'Claude 3.7 Sonnet',
-        value: 'claude-3-7-sonnet-20250219',
+        value: 'anthropic/claude-3.7-sonnet',
         price: {
           input: 3.3,
           output: 16.5,
@@ -39,8 +40,8 @@ export const LLM_LIST: Record<string, LLM> = {
         canOutputStructuredData: false,
       },
       {
-        name: 'Claude 3.5 Sonnet',
-        value: 'claude-3-5-sonnet-latest',
+        name: 'Claude 3.7 Thinking',
+        value: 'anthropic/claude-3.7-sonnet:thinking',
         price: {
           input: 3.3,
           output: 16.5,
@@ -49,10 +50,8 @@ export const LLM_LIST: Record<string, LLM> = {
       },
     ],
     model: (modelValue: string) => {
-      const anthropic = createOpenAICompatible({
-        name: 'Anthropic',
-        apiKey: env.AI_HUB_MIX_API_KEY,
-        baseURL: env.AI_HUB_MIX_ENDPOINT,
+      const anthropic = createOpenRouter({
+        apiKey: env.OPENROUTER_API_KEY,
       })
       return anthropic(modelValue)
     },
@@ -220,7 +219,8 @@ export function parseModelId(modelId: ModelId): {
   const parts = modelId.split('/')
   // Default to empty strings if the split doesn't produce valid parts
   const providerId = parts[0] ?? ''
-  const modelValue = parts[1] ?? ''
+  // Join all remaining parts with '/' to preserve slashes in model value
+  const modelValue = parts.slice(1).join('/') ?? ''
   return { providerId, modelValue }
 }
 
