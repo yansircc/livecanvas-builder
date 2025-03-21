@@ -91,6 +91,7 @@ interface AppState extends SettableState {
 
   // Task history methods
   addTask: (taskId: string, message: string) => void
+  deleteTask: (taskId: string) => boolean
   updateTaskStatus: (
     taskId: string,
     status: 'idle' | 'processing' | 'completed' | 'error',
@@ -114,10 +115,13 @@ interface AppState extends SettableState {
     keepContext?: boolean
     keepTaskHistory?: boolean
   }) => void
+
+  // 完全清除所有数据
+  clearAllData: () => void
 }
 
 // 更新持久化配置
-type AppPersist = Pick<AppState, 'apiKey' | 'model' | 'context'>
+type AppPersist = Pick<AppState, 'apiKey' | 'model' | 'context' | 'taskHistory'>
 
 // 获取默认模型 - 使用models.ts中的函数
 const getDefaultModelValue = (): ModelId => {
@@ -310,6 +314,36 @@ const stateCreator: StateCreator<AppState, [], [], AppState> = (set, get) => ({
     }))
   },
 
+  deleteTask: (taskId) => {
+    const { taskHistory } = get()
+    const newTaskHistory = taskHistory.filter((task) => task.id !== taskId)
+
+    // 如果尝试删除不存在的任务，则返回false
+    if (newTaskHistory.length === taskHistory.length) {
+      return false
+    }
+
+    set({ taskHistory: newTaskHistory })
+
+    // 如果删除的是当前选中的任务，并且还有其他任务，则切换到最后一个任务
+    const currentVersionIndex = get().currentVersionIndex
+    if (currentVersionIndex >= 0) {
+      const versions = get().versions
+      const version = versions[currentVersionIndex]
+      if (version && version.taskId === taskId) {
+        // 重置当前版本状态
+        set({
+          code: null,
+          advices: [],
+          processedHtml: '',
+          usage: undefined,
+        })
+      }
+    }
+
+    return true
+  },
+
   updateTaskStatus: (taskId, status, error, output) => {
     set((state) => ({
       taskHistory: state.taskHistory.map((task) =>
@@ -396,6 +430,27 @@ const stateCreator: StateCreator<AppState, [], [], AppState> = (set, get) => ({
           }),
     }))
   },
+
+  // 完全清除所有数据
+  clearAllData: () => {
+    set((_state) => ({
+      apiKey: null,
+      model: getDefaultModelValue(),
+      context: '',
+      isLoading: false,
+      code: null,
+      advices: [],
+      processedHtml: '',
+      validationResult: {
+        valid: true,
+        errors: [],
+      },
+      usage: undefined,
+      versions: [],
+      currentVersionIndex: -1,
+      taskHistory: [],
+    }))
+  },
 })
 
 const persistConfig = {
@@ -403,7 +458,9 @@ const persistConfig = {
   storage: createJSONStorage(() => customStorage),
   partialize: (state: AppState) =>
     Object.fromEntries(
-      Object.entries(state).filter(([key]) => ['apiKey', 'model', 'context'].includes(key)),
+      Object.entries(state).filter(([key]) =>
+        ['apiKey', 'model', 'context', 'taskHistory'].includes(key),
+      ),
     ) as AppPersist,
   // 添加版本号，以便将来可以处理迁移
   version: 1,

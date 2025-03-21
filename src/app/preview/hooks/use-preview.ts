@@ -147,7 +147,7 @@ export function usePreview() {
     // Try to load HTML from session storage using contentId
     let content = ''
     if (contentId) {
-      const storedContent = sessionStorage.getItem(`preview_content_${contentId}`)
+      const storedContent = localStorage.getItem(`preview_content_${contentId}`)
       if (storedContent) {
         content = storedContent
       }
