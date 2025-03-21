@@ -9,7 +9,7 @@ import { type ModelId } from '@/lib/models'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/use-app-store'
 import { replaceImagePlaceholders } from '@/utils/replace-image-placeholders'
-import { calculateCost } from '../utils/calculate-cost'
+import { calculateCost } from '../utils'
 import { VersionSelector } from './version-selector'
 
 interface ValidationResult {
