@@ -10,6 +10,8 @@ interface ChatRequestBody {
   history?: { prompt: string; response?: string }[]
   model?: string
   callbackUrl?: string // URL to call back with results (for long-running tasks)
+  // 精准模式选项，会额外消耗更多token来获取更精准的UI文档
+  precisionMode?: boolean
 }
 
 /**
@@ -39,7 +41,7 @@ export async function POST(req: Request) {
     const body = (await req.json()) as ChatRequestBody
 
     // Extract message, context, history, and optional API key and model from the request
-    const { message, context, history, model, callbackUrl } = body
+    const { message, context, history, model, callbackUrl, precisionMode } = body
 
     // Default model if none provided
     const selectedModelId = model ?? 'openai/gpt-4o-mini'
@@ -53,6 +55,8 @@ export async function POST(req: Request) {
         history,
         model: selectedModelId,
         callbackUrl,
+        // 传递精准模式选项
+        precisionMode,
       })
 
       // 返回任务已开始的响应

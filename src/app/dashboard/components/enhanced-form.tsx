@@ -1,7 +1,7 @@
 'use client'
 
 import { AnimatePresence, motion } from 'framer-motion'
-import { CircleFadingPlus, Folder, InfoIcon, Send } from 'lucide-react'
+import { Atom, CircleFadingPlus, Folder, InfoIcon, Send } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { useEffect, useState } from 'react'
 import dynamic from 'next/dynamic'
@@ -18,6 +18,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { getModelPrice, MODELS, type ModelId } from '@/lib/models'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/use-app-store'
+import { calculateCost } from '../utils'
 
 export const MAX_CONTEXT_LENGTH = 3000
 
@@ -34,6 +35,7 @@ interface EnhancedFormProps {
 interface FormValues {
   message: string
   includeContext: boolean
+  precisionMode: boolean
 }
 
 // Client-only component - Display model price info
@@ -136,6 +138,7 @@ const EnhancedFormClient = ({
     defaultValues: {
       message: initialMessage,
       includeContext: hasContext,
+      precisionMode: false,
     },
   })
 
@@ -154,6 +157,7 @@ const EnhancedFormClient = ({
       message: data.message,
       includeContext: data.includeContext,
       context: localContext,
+      precisionMode: data.precisionMode,
     }
 
     onSubmit(completeData)
@@ -368,6 +372,85 @@ const EnhancedFormClient = ({
                                           你尚未设置背景信息。请在个人资料页面添加背景信息，以便AI更好地理解你的需求。
                                         </p>
                                       )}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="precisionMode"
+                              render={({ field: precisionField }) => (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          precisionField.onChange(!precisionField.value)
+                                        }
+                                        className={cn(
+                                          'flex h-8 cursor-pointer items-center gap-2 rounded-full border px-1.5 py-1 transition-all',
+                                          precisionField.value
+                                            ? 'border-purple-400 bg-purple-500/15 text-purple-500'
+                                            : 'border-transparent bg-zinc-200/50 text-zinc-500 hover:text-zinc-700 dark:bg-zinc-700/50 dark:text-zinc-400 dark:hover:text-zinc-300',
+                                        )}
+                                      >
+                                        <div className="flex h-4 w-4 shrink-0 items-center justify-center">
+                                          <motion.div
+                                            animate={{
+                                              rotate: precisionField.value ? 180 : 0,
+                                              scale: precisionField.value ? 1.1 : 1,
+                                            }}
+                                            whileHover={{
+                                              rotate: precisionField.value ? 180 : 15,
+                                              scale: 1.1,
+                                              transition: {
+                                                type: 'spring',
+                                                stiffness: 300,
+                                                damping: 10,
+                                              },
+                                            }}
+                                            transition={{
+                                              type: 'spring',
+                                              stiffness: 260,
+                                              damping: 25,
+                                            }}
+                                          >
+                                            <Atom className="h-4 w-4" />
+                                          </motion.div>
+                                        </div>
+                                        <AnimatePresence>
+                                          {precisionField.value && (
+                                            <motion.span
+                                              initial={{ width: 0, opacity: 0 }}
+                                              animate={{
+                                                width: 'auto',
+                                                opacity: 1,
+                                              }}
+                                              exit={{ width: 0, opacity: 0 }}
+                                              transition={{ duration: 0.2 }}
+                                              className="shrink-0 overflow-hidden text-sm whitespace-nowrap text-purple-500"
+                                            >
+                                              精准模式
+                                            </motion.span>
+                                          )}
+                                        </AnimatePresence>
+                                      </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" className="max-w-xs">
+                                      <p className="text-xs">
+                                        精准模式会加载额外的参考文档，提供更精确的UI组件生成，但会额外消耗大约13k的token，关闭精准模式将节省
+                                        {calculateCost(
+                                          {
+                                            promptTokens: 13000,
+                                            completionTokens: 0,
+                                            totalTokens: 13000,
+                                          },
+                                          model,
+                                        )?.cny.toFixed(2)}
+                                        元
+                                      </p>
                                     </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>

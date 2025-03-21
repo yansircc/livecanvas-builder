@@ -23,6 +23,8 @@ const chatInputSchema = z.object({
     .optional(),
   model: z.string().optional(),
   callbackUrl: z.string().optional(),
+  // 精准模式选项
+  precisionMode: z.boolean().optional(),
 })
 
 // Define the task using the task function from Trigger.dev
@@ -31,7 +33,7 @@ export const chatGenerationTask = task({
   // Set a maximum duration for the task
   maxDuration: 300, // 5 minutes
   run: async (payload: z.infer<typeof chatInputSchema>) => {
-    const { message, context, history, model } = payload
+    const { message, context, history, model, precisionMode } = payload
 
     // Default model if none provided
     const selectedModelId = model ?? 'anthropic/claude-3-7-sonnet-20250219'
@@ -49,13 +51,16 @@ export const chatGenerationTask = task({
     // Check if the selected model can output structured data
     const canOutputStructuredData = canModelOutputStructuredData(selectedModelId)
 
-    // // Fetch daisyUI tutorial
-    // const uiTutorial = await fetchDaisyUIPrompt()
+    // 精准模式下获取daisyUI教程作为额外上下文
+    let uiTutorial: string | undefined = undefined
+    if (precisionMode) {
+      // 获取daisyUI教程
+      uiTutorial = await fetchDaisyUIPrompt()
+      logger.info('精准模式已启用，已加载DaisyUI文档')
+    }
 
-    // // Build contextual prompt
-    // const contextualPrompt = buildContextualPrompt(message, context, history, uiTutorial)
-
-    const contextualPrompt = buildContextualPrompt(message, context, history)
+    // 构建上下文提示词
+    const contextualPrompt = buildContextualPrompt(message, context, history, uiTutorial)
 
     try {
       // Generate response without retry (trigger.dev handles retries)

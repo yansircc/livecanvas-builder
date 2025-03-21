@@ -10,6 +10,7 @@ export interface FormValues {
   message: string
   includeContext: boolean
   context?: string
+  precisionMode: boolean
 }
 
 // Interface for the complete form data needed for API call
@@ -18,6 +19,7 @@ interface CompleteFormData {
   model: ModelId
   apiKey: string
   context: string
+  precisionMode: boolean
 }
 
 export function useTaskSubmission(
@@ -50,6 +52,7 @@ export function useTaskSubmission(
         model: model || 'anthropic/claude-3-7-sonnet-20250219',
         apiKey: apiKey ?? '',
         context: data.includeContext ? data.context || context || '' : '',
+        precisionMode: data.precisionMode ?? false,
       }
 
       if (completeData.context && completeData.context.length > 10000) {
@@ -81,6 +84,7 @@ export function useTaskSubmission(
           history: conversationHistory,
           apiKey: completeData.apiKey ?? undefined,
           model: completeData.model,
+          precisionMode: completeData.precisionMode,
         })
 
         // 保存任务ID

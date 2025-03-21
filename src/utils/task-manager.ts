@@ -39,6 +39,8 @@ export interface TaskSubmitParams {
   history?: ConversationHistoryItem[]
   apiKey?: string
   model: ModelId
+  // 精准模式选项
+  precisionMode?: boolean
 }
 
 // 定义任务状态检查参数接口
@@ -75,6 +77,8 @@ export async function submitTask(params: TaskSubmitParams): Promise<TaskResponse
         history: params.history || [],
         apiKey: params.apiKey,
         model: params.model,
+        // 传递精准模式选项
+        precisionMode: params.precisionMode,
       }),
       // POST requests are not cached by default, so no cache options needed
     })
