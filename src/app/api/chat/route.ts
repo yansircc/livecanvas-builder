@@ -2,8 +2,8 @@ import { tasks } from '@trigger.dev/sdk/v3'
 import { getServerSession } from '@/lib/auth-server'
 import { chatGenerationTask } from '@/trigger/chat-generation'
 
-// Allow streaming responses up to 10 minutes
-export const maxDuration = 600
+// Allow streaming responses up to 1 minutes
+export const maxDuration = 60
 interface ChatRequestBody {
   message: string
   context?: string
