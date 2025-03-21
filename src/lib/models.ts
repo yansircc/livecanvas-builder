@@ -49,7 +49,8 @@ export const LLM_LIST: Record<string, LLM> = {
       },
     ],
     model: (modelValue: string) => {
-      const anthropic = createAnthropic({
+      const anthropic = createOpenAICompatible({
+        name: 'Anthropic',
         apiKey: env.AI_HUB_MIX_API_KEY,
         baseURL: env.AI_HUB_MIX_ENDPOINT,
       })
