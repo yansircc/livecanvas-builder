@@ -87,6 +87,8 @@ export async function createProject(data: {
   isPublished: boolean
 }) {
   try {
+    // 获取会话以获取用户ID用于创建项目
+    // 注意: 这里仍然需要验证逻辑，因为服务器操作不经过中间件
     const session = await getServerSession()
     if (!session) {
       return { success: false, error: 'Not authenticated' }
@@ -102,7 +104,7 @@ export async function createProject(data: {
         thumbnail: data.thumbnail || '',
         tags: data.tags || '',
         isPublished: data.isPublished,
-        userId: session.user.id,
+        userId: session.user.id, // 使用用户ID关联项目
         createdAt: new Date(),
         updatedAt: new Date(),
       })
@@ -136,6 +138,8 @@ export async function updateProject(
   },
 ) {
   try {
+    // 获取会话以获取用户ID用于验证项目所有权
+    // 注意: 这里仍然需要验证逻辑，因为服务器操作不经过中间件
     const session = await getServerSession()
     if (!session) {
       return { success: false, error: 'Unauthorized' }
@@ -291,6 +295,8 @@ export async function favoriteProject(projectId: string) {
 // Cache user interactions for better performance
 export const getUserInteractions = cache(async (projectId: string) => {
   try {
+    // 获取会话以获取用户ID用于查询互动数据
+    // 注意: 这里仍然需要验证逻辑，因为服务器操作不经过中间件
     const session = await getServerSession()
     if (!session) {
       return { success: false, error: 'Not authenticated' }

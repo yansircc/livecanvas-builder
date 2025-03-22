@@ -1,7 +1,7 @@
 'use client'
 
 import { User } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -16,12 +16,54 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useSession } from '@/lib/auth-client'
+import { decodeJwtToken, getJwtToken, isAuthenticated } from '@/lib/jwt-client'
+
+interface UserData {
+  id: string
+  name?: string
+  email?: string
+  image?: string | null
+}
 
 export function UserAuthMenu() {
   const router = useRouter()
-  const { data: session, isPending } = useSession()
   const [authDialogOpen, setAuthDialogOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [userData, setUserData] = useState<UserData | null>(null)
+
+  useEffect(() => {
+    async function loadUserData() {
+      try {
+        // Check if user is authenticated
+        const authenticated = await isAuthenticated()
+
+        if (authenticated) {
+          // Get JWT token
+          const token = await getJwtToken()
+
+          if (token) {
+            // Decode JWT payload using our utility function
+            const payload = decodeJwtToken(token)
+
+            if (payload) {
+              setUserData({
+                id: payload.id,
+                name: payload.name,
+                email: payload.email,
+                image: payload.image || null,
+              })
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error loading user data:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    void loadUserData() // Use void operator to explicitly mark promise as ignored
+  }, [])
 
   const navigateToSignIn = () => {
     setAuthDialogOpen(false)
@@ -34,20 +76,20 @@ export function UserAuthMenu() {
   }
 
   // Loading state
-  if (isPending) {
+  if (isLoading) {
     return <Skeleton className="h-9 w-9 rounded-full" />
   }
 
   // User is authenticated
-  if (session?.user) {
-    const userInitial = session.user.name?.charAt(0) || session.user.email?.charAt(0) || 'U'
+  if (userData) {
+    const userInitial = userData.name?.charAt(0) || userData.email?.charAt(0) || 'U'
 
     return (
       <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0" asChild>
         <Link href="/profile">
           <Avatar className="h-9 w-9">
-            {session.user.image ? (
-              <Image src={session.user.image} alt={session.user.name || 'User'} fill />
+            {userData.image ? (
+              <Image src={userData.image} alt={userData.name || 'User'} fill />
             ) : (
               <AvatarFallback className="bg-primary text-primary-foreground">
                 {userInitial.toUpperCase()}

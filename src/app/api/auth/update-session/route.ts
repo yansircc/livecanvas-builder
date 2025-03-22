@@ -2,14 +2,13 @@ import { eq } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 import { db } from '@/db'
 import { user } from '@/db/schema'
-import { auth } from '@/lib/auth'
 import { getServerSession } from '@/lib/auth-server'
 
 /**
  * API endpoint to update the user session with the latest data from the database
  * This is a workaround for better-auth's limitation in updating session data
  */
-export async function GET(request: Request) {
+export async function GET() {
   try {
     // Get the current user session
     const session = await getServerSession()

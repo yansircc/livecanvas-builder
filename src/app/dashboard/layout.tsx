@@ -1,18 +1,13 @@
-import { redirect } from 'next/navigation'
-import { getServerSession } from '@/lib/auth-server'
+import type { ReactNode } from 'react'
 
-export default async function DashboardLayout({
+/**
+ * 仪表盘布局
+ * 注意：身份验证由中间件自动处理，不需要在此检查
+ */
+export default function DashboardLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: ReactNode
 }>) {
-  // Server-side authentication check
-  const session = await getServerSession()
-
-  // If user is not logged in, redirect to signin page
-  if (!session) {
-    redirect('/signin')
-  }
-
   return <>{children}</>
 }

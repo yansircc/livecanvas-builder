@@ -38,11 +38,16 @@ function createErrorResponse(message: string, status = 500): Response {
 
 export async function POST(req: Request) {
   try {
+    // 获取会话，用于获取用户数据（不负责验证了）
+    // 注意：中间件已经进行了身份验证，所以如果代码执行到这里，用户一定是已验证的
     const session = await getServerSession()
     if (!session) {
+      // 理论上不应该发生，因为中间件已经拦截了未认证请求
+      // 加上以防万一
       return createErrorResponse('Unauthorized', 401)
     }
 
+    // 获取用户数据用于任务标记
     const { user } = session
 
     const body = (await req.json()) as ChatRequestBody

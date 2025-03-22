@@ -1,18 +1,59 @@
+'use client'
+
 import { ArrowRight, Code, Layers, Zap } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { redirect } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { getServerSession } from '@/lib/auth-server'
 
-export default async function Home() {
-  // Server-side authentication check
-  const session = await getServerSession()
+export default function Home() {
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(true)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
 
-  // If user is logged in, redirect to dashboard
-  if (session) {
-    redirect('/dashboard')
+  // 使用客户端检查会话状态，避免服务器/客户端状态不一致
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        // 检查是否有会话cookie
+        const hasCookie =
+          document.cookie.includes('lc_builder_session') ||
+          document.cookie.includes('next-auth.session-token')
+
+        console.log('[Home] Session check, cookies found:', hasCookie)
+        setIsLoggedIn(hasCookie)
+
+        // 如果有会话cookie，重定向到仪表板
+        if (hasCookie) {
+          console.log('[Home] User logged in, redirecting to dashboard')
+          router.push('/dashboard')
+        }
+      } catch (error) {
+        console.error('[Home] Error checking session:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    // 立即调用并捕获任何错误
+    checkSession().catch((error) => {
+      console.error('[Home] Unhandled error in checkSession:', error)
+      setIsLoading(false)
+    })
+  }, [router])
+
+  // 显示加载状态
+  if (isLoading) {
+    return <div className="flex min-h-screen items-center justify-center">正在加载...</div>
   }
 
+  // 如果用户已登录，这只是作为备份渲染
+  // 正常情况下会被useEffect中的重定向处理
+  if (isLoggedIn) {
+    return null
+  }
+
+  // 主页内容
   return (
     <div className="flex min-h-screen flex-col">
       {/* Header */}

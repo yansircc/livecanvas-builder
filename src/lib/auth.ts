@@ -1,8 +1,9 @@
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { nextCookies } from 'better-auth/next-js'
+import { bearer, jwt } from 'better-auth/plugins'
 import { db } from '@/db'
-import { account, session, user, verification } from '@/db/schema'
+import { account, jwks, session, user, verification } from '@/db/schema'
 import { env } from '@/env'
 import { sendEmail } from '@/lib/send-email'
 
@@ -11,6 +12,7 @@ import { sendEmail } from '@/lib/send-email'
  * @see https://www.better-auth.com/docs/basic-usage
  * @see https://www.better-auth.com/docs/authentication/email-password
  * @see https://www.better-auth.com/docs/adapters/drizzle
+ * @see https://www.better-auth.com/docs/plugins/jwt
  */
 export const auth = betterAuth({
   // Configure the database adapter
@@ -21,6 +23,7 @@ export const auth = betterAuth({
       session,
       account,
       verification,
+      jwks, // Include jwks schema for JWT support
     },
   }),
 
@@ -95,6 +98,7 @@ export const auth = betterAuth({
   session: {
     expiresIn: 60 * 60 * 24 * 7, // 7 days
     updateAge: 60 * 60 * 24, // 1 day
+    strategy: 'jwt', // Use JWT for session strategy
   },
 
   // Security configuration
@@ -110,5 +114,71 @@ export const auth = betterAuth({
     },
   },
 
-  plugins: [nextCookies()],
+  plugins: [
+    nextCookies(),
+    jwt({
+      // JWT configuration
+      jwt: {
+        // Set a custom expiration time (default is 15 minutes)
+        expirationTime: '1d',
+
+        // Define a custom payload for the JWT token
+        definePayload: (session) => {
+          return {
+            id: session.user.id,
+            email: session.user.email,
+            name: session.user.name,
+            emailVerified: session.user.emailVerified,
+          }
+        },
+
+        // Custom issuer and audience (optional)
+        // issuer: "https://your-app-domain.com",
+        // audience: "https://your-app-domain.com",
+      },
+
+      // JWKS configuration
+      jwks: {
+        keyPairConfig: {
+          alg: 'EdDSA',
+          crv: 'Ed25519',
+        },
+      },
+    }),
+    bearer(),
+  ],
 })
+
+// Export auth API helpers
+export const api = auth.api
+
+// Helper function to get JWT token from API
+export async function getJwtToken() {
+  const response = await fetch('/api/auth/token')
+  if (!response.ok) return null
+  const data = await response.json()
+  return data.token
+}
+
+// Helper function for client-side auth verification
+export async function getClientSession() {
+  try {
+    if (typeof window === 'undefined') {
+      // Server-side, we don't have access to cookies
+      return null
+    }
+
+    // Create a proper Headers object
+    const headers = new Headers()
+    headers.append('Cookie', document.cookie)
+
+    const session = await api.getSession({
+      headers,
+    })
+
+    return session
+  } catch (error) {
+    console.error('Error getting client session:', error)
+    return null
+  }
+}

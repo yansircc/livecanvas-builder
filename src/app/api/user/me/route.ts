@@ -6,12 +6,15 @@ import { getServerSession } from '@/lib/auth-server'
 
 /**
  * API endpoint to fetch the complete user data including backgroundInfo
+ * 验证由中间件处理，这里只用于获取用户数据
  */
 export async function GET() {
   try {
-    // Get the current user session
+    // 获取当前用户会话（用于用户数据，不负责验证）
+    // 如果代码执行到这里，中间件已经验证了用户身份
     const session = await getServerSession()
     if (!session) {
+      // 理论上不应发生，因为中间件已经处理了验证
       return NextResponse.json({ success: false, error: '未授权' }, { status: 401 })
     }
 

@@ -4,14 +4,16 @@
  */
 import './src/env.js'
 
-/** @type {import("next").NextConfig} */
-const config = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
   experimental: {
     reactCompiler: true,
   },
+  // 将 serverComponentsExternalPackages 移到这里，修复配置错误
+  serverExternalPackages: ['better-auth'],
   images: {
     remotePatterns: [
       {
@@ -26,6 +28,10 @@ const config = {
       {
         hostname: 'ui-avatars.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+      },
     ],
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
@@ -35,20 +41,19 @@ const config = {
   async headers() {
     return [
       {
-        source: '/images/:path*',
+        source: '/(.*)',
         headers: [
           {
-            key: 'Cache-Control',
-            value: 'public, max-age=86400, stale-while-revalidate=604800',
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
           },
-        ],
-      },
-      {
-        source: '/_next/image/:path*',
-        headers: [
           {
-            key: 'Cache-Control',
-            value: 'public, max-age=86400, stale-while-revalidate=604800',
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
           },
         ],
       },
@@ -56,4 +61,5 @@ const config = {
   },
 }
 
-export default config
+// 使用ESM格式导出
+export default nextConfig
