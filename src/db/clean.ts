@@ -14,7 +14,6 @@ async function cleanDatabase() {
       await db.execute(sql`CREATE SCHEMA public`)
 
       // Grant privileges back to public
-      await db.execute(sql`GRANT ALL ON SCHEMA public TO postgres`)
       await db.execute(sql`GRANT ALL ON SCHEMA public TO public`)
 
       console.log('✅ Public schema dropped and recreated successfully')
