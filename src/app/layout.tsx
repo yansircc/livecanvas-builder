@@ -1,6 +1,7 @@
 import '@/styles/globals.css'
 import { GeistSans } from 'geist/font/sans'
 import type { Metadata } from 'next'
+import { AuthProvider } from '@/components/auth-provider'
 import { CacheInitializer } from '@/components/cache-initializer'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
@@ -22,8 +23,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           enableSystem
           disableTransitionOnChange
         >
-          {children}
-          <Toaster />
+          <AuthProvider>
+            {children}
+            <Toaster />
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

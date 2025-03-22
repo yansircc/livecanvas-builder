@@ -1,5 +1,6 @@
-import { headers } from 'next/headers'
+import { unstable_noStore as noStore } from 'next/cache'
 import { auth } from '@/lib/auth'
+import { getSafeHeaders } from './safe-headers'
 
 /**
  * 获取服务器端会话函数
@@ -11,12 +12,15 @@ import { auth } from '@/lib/auth'
  * 注意：这个函数在Node.js环境中工作，可能不适用于Edge Runtime
  */
 export async function getServerSession() {
-  try {
-    // 捕获可能的错误
-    try {
-      // 获取请求头部信息 - Next.js 15+ 中 headers() 是一个异步函数
-      const headersList = await headers()
+  // Explicitly opt out of caching for this function that accesses headers
+  noStore()
 
+  try {
+    // Get headers safely using the utility
+    const headersList = await getSafeHeaders()
+    if (!headersList) return null
+
+    try {
       // 通过Better Auth API获取会话
       const session = await auth.api.getSession({
         headers: headersList,
@@ -24,9 +28,6 @@ export async function getServerSession() {
       return session
     } catch (apiError) {
       console.error('Better Auth API错误，使用替代方法:', apiError)
-
-      // 如果Better Auth API失败，尝试基本检查
-      const headersList = await headers()
 
       // 检查cookie是否存在
       const cookie = headersList.get('cookie')
@@ -48,6 +49,15 @@ export async function getServerSession() {
       }
     }
   } catch (error) {
+    // Handle prerendering errors more gracefully
+    if (
+      error instanceof Error &&
+      (error.message.includes('headers()') || error.message.includes('During prerendering'))
+    ) {
+      console.warn('Headers not available during prerendering, returning null session')
+      return null
+    }
+
     console.error('获取服务器会话失败:', error)
     return null
   }
@@ -60,6 +70,8 @@ export async function getServerSession() {
  * 在需要简单验证但不需要用户数据的场景使用
  */
 export async function isAuthenticated(): Promise<boolean> {
+  noStore() // Add noStore here too
+
   try {
     const session = await getServerSession()
     return session !== null

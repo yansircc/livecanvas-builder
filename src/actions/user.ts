@@ -5,15 +5,46 @@ import { db } from '@/db'
 import { user } from '@/db/schema'
 import { getServerSession } from '@/lib/auth-server'
 
-export async function getCurrentUser() {
+// Define return types
+interface UserData {
+  id: string
+  name: string
+  email: string
+  image: string | null
+  backgroundInfo: string | null
+  createdAt: Date
+  updatedAt: Date
+}
+
+interface AuthSuccess {
+  success: true
+  user: UserData
+}
+
+interface AuthError {
+  success: false
+  error: string
+}
+
+type AuthResult = AuthSuccess | AuthError
+
+// Separate non-cached function to get session (uses headers)
+export async function getCurrentUser(): Promise<AuthResult> {
   const session = await getServerSession()
 
   if (!session) {
     return { success: false, error: 'Unauthorized' }
   }
 
+  return getUserData(session.user.id)
+}
+
+// Cached function that accepts user ID as a parameter
+async function getUserData(userId: string): Promise<AuthResult> {
+  'use cache'
+
   const userData = await db.query.user.findFirst({
-    where: eq(user.id, session.user.id),
+    where: eq(user.id, userId),
   })
 
   if (!userData) {

@@ -1,4 +1,5 @@
-import { headers } from 'next/headers'
+import { unstable_noStore as noStore } from 'next/cache'
+import { getSafeHeaders } from './safe-headers'
 
 /**
  * Server-side utilities for Better Auth JWT handling
@@ -100,9 +101,13 @@ export async function verifyJwtToken(token: string, baseUrl: string) {
  * @returns The user data or null if not available
  */
 export async function getUserFromHeaders() {
+  // Prevent caching for this function
+  noStore()
+
   try {
-    // Get headers - this is an asynchronous operation in Next.js 15+
-    const headersList = await headers()
+    // Get headers using the safe headers utility
+    const headersList = await getSafeHeaders()
+    if (!headersList) return null
 
     // Extract user data from headers
     const userId = headersList.get('x-user-id')

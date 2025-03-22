@@ -1,6 +1,7 @@
+'use client'
+
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { decodeJwtToken, getJwtToken, isAuthenticated } from '@/lib/jwt-client'
 
 export interface AuthUser {
   id: string
@@ -24,37 +25,33 @@ export function useAuth(options: UseAuthOptions = {}) {
   const [error, setError] = useState<Error | null>(null)
 
   useEffect(() => {
-    async function loadUserData() {
+    const fetchAuthData = async () => {
       try {
-        // Check if user is authenticated
-        const authenticated = await isAuthenticated()
-        setIsAuthed(authenticated)
+        // Try to get auth data from data attributes set by server component
+        const authElement = document.querySelector('[data-auth-user]')
+        const isAuthSuccess = authElement?.getAttribute('data-auth-success') === 'true'
+        const userDataStr = authElement?.getAttribute('data-auth-user')
 
-        if (authenticated) {
-          // Get JWT token
-          const token = await getJwtToken()
+        if (isAuthSuccess && userDataStr) {
+          const parsedUserData = JSON.parse(userDataStr)
+          setUserData(parsedUserData)
+          setIsAuthed(true)
+        } else {
+          // Fallback to API if data attributes aren't available
+          const response = await fetch('/api/auth/user')
+          const data = await response.json()
 
-          if (token) {
-            // Decode JWT payload using our utility function
-            const payload = decodeJwtToken(token)
-
-            if (payload) {
-              // 直接使用JWT负载中的用户数据，所有需要的信息都应该在令牌中
-              setUserData({
-                id: payload.id,
-                name: payload.name || '',
-                email: payload.email || '',
-                image: payload.image || null,
-              })
-            }
+          if (data.success) {
+            setUserData(data.user)
+            setIsAuthed(true)
+          } else if (required) {
+            // If authentication is required but user is not authenticated, redirect
+            router.push(redirectTo)
           }
-        } else if (required) {
-          // If authentication is required but user is not authenticated, redirect
-          router.push(redirectTo)
         }
-      } catch (error) {
-        console.error('Error in authentication:', error)
-        setError(error instanceof Error ? error : new Error(String(error)))
+      } catch (e) {
+        console.error('Error fetching auth data:', e)
+        setError(e instanceof Error ? e : new Error(String(e)))
         if (required) {
           router.push(redirectTo)
         }
@@ -63,7 +60,12 @@ export function useAuth(options: UseAuthOptions = {}) {
       }
     }
 
-    void loadUserData() // Use void operator to explicitly mark promise as ignored
+    // Call the async function and handle the promise
+    fetchAuthData().catch((e) => {
+      console.error('Unhandled error in fetchAuthData:', e)
+      setError(e instanceof Error ? e : new Error(String(e)))
+      setIsLoading(false)
+    })
   }, [router, required, redirectTo])
 
   return {

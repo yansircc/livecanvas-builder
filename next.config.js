@@ -11,6 +11,8 @@ const nextConfig = {
   },
   experimental: {
     reactCompiler: true,
+    dynamicIO: true,
+    useCache: true,
   },
   // 将 serverComponentsExternalPackages 移到这里，修复配置错误
   serverExternalPackages: ['better-auth'],
@@ -26,31 +28,6 @@ const nextConfig = {
         hostname: 'livecanvas-builder.b-cdn.net',
       },
     ],
-    formats: ['image/avif', 'image/webp'],
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    minimumCacheTTL: 60 * 60 * 24 * 7,
-  },
-  async headers() {
-    return [
-      {
-        source: '/(.*)',
-        headers: [
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY',
-          },
-          {
-            key: 'X-XSS-Protection',
-            value: '1; mode=block',
-          },
-        ],
-      },
-    ]
   },
 }
 

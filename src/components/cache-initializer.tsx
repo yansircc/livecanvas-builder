@@ -5,8 +5,18 @@ import { initializeImageCache } from '@/lib/unsplash'
 // Track initialization state
 let isInitialized = false
 
+// Non-cached function for initialization
 export async function CacheInitializer() {
-  // Ensure initialization happens only once
+  // Call the cached component after initializing
+  await initializeSystems()
+  return null
+}
+
+// Cached version that doesn't use any dynamic data sources
+async function initializeSystems() {
+  'use cache'
+
+  // Only run initialization once
   if (!isInitialized) {
     if (process.env.NODE_ENV === 'development') {
       console.log('Initializing app systems...')
