@@ -1,6 +1,7 @@
+'use client'
+
 import { Bookmark, Check, Copy, Heart, User } from 'lucide-react'
-import { motion } from 'motion/react'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import Image from 'next/image'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -27,9 +28,52 @@ export function ProjectModal({
   onCopyCode,
 }: ProjectModalProps) {
   const [isCopied, setIsCopied] = useState(false)
+  const [isImageLoaded, setIsImageLoaded] = useState(false)
 
+  // Event handlers (memoized) - must be defined before early return
+  const handleImageLoad = useCallback(() => {
+    setIsImageLoaded(true)
+  }, [])
+
+  const handleBackdropClick = useCallback(() => {
+    onClose()
+  }, [onClose])
+
+  // Handlers that depend on project - safely handle null case
+  const handleLike = useCallback(
+    (e: React.MouseEvent) => {
+      if (project) onLike(project.id, e)
+    },
+    [onLike, project],
+  )
+
+  const handleFavorite = useCallback(
+    (e: React.MouseEvent) => {
+      if (project) onFavorite(project.id, e)
+    },
+    [onFavorite, project],
+  )
+
+  const handleCopy = useCallback(async () => {
+    if (!project?.htmlContent || !onCopyCode) return
+
+    try {
+      await navigator.clipboard.writeText(project.htmlContent)
+      setIsCopied(true)
+      onCopyCode(project.htmlContent)
+
+      // Reset copied state after 2 seconds
+      const timer = setTimeout(() => setIsCopied(false), 2000)
+      return () => clearTimeout(timer)
+    } catch (err) {
+      console.error('Failed to copy code:', err)
+    }
+  }, [project, onCopyCode, setIsCopied])
+
+  // Early return if no project
   if (!project) return null
 
+  // Thumbnail fallback
   const thumbnailUrl =
     project.thumbnail ||
     'https://images.unsplash.com/photo-1618788372246-79faff0c3742?q=80&w=2070&auto=format&fit=crop'
@@ -42,38 +86,18 @@ export function ProjectModal({
         .filter(Boolean)
     : []
 
-  // Handle copy with visual feedback
-  const handleCopy = async () => {
-    if (!project.htmlContent || !onCopyCode) return
-
-    try {
-      await navigator.clipboard.writeText(project.htmlContent)
-      setIsCopied(true)
-      onCopyCode(project.htmlContent)
-      setTimeout(() => setIsCopied(false), 2000)
-    } catch (err) {
-      console.error('Failed to copy code:', err)
-    }
-  }
-
   return (
     <>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 0.5 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black"
-        onClick={onClose}
-      />
-      <motion.div
-        layoutId={`project-${project.id}`}
-        className="fixed inset-4 z-50 flex flex-col overflow-hidden rounded-lg bg-white p-6 md:inset-[10%] lg:inset-[15%] dark:bg-zinc-900"
-      >
+      {/* Modal backdrop */}
+      <div className="bg-opacity-50 fixed inset-0 z-40 bg-black" onClick={handleBackdropClick} />
+
+      {/* Modal content */}
+      <div className="fixed inset-4 z-50 flex flex-col overflow-hidden rounded-lg bg-white p-6 md:inset-[10%] lg:inset-[15%] dark:bg-zinc-900">
         {/* Header with title and close button */}
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-2xl font-bold">{project.title}</h2>
           <Button variant="ghost" size="sm" onClick={onClose}>
-            关闭
+            Close
           </Button>
         </div>
 
@@ -103,7 +127,7 @@ export function ProjectModal({
                 {project.user?.image ? (
                   <Image
                     src={project.user.image}
-                    alt={project.user.name}
+                    alt={project.user.name || ''}
                     width={32}
                     height={32}
                     className="h-full w-full object-cover"
@@ -123,21 +147,21 @@ export function ProjectModal({
                 variant="outline"
                 size="sm"
                 className="flex items-center space-x-1"
-                onClick={(e) => onLike(project.id, e)}
+                onClick={handleLike}
               >
                 <Heart className={`h-4 w-4 ${hasLiked ? 'fill-red-500 text-red-500' : ''}`} />
-                <span>{hasLiked ? '已点赞' : '点赞'}</span>
+                <span>{hasLiked ? 'Liked' : 'Like'}</span>
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 className="flex items-center space-x-1"
-                onClick={(e) => onFavorite(project.id, e)}
+                onClick={handleFavorite}
               >
                 <Bookmark
                   className={`h-4 w-4 ${hasFavorited ? 'fill-yellow-500 text-yellow-500' : ''}`}
                 />
-                <span>{hasFavorited ? '已收藏' : '收藏'}</span>
+                <span>{hasFavorited ? 'Saved' : 'Save'}</span>
               </Button>
               {onCopyCode && (
                 <Button
@@ -163,17 +187,12 @@ export function ProjectModal({
                     {isCopied ? (
                       <>
                         <Check className="h-4 w-4 text-emerald-500" />
-                        <span>已复制!</span>
+                        <span>Copied!</span>
                       </>
                     ) : (
                       <>
-                        <Copy
-                          className={cn(
-                            'h-4 w-4 transition-transform duration-200',
-                            'group-hover:scale-110',
-                          )}
-                        />
-                        <span>复制代码</span>
+                        <Copy className="h-4 w-4 transition-transform duration-200" />
+                        <span>Copy Code</span>
                       </>
                     )}
                   </div>
@@ -186,19 +205,25 @@ export function ProjectModal({
           <div className="flex-1 overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">
             <div className="h-full overflow-auto">
               <div className="relative min-h-full w-full">
+                {!isImageLoaded && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-300 border-t-zinc-500" />
+                  </div>
+                )}
                 <Image
                   src={thumbnailUrl}
                   alt={project.title}
                   width={1200}
                   height={1600}
-                  className="w-full object-contain"
+                  className={`w-full object-contain ${isImageLoaded ? 'opacity-100' : 'opacity-0'}`}
                   priority
+                  onLoad={handleImageLoad}
                 />
               </div>
             </div>
           </div>
         </div>
-      </motion.div>
+      </div>
     </>
   )
 }
