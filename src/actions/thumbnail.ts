@@ -1,14 +1,23 @@
 'use server'
 
-import { uploadToBunnyCDN } from '@/lib/upload'
+import { getServerSession } from '@/lib/auth-server'
+import { uploadToVercelBlob } from '@/lib/vercel-blob'
 
 /**
  * Generate thumbnail URL
  * @param htmlContent HTML content or base64 image data
- * @returns Thumbnail URL
+ * @param projectId Optional project ID for tracking (can be undefined for new projects)
+ * @returns Thumbnail URL with project identifier embedded in the path
  */
-export async function generateThumbnail(htmlContent: string): Promise<string> {
+export async function generateThumbnail(htmlContent: string, projectId?: string): Promise<string> {
   try {
+    const session = await getServerSession()
+    if (!session) {
+      throw new Error('Unauthorized')
+    }
+
+    const userId = session.user.id
+
     // Check if it's base64 image data
     if (htmlContent.startsWith('data:image/')) {
       // Extract the base64 data
@@ -18,10 +27,16 @@ export async function generateThumbnail(htmlContent: string): Promise<string> {
       const buffer = Buffer.from(base64Data, 'base64')
 
       // Generate a unique filename using timestamp and random string
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 10)}.jpg`
+      const uniqueId = Math.random().toString(36).substring(2, 10)
+      const fileName = `${Date.now()}-${uniqueId}.jpg`
 
-      // Upload to BunnyCDN using the server-side utility
-      return await uploadToBunnyCDN(buffer, fileName, 'thumbnails')
+      // Include projectId in the folder path if it exists
+      const folder = projectId
+        ? `thumbnails/${userId}/project_${projectId}`
+        : `thumbnails/${userId}`
+
+      // Upload to Vercel Blob using the server-side utility
+      return await uploadToVercelBlob(buffer, fileName, folder)
     }
 
     // If not base64 image, return default image

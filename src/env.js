@@ -14,9 +14,9 @@ export const env = createEnv({
     DATABASE_URL: z.string(),
     PLUNK_API_KEY: z.string(),
     PLUNK_API_URL: z.string(),
-    BUNNY_STORAGE_API_KEY: z.string(),
     TRIGGER_SECRET_KEY: z.string(),
     OPENROUTER_API_KEY: z.string(),
+    BLOB_READ_WRITE_TOKEN: z.string(),
   },
 
   /**
@@ -49,9 +49,9 @@ export const env = createEnv({
       process.env.NEXT_PUBLIC_TAILWIND_FALLBACK_PATH || '/assets/js/tailwind-fallback.js',
     PLUNK_API_KEY: process.env.PLUNK_API_KEY,
     PLUNK_API_URL: process.env.PLUNK_API_URL,
-    BUNNY_STORAGE_API_KEY: process.env.BUNNY_STORAGE_API_KEY,
     TRIGGER_SECRET_KEY: process.env.TRIGGER_SECRET_KEY,
     OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
+    BLOB_READ_WRITE_TOKEN: process.env.BLOB_READ_WRITE_TOKEN,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

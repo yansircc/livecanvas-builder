@@ -5,6 +5,7 @@ import { nanoid } from 'nanoid'
 import { revalidatePath } from 'next/cache'
 import { db } from '@/db'
 import { favorite, like, project, user } from '@/db/schema'
+import { deleteFromVercelBlob } from '@/lib/vercel-blob'
 
 // Get all published projects with caching
 export const getPublishedProjects = async () => {
@@ -85,6 +86,7 @@ export async function createProject(
     thumbnail?: string
     tags?: string
     isPublished: boolean
+    projectId?: string
   },
 ) {
   if (!userId) {
@@ -92,10 +94,13 @@ export async function createProject(
   }
 
   try {
+    // Use provided projectId or generate a new one
+    const projectId = data.projectId || nanoid()
+
     const newProject = await db
       .insert(project)
       .values({
-        id: nanoid(),
+        id: projectId,
         title: data.title,
         description: data.description || '',
         htmlContent: data.htmlContent,
@@ -180,6 +185,23 @@ export async function deleteProject(projectId: string, userId: string) {
       return {
         success: false,
         error: '项目未找到或你没有权限删除它',
+      }
+    }
+
+    // Delete the thumbnail if it exists
+    if (existingProject.thumbnail && existingProject.thumbnail.includes('vercel-storage.com')) {
+      try {
+        // Parse the URL to get the path
+        const urlObj = new URL(existingProject.thumbnail)
+        const path = urlObj.pathname
+
+        if (path) {
+          await deleteFromVercelBlob(path)
+          console.log(`Deleted thumbnail for project ${projectId}`)
+        }
+      } catch (error) {
+        // Log error but continue with project deletion
+        console.error(`Failed to delete thumbnail for project ${projectId}:`, error)
       }
     }
 

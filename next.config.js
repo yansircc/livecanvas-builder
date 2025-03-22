@@ -20,17 +20,10 @@ const nextConfig = {
         hostname: '*.unsplash.com',
       },
       {
-        hostname: 'assets.lummi.ai',
+        hostname: '*.vercel-storage.com',
       },
       {
         hostname: 'livecanvas-builder.b-cdn.net',
-      },
-      {
-        hostname: 'ui-avatars.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'lh3.googleusercontent.com',
       },
     ],
     formats: ['image/avif', 'image/webp'],

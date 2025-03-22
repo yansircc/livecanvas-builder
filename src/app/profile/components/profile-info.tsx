@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import { useState } from 'react'
 import { updateUserProfile } from '@/actions/user'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { uploadToBunnyCDN } from '@/lib/bunny'
+import { deleteFromVercelBlob, uploadToVercelBlob } from '@/lib/vercel-blob'
 import { EditProfileDialog } from './edit-profile-dialog'
 
 // Maximum character length for background info
@@ -70,8 +70,26 @@ export function ProfileInfo({ user }: ProfileInfoProps) {
         reader.onerror = () => reject(new Error('Failed to read file'))
       })
 
-      // Upload to BunnyCDN
-      const imageUrl = await uploadToBunnyCDN(base64)
+      // Convert base64 to buffer
+      const buffer = Buffer.from(base64, 'base64')
+
+      // Delete old avatar if exists
+      if (formData.image && formData.image.includes('vercel-storage.com')) {
+        const urlObj = new URL(formData.image)
+        const path = urlObj.pathname
+        if (path) {
+          try {
+            await deleteFromVercelBlob(path)
+            console.log('Old avatar deleted successfully')
+          } catch (error) {
+            console.error('Failed to delete old avatar:', error)
+            // Continue with upload even if delete fails
+          }
+        }
+      }
+
+      // Upload to Vercel Blob
+      const imageUrl = await uploadToVercelBlob(buffer, file.name, `avatars/${user.id}`)
       setFormData((prev) => ({ ...prev, image: imageUrl }))
       toast.success('头像上传成功')
     } catch (error) {

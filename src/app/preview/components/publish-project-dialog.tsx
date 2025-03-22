@@ -1,6 +1,7 @@
 'use client'
 
 import { Loader2 } from 'lucide-react'
+import { nanoid } from 'nanoid'
 import { toast } from 'sonner'
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -27,6 +28,7 @@ interface PublishProjectDialogProps {
   onSuccess?: () => void
   getScreenshot?: () => Promise<string | null>
   isCapturingScreenshot?: boolean
+  projectId?: string
 }
 
 interface Metadata {
@@ -42,6 +44,7 @@ export function PublishProjectDialog({
   onSuccess,
   getScreenshot,
   isCapturingScreenshot = false,
+  projectId,
 }: PublishProjectDialogProps) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -114,6 +117,9 @@ export function PublishProjectDialog({
 
     setIsLoading(true)
     try {
+      // Generate a project ID that will be used for both thumbnail and project creation
+      const newProjectId = projectId || nanoid()
+
       let thumbnail = ''
 
       // Try to get screenshot if the function is provided
@@ -121,23 +127,23 @@ export function PublishProjectDialog({
         try {
           const screenshot = await getScreenshot()
           if (screenshot) {
-            // Use the screenshot for thumbnail generation
-            thumbnail = await generateThumbnail(screenshot)
+            // Use the screenshot for thumbnail generation, pass projectId
+            thumbnail = await generateThumbnail(screenshot, newProjectId)
           } else {
-            // Fallback to using HTML content
-            thumbnail = await generateThumbnail(htmlContent)
+            // Fallback to using HTML content, pass projectId
+            thumbnail = await generateThumbnail(htmlContent, newProjectId)
           }
         } catch (error) {
           console.error('Screenshot capture failed:', error)
-          // Fallback to using HTML content
-          thumbnail = await generateThumbnail(htmlContent)
+          // Fallback to using HTML content, pass projectId
+          thumbnail = await generateThumbnail(htmlContent, newProjectId)
         }
       } else {
-        // No screenshot function provided, use HTML content
-        thumbnail = await generateThumbnail(htmlContent)
+        // No screenshot function provided, use HTML content, pass projectId
+        thumbnail = await generateThumbnail(htmlContent, newProjectId)
       }
 
-      // Create the project
+      // Create the project with the same ID used for the thumbnail
       await createProject(userId, {
         title,
         description,
@@ -145,6 +151,7 @@ export function PublishProjectDialog({
         thumbnail,
         tags: tags.join(','), // Join tags with commas for storage
         isPublished: true,
+        projectId: newProjectId, // Pass the same projectId
       })
 
       toast.success('项目发布成功！')
