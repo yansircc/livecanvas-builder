@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/actions/user'
 import Footer from '@/components/footer'
 import { MainNav } from '@/components/main-nav'
 import { ApiKeys } from './components/api-keys'
+import { FavoriteProjects } from './components/favorite-projects'
 import { MyProjects } from './components/my-projects'
 import { ProfileInfo } from './components/profile-info'
 import ProfileLoading from './components/profile-loading'
@@ -34,6 +35,8 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
         return <ApiKeys />
       case 'projects':
         return <MyProjects userId={user.id} />
+      case 'favorites':
+        return <FavoriteProjects userId={user.id} />
       case 'profile':
       default:
         return <ProfileInfo user={user} />

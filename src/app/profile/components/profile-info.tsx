@@ -2,9 +2,10 @@
 
 import { toast } from 'sonner'
 import { useState } from 'react'
+import { uploadAvatar } from '@/actions/avatar'
 import { updateUserProfile } from '@/actions/user'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { deleteFromVercelBlob, uploadToVercelBlob } from '@/lib/vercel-blob'
+import { fileToBase64 } from '@/lib/client-utils'
 import { EditProfileDialog } from './edit-profile-dialog'
 
 // Maximum character length for background info
@@ -63,33 +64,10 @@ export function ProfileInfo({ user }: ProfileInfoProps) {
 
     try {
       // Convert file to base64
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader()
-        reader.readAsDataURL(file)
-        reader.onload = () => resolve(reader.result as string)
-        reader.onerror = () => reject(new Error('Failed to read file'))
-      })
+      const base64 = await fileToBase64(file)
 
-      // Convert base64 to buffer
-      const buffer = Buffer.from(base64, 'base64')
-
-      // Delete old avatar if exists
-      if (formData.image && formData.image.includes('vercel-storage.com')) {
-        const urlObj = new URL(formData.image)
-        const path = urlObj.pathname
-        if (path) {
-          try {
-            await deleteFromVercelBlob(path)
-            console.log('Old avatar deleted successfully')
-          } catch (error) {
-            console.error('Failed to delete old avatar:', error)
-            // Continue with upload even if delete fails
-          }
-        }
-      }
-
-      // Upload to Vercel Blob
-      const imageUrl = await uploadToVercelBlob(buffer, file.name, `avatars/${user.id}`)
+      // Upload to Vercel Blob and automatically delete old avatar
+      const imageUrl = await uploadAvatar(base64, file.name, user.id, formData.image)
       setFormData((prev) => ({ ...prev, image: imageUrl }))
       toast.success('头像上传成功')
     } catch (error) {

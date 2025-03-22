@@ -18,6 +18,35 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/hooks/use-auth'
 
+interface AuthUser {
+  id: string
+  name: string
+  email: string
+  image?: string | null
+}
+
+interface UserAvatarProps {
+  user: AuthUser
+}
+
+function UserAvatar({ user }: UserAvatarProps) {
+  if (!user) {
+    return null
+  }
+
+  return (
+    <Avatar className="h-9 w-9">
+      {user.image ? (
+        <Image src={user.image} alt={user.name || 'User'} fill />
+      ) : (
+        <AvatarFallback className="bg-primary text-primary-foreground">
+          {user.name?.charAt(0) || user.email?.charAt(0) || 'U'}
+        </AvatarFallback>
+      )}
+    </Avatar>
+  )
+}
+
 export function UserAuthMenu() {
   const router = useRouter()
   const [authDialogOpen, setAuthDialogOpen] = useState(false)
@@ -40,20 +69,10 @@ export function UserAuthMenu() {
 
   // User is authenticated
   if (isAuthenticated && userData) {
-    const userInitial = userData.name?.charAt(0) || userData.email?.charAt(0) || 'U'
-
     return (
       <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0" asChild>
         <Link href="/profile">
-          <Avatar className="h-9 w-9">
-            {userData.image ? (
-              <Image src={userData.image} alt={userData.name || 'User'} fill />
-            ) : (
-              <AvatarFallback className="bg-primary text-primary-foreground">
-                {userInitial.toUpperCase()}
-              </AvatarFallback>
-            )}
-          </Avatar>
+          <UserAvatar user={userData} />
         </Link>
       </Button>
     )

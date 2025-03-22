@@ -1,6 +1,6 @@
 'use client'
 
-import { Code, CreditCard, FileText, LogOut, User } from 'lucide-react'
+import { Code, CreditCard, FileText, LogOut, Star, User } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -67,6 +67,11 @@ export function ProfileSidebar({ user, activeSection = 'profile' }: ProfileSideb
       label: '我的项目',
       key: 'projects',
       icon: <Code className="h-4 w-4" />,
+    },
+    {
+      label: '我的收藏',
+      key: 'favorites',
+      icon: <Star className="h-4 w-4" />,
     },
     {
       label: 'API推荐来源',

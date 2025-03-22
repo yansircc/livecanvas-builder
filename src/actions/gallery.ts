@@ -399,3 +399,57 @@ export const getUserProjects = async (userId: string | undefined) => {
     return { success: false, error: 'Failed to get user projects' }
   }
 }
+
+// Get all user interactions for multiple projects
+export const getAllUserInteractions = async (userId: string) => {
+  try {
+    // Get all user likes
+    const userLikes = await db
+      .select({
+        projectId: like.projectId,
+      })
+      .from(like)
+      .where(eq(like.userId, userId))
+
+    // Get all user favorites
+    const userFavorites = await db
+      .select({
+        projectId: favorite.projectId,
+      })
+      .from(favorite)
+      .where(eq(favorite.userId, userId))
+
+    // Create a map of project interactions
+    const interactionsMap: Record<string, { hasLiked: boolean; hasFavorited: boolean }> = {}
+
+    // Add likes to map - use loop with explicit type checking
+    for (const item of userLikes) {
+      const projectId = item.projectId
+      if (typeof projectId === 'string') {
+        if (!interactionsMap[projectId]) {
+          interactionsMap[projectId] = { hasLiked: false, hasFavorited: false }
+        }
+        interactionsMap[projectId].hasLiked = true
+      }
+    }
+
+    // Add favorites to map - use loop with explicit type checking
+    for (const item of userFavorites) {
+      const projectId = item.projectId
+      if (typeof projectId === 'string') {
+        if (!interactionsMap[projectId]) {
+          interactionsMap[projectId] = { hasLiked: false, hasFavorited: false }
+        }
+        interactionsMap[projectId].hasFavorited = true
+      }
+    }
+
+    return {
+      success: true,
+      data: interactionsMap,
+    }
+  } catch (error) {
+    console.error('Failed to get all user interactions:', error)
+    return { success: false, error: 'Failed to get all user interactions' }
+  }
+}
