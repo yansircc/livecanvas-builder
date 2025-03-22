@@ -7,6 +7,10 @@ import GalleryClient from './components/gallery-client'
 // Remove force-dynamic to allow caching
 // export const dynamic = 'force-dynamic'
 
+// Add static rendering configuration with ISR
+export const dynamic = 'force-static'
+export const revalidate = 60 // Revalidate at most once per minute
+
 // Add caching to data fetching functions
 const getProjects = cache(async () => {
   // Use fetch with Next.js caching
@@ -35,9 +39,6 @@ const getUserProjectsList = cache(async () => {
     ? ((userProjectsResult.data || []) as Project[])
     : ([] as Project[])
 })
-
-// Add cache configuration
-export const revalidate = 60 // Revalidate at most once per minute
 
 // Create a ProjectsLoader component that loads data and renders the client
 async function ProjectsLoader() {

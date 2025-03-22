@@ -14,9 +14,12 @@ export async function getServerSession() {
   try {
     // 捕获可能的错误
     try {
+      // 获取请求头部信息 - Next.js 15+ 中 headers() 是一个异步函数
+      const headersList = await headers()
+
       // 通过Better Auth API获取会话
       const session = await auth.api.getSession({
-        headers: await headers(),
+        headers: headersList,
       })
       return session
     } catch (apiError) {

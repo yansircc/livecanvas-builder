@@ -52,7 +52,7 @@ export default function VerifyEmailPage() {
           setResendStatus('error')
         }
       }
-    } catch (error) {
+    } catch (_error) {
       setResendStatus('error')
     } finally {
       setIsResending(false)

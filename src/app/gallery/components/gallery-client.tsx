@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { favoriteProject, getUserInteractions, likeProject } from '@/actions/gallery'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useSession } from '@/lib/auth-client'
+import { useAuth } from '@/hooks/use-auth'
 import { type Project } from '@/types'
 import { GalleryHeader } from './gallery-header'
 import { ProjectModal } from './project-modal'
@@ -26,7 +26,7 @@ export default function GalleryClient({
   initialMyProjects,
 }: GalleryClientProps) {
   const router = useRouter()
-  const { data: session } = useSession()
+  const { user: session, isAuthenticated } = useAuth()
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedTags, setSelectedTags] = useState<string[]>([])
@@ -93,7 +93,7 @@ export default function GalleryClient({
   // Load user interactions on mount - but with less visual impact
   useEffect(() => {
     // Skip if interactions already loaded or no session
-    if (interactionsLoaded || !session) {
+    if (interactionsLoaded || !isAuthenticated) {
       return
     }
 
@@ -120,7 +120,7 @@ export default function GalleryClient({
     }
 
     async function loadInteractions() {
-      if (!session) {
+      if (!isAuthenticated) {
         return
       }
 
@@ -161,7 +161,7 @@ export default function GalleryClient({
     }
 
     void loadInteractions()
-  }, [session, initialAllProjects, interactionsLoaded])
+  }, [isAuthenticated, initialAllProjects, interactionsLoaded])
 
   // Filter projects based on search query and selected tags
   const filterProjects = useCallback(
@@ -211,7 +211,7 @@ export default function GalleryClient({
       event.stopPropagation()
     }
 
-    if (!session) {
+    if (!isAuthenticated) {
       router.push('/signin')
       return
     }
@@ -343,7 +343,7 @@ export default function GalleryClient({
 
   // Handle favorite project with optimistic updates
   const handleFavoriteProject = async (projectId: string) => {
-    if (!session) {
+    if (!isAuthenticated) {
       router.push('/signin')
       return
     }

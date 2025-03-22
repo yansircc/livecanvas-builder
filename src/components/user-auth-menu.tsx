@@ -1,7 +1,7 @@
 'use client'
 
 import { User } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -16,54 +16,12 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
-import { decodeJwtToken, getJwtToken, isAuthenticated } from '@/lib/jwt-client'
-
-interface UserData {
-  id: string
-  name?: string
-  email?: string
-  image?: string | null
-}
+import { useAuth } from '@/hooks/use-auth'
 
 export function UserAuthMenu() {
   const router = useRouter()
   const [authDialogOpen, setAuthDialogOpen] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-  const [userData, setUserData] = useState<UserData | null>(null)
-
-  useEffect(() => {
-    async function loadUserData() {
-      try {
-        // Check if user is authenticated
-        const authenticated = await isAuthenticated()
-
-        if (authenticated) {
-          // Get JWT token
-          const token = await getJwtToken()
-
-          if (token) {
-            // Decode JWT payload using our utility function
-            const payload = decodeJwtToken(token)
-
-            if (payload) {
-              setUserData({
-                id: payload.id,
-                name: payload.name,
-                email: payload.email,
-                image: payload.image || null,
-              })
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error loading user data:', error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    void loadUserData() // Use void operator to explicitly mark promise as ignored
-  }, [])
+  const { user: userData, isLoading, isAuthenticated } = useAuth()
 
   const navigateToSignIn = () => {
     setAuthDialogOpen(false)
@@ -81,7 +39,7 @@ export function UserAuthMenu() {
   }
 
   // User is authenticated
-  if (userData) {
+  if (isAuthenticated && userData) {
     const userInitial = userData.name?.charAt(0) || userData.email?.charAt(0) || 'U'
 
     return (

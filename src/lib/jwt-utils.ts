@@ -101,7 +101,7 @@ export async function verifyJwtToken(token: string, baseUrl: string) {
  */
 export async function getUserFromHeaders() {
   try {
-    // Get headers - this is a synchronous operation in Next.js
+    // Get headers - this is an asynchronous operation in Next.js 15+
     const headersList = await headers()
 
     // Extract user data from headers

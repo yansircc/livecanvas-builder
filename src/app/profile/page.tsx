@@ -1,15 +1,18 @@
 'use client'
 
 import { Code, CreditCard, FileText, LogOut, User } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Footer from '@/components/footer'
 import { MainNav } from '@/components/main-nav'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { signOut, useSession } from '@/lib/auth-client'
+import { useAuth } from '@/hooks/use-auth'
+import { signOut } from '@/lib/auth-client'
 import { ApiKeys } from './components/api-keys'
 import { MyProjects } from './components/my-projects'
 import { ProfileInfo } from './components/profile-info'
+
+export const dynamic = 'force-dynamic'
 
 interface MenuItem {
   label: string
@@ -21,25 +24,14 @@ interface MenuItem {
 
 export default function ProfilePage() {
   const router = useRouter()
-  const { data: session, isPending } = useSession()
+  const { user: userData, isLoading } = useAuth({
+    required: true,
+    redirectTo: '/signin',
+    fetchAdditionalData: true,
+  })
+
   const [activeSection, setActiveSection] = useState('profile')
   const [isSigningOut, setIsSigningOut] = useState(false)
-
-  // Debug session data
-  useEffect(() => {
-    if (session) {
-      console.log('Session data:', session)
-      console.log('User data:', session.user)
-      console.log('Background info:', (session.user as any)?.backgroundInfo)
-    }
-  }, [session])
-
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (!isPending && !session) {
-      router.push('/signin')
-    }
-  }, [isPending, session, router])
 
   const handleSignOut = async () => {
     try {
@@ -64,7 +56,7 @@ export default function ProfilePage() {
       label: '个人信息',
       key: 'profile',
       icon: <User className="h-4 w-4" />,
-      component: <ProfileInfo user={session?.user} />,
+      component: <ProfileInfo user={userData} />,
     },
     {
       label: 'API密钥',
@@ -76,7 +68,7 @@ export default function ProfilePage() {
       label: '我的项目',
       key: 'projects',
       icon: <Code className="h-4 w-4" />,
-      component: <MyProjects userId={session?.user?.id} />,
+      component: <MyProjects userId={userData?.id} />,
     },
     {
       label: '条款和政策',
@@ -87,7 +79,7 @@ export default function ProfilePage() {
   ]
 
   // Show loading state while checking authentication
-  if (isPending) {
+  if (isLoading) {
     return (
       <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950">
         <MainNav />
@@ -121,10 +113,10 @@ export default function ProfilePage() {
                   <div className="mb-6 flex flex-col items-center gap-4">
                     <div className="relative">
                       <div className="relative h-20 w-20 overflow-hidden rounded-full bg-zinc-200 ring-4 ring-white dark:bg-zinc-800 dark:ring-zinc-900">
-                        {session?.user?.image ? (
+                        {userData?.image ? (
                           <Avatar className="h-full w-full">
-                            <AvatarImage src={session.user.image} />
-                            <AvatarFallback>{session.user.name?.charAt(0) || 'U'}</AvatarFallback>
+                            <AvatarImage src={userData.image} />
+                            <AvatarFallback>{userData.name?.charAt(0) || 'U'}</AvatarFallback>
                           </Avatar>
                         ) : (
                           <div className="flex h-full w-full items-center justify-center">
@@ -136,9 +128,9 @@ export default function ProfilePage() {
                     </div>
                     <div className="text-center">
                       <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
-                        {session?.user?.name || '用户'}
+                        {userData?.name || '用户'}
                       </h2>
-                      <p className="text-zinc-600 dark:text-zinc-400">{session?.user?.email}</p>
+                      <p className="text-zinc-600 dark:text-zinc-400">{userData?.email}</p>
                     </div>
                   </div>
 
