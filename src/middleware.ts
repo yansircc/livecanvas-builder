@@ -11,6 +11,7 @@ const SESSION_COOKIE_NAMES = [
   'next-auth.csrf-token',
   '__Secure-lc_builder_session',
   'better-auth.session_token',
+  '__Secure-better-auth.session_token',
 ]
 
 /**
