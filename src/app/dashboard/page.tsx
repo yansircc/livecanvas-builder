@@ -1,57 +1,20 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import dynamic from 'next/dynamic'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Footer from '@/components/footer'
 import { MainNav } from '@/components/main-nav'
-import { Card } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
+import { useAuth } from '@/hooks/use-auth'
 import { useAppStore } from '@/store/use-app-store'
+import { CodeOutput } from './components/code-output'
 import { ConfirmDialog } from './components/confirm-dialog'
+import { EnhancedForm } from './components/enhanced-form'
 import { TaskHistory } from './components/task-history'
 import { useTaskManager } from './hooks/use-task-manager'
 
-// Dynamically import heavy components
-const CodeOutput = dynamic(
-  () => import('./components/code-output').then((mod) => ({ default: mod.CodeOutput })),
-  {
-    loading: () => (
-      <Card className="h-full p-6">
-        <Skeleton className="mb-4 h-8 w-1/2" />
-        <Skeleton className="h-[400px] w-full" />
-      </Card>
-    ),
-    ssr: false,
-  },
-)
-
-const EnhancedForm = dynamic(
-  () => import('./components/enhanced-form').then((mod) => ({ default: mod.EnhancedForm })),
-  {
-    loading: () => (
-      <Card className="p-6">
-        <Skeleton className="mb-4 h-8 w-3/4" />
-        <Skeleton className="mb-6 h-40 w-full" />
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-1/2" />
-          <div className="flex flex-wrap gap-2">
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-8 w-24 rounded-full" />
-            ))}
-          </div>
-        </div>
-        <div className="mt-4 flex justify-end">
-          <Skeleton className="h-10 w-24" />
-        </div>
-      </Card>
-    ),
-    ssr: false,
-  },
-)
-
 export default function Page() {
   const { isLoading, code, advices, validationResult, model } = useAppStore()
+  const { user } = useAuth()
   const searchParams = useSearchParams()
   const router = useRouter()
 
@@ -80,14 +43,14 @@ export default function Page() {
   const { resetState, clearAllData } = useAppStore()
 
   // 显示重置确认对话框
-  const handleShowResetDialog = useCallback(() => {
+  const handleShowResetDialog = () => {
     setResetDialogOpen(true)
-  }, [])
+  }
 
   // 取消重置
-  const cancelReset = useCallback(() => {
+  const cancelReset = () => {
     setResetDialogOpen(false)
-  }, [])
+  }
 
   // 实现彻底清除所有数据的函数
   const clearAllStoredData = useCallback(() => {
@@ -117,53 +80,53 @@ export default function Page() {
     console.log('所有数据已重置')
   }, [clearAllData, handleNewConversation, searchParams, router])
 
-  // Implement client-side caching of state
-  const initializeFromCache = useCallback(() => {
-    try {
-      // Check sessionStorage for cached state
-      const cachedState = sessionStorage.getItem('dashboard-state')
-      if (cachedState) {
-        const parsedState = JSON.parse(cachedState)
-        // Only use cache if it's less than 1 hour old
-        const isCacheValid = Date.now() - parsedState.timestamp < 60 * 60 * 1000
-
-        if (isCacheValid) {
-          // First reset state
-          resetState({
-            keepUserSettings: true,
-            keepVersions: false,
-            keepTaskHistory: true,
-          })
-
-          // Then manually set each cached state property
-          const data = parsedState.data
-          if (data.code !== undefined) {
-            useAppStore.getState().setState('code', data.code)
-          }
-          // 不从缓存中恢复advices，每次页面刷新时应该清空
-          useAppStore.getState().setState('advices', [])
-          if (data.validationResult !== undefined) {
-            useAppStore.getState().setState('validationResult', data.validationResult)
-          }
-          if (data.model !== undefined) {
-            useAppStore.getState().setState('model', data.model)
-          }
-
-          return true
-        }
-      }
-    } catch (error) {
-      console.error('Error restoring cached state:', error)
-    }
-    return false
-  }, [resetState])
-
   useEffect(() => {
     // 检查URL参数是否包含reset=true
     const resetParam = searchParams.get('reset')
     if (resetParam === 'true') {
       clearAllStoredData()
       return
+    }
+
+    // Implement client-side caching of state
+    const initializeFromCache = () => {
+      try {
+        // Check sessionStorage for cached state
+        const cachedState = sessionStorage.getItem('dashboard-state')
+        if (cachedState) {
+          const parsedState = JSON.parse(cachedState)
+          // Only use cache if it's less than 1 hour old
+          const isCacheValid = Date.now() - parsedState.timestamp < 60 * 60 * 1000
+
+          if (isCacheValid) {
+            // First reset state
+            resetState({
+              keepUserSettings: true,
+              keepVersions: false,
+              keepTaskHistory: true,
+            })
+
+            // Then manually set each cached state property
+            const data = parsedState.data
+            if (data.code !== undefined) {
+              useAppStore.getState().setState('code', data.code)
+            }
+            // 不从缓存中恢复advices，每次页面刷新时应该清空
+            useAppStore.getState().setState('advices', [])
+            if (data.validationResult !== undefined) {
+              useAppStore.getState().setState('validationResult', data.validationResult)
+            }
+            if (data.model !== undefined) {
+              useAppStore.getState().setState('model', data.model)
+            }
+
+            return true
+          }
+        }
+      } catch (error) {
+        console.error('Error restoring cached state:', error)
+      }
+      return false
     }
 
     // 正常的缓存恢复逻辑
@@ -184,7 +147,8 @@ export default function Page() {
         }
       }
     }
-  }, [resetState, initializeFromCache, taskId, searchParams, clearAllStoredData])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clearAllStoredData, resetState, searchParams, taskId])
 
   // Cache current state when it changes
   useEffect(() => {
@@ -239,6 +203,7 @@ export default function Page() {
               {/* 左侧：表单面板 */}
               <div>
                 <EnhancedForm
+                  user={user}
                   onSubmit={handleSubmit}
                   isLoading={isLoading}
                   advices={advices}

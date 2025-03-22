@@ -129,6 +129,7 @@ export const auth = betterAuth({
             email: session.user.email,
             name: session.user.name,
             emailVerified: session.user.emailVerified,
+            image: session.user.image,
           }
         },
 

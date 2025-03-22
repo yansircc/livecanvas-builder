@@ -4,7 +4,6 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { Atom, CircleFadingPlus, Folder, InfoIcon, Send } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { useEffect, useState } from 'react'
-import dynamic from 'next/dynamic'
 import { Form, FormDescription, FormField, FormItem, FormLabel } from '@/components/ui/form'
 import {
   Select,
@@ -22,7 +21,15 @@ import { calculateCost } from '../utils'
 
 export const MAX_CONTEXT_LENGTH = 3000
 
+interface User {
+  id: string
+  name: string
+  email: string
+  image?: string | null
+  backgroundInfo?: string | null
+}
 interface EnhancedFormProps {
+  user: User | null
   onSubmit: (data: FormValues) => void
   isLoading: boolean
   advices: string[]
@@ -38,34 +45,30 @@ interface FormValues {
   precisionMode: boolean
 }
 
-// Client-only component - Display model price info
-const ModelPriceInfo = dynamic(
-  () =>
-    Promise.resolve(({ modelId }: { modelId: ModelId }) => {
-      const [priceInfo, setPriceInfo] = useState<{ input: number; output: number } | null>(null)
+const ModelPriceInfo = ({ modelId }: { modelId: ModelId }) => {
+  const [priceInfo, setPriceInfo] = useState<{ input: number; output: number } | null>(null)
 
-      useEffect(() => {
-        if (modelId) {
-          const price = getModelPrice(modelId)
-          setPriceInfo(price || null)
-        }
-      }, [modelId])
+  useEffect(() => {
+    if (modelId) {
+      const price = getModelPrice(modelId)
+      setPriceInfo(price || null)
+    }
+  }, [modelId])
 
-      if (!priceInfo) return null
+  if (!priceInfo) return null
 
-      return (
-        <FormDescription className="flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400">
-          <span>
-            当前模型价格: 输入 ${priceInfo.input}/百万 tokens, 输出 ${priceInfo.output}/百万 tokens
-          </span>
-        </FormDescription>
-      )
-    }),
-  { ssr: false },
-)
+  return (
+    <FormDescription className="flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400">
+      <span>
+        当前模型价格: 输入 ${priceInfo.input}/百万 tokens, 输出 ${priceInfo.output}/百万 tokens
+      </span>
+    </FormDescription>
+  )
+}
 
 // Main form component
-const EnhancedFormClient = ({
+export const EnhancedForm = ({
+  user,
   onSubmit,
   isLoading,
   advices,
@@ -74,64 +77,21 @@ const EnhancedFormClient = ({
   isFormDisabled = false,
 }: EnhancedFormProps) => {
   const { model, context, setState } = useAppStore()
-  const [isClient, setIsClient] = useState(false)
-  const [_isLoadingContext, setIsLoadingContext] = useState(false)
   const [localContext, setLocalContext] = useState(context)
+
+  // 获取用户背景信息：优先使用store中的context，其次使用从JWT获取的user.backgroundInfo
+  const userBackgroundInfo = user?.backgroundInfo || ''
   const hasContext = Boolean(localContext && localContext.trim().length > 0)
 
-  // Ensure client-side rendering only
+  // 使用传入的用户背景信息更新本地状态和app store
   useEffect(() => {
-    setIsClient(true)
-  }, [])
-
-  // Fetch context from API if not available in app store
-  useEffect(() => {
-    const fetchUserContext = async () => {
-      // If context is already available in app store, use it
-      if (context && context.trim().length > 0) {
-        setLocalContext(context)
-        return
-      }
-
-      try {
-        setIsLoadingContext(true)
-        const response = await fetch('/api/user/me')
-
-        if (response.ok) {
-          const data = await response.json()
-          if (data.success && data.user && data.user.backgroundInfo) {
-            // Update local state and app store with background info
-            setLocalContext(data.user.backgroundInfo)
-            setState('context', data.user.backgroundInfo)
-          }
-        } else if (response.status === 401 || response.status === 403) {
-          // Handle unauthorized access - redirect to signin page
-          console.warn('Authentication required, redirecting to login...')
-          window.location.href = '/signin'
-          return
-        } else {
-          console.error('Failed to fetch user context:', response.statusText)
-        }
-      } catch (error) {
-        // Only log the error without crashing the app
-        console.error('Error fetching user context:', error)
-
-        // If error contains "Unauthorized", redirect to login
-        if (error instanceof Error && error.message.includes('Unauthorized')) {
-          console.warn('Authentication required, redirecting to login...')
-          window.location.href = '/signin'
-          return
-        }
-      } finally {
-        setIsLoadingContext(false)
-      }
+    if (!context && userBackgroundInfo) {
+      setLocalContext(userBackgroundInfo)
+      setState('context', userBackgroundInfo)
+    } else if (context) {
+      setLocalContext(context)
     }
-
-    // Only fetch if we're on the client and don't have context yet
-    if (isClient && (!context || context.trim().length === 0)) {
-      void fetchUserContext()
-    }
-  }, [isClient, context, setState])
+  }, [context, userBackgroundInfo, setState])
 
   // Initialize form with values from store
   const form = useForm<FormValues>({
@@ -182,29 +142,6 @@ const EnhancedFormClient = ({
   // Handle model change
   const handleModelChange = (value: string) => {
     setState('model', value)
-  }
-
-  // If not client, return a loading placeholder
-  if (!isClient) {
-    return (
-      <div
-        className={cn(
-          'w-full',
-          'group relative overflow-hidden',
-          'bg-white dark:bg-zinc-900',
-          'border border-zinc-200 dark:border-zinc-800',
-          'rounded-2xl transition-all duration-300 hover:shadow-md',
-          'min-h-[400px] p-8',
-        )}
-      >
-        <div className="animate-pulse space-y-4">
-          <div className="h-6 w-1/3 rounded-md bg-zinc-200 dark:bg-zinc-800"></div>
-          <div className="h-32 rounded-md bg-zinc-200 dark:bg-zinc-800"></div>
-          <div className="h-6 w-1/2 rounded-md bg-zinc-200 dark:bg-zinc-800"></div>
-          <div className="h-32 rounded-md bg-zinc-200 dark:bg-zinc-800"></div>
-        </div>
-      </div>
-    )
   }
 
   return (
@@ -508,6 +445,3 @@ const EnhancedFormClient = ({
     </div>
   )
 }
-
-// Export client-only component
-export const EnhancedForm = dynamic(() => Promise.resolve(EnhancedFormClient), { ssr: false })

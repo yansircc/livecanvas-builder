@@ -1,4 +1,4 @@
-import { JwtAuthExample } from '@/components/examples/jwt-auth-example'
+import { JwtAuthExample } from './jwt-auth-example'
 
 export const metadata = {
   title: 'JWT Authentication Example',

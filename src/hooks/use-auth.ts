@@ -7,17 +7,15 @@ export interface AuthUser {
   name: string
   email: string
   image?: string | null
-  backgroundInfo?: string | null
 }
 
 interface UseAuthOptions {
   required?: boolean
   redirectTo?: string
-  fetchAdditionalData?: boolean
 }
 
 export function useAuth(options: UseAuthOptions = {}) {
-  const { required = false, redirectTo = '/signin', fetchAdditionalData = true } = options
+  const { required = false, redirectTo = '/signin' } = options
 
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
@@ -41,58 +39,13 @@ export function useAuth(options: UseAuthOptions = {}) {
             const payload = decodeJwtToken(token)
 
             if (payload) {
-              if (fetchAdditionalData) {
-                // Fetch additional user data if needed
-                try {
-                  const response = await fetch('/api/user/me')
-
-                  if (response.ok) {
-                    const data = await response.json()
-                    if (data.success && data.user) {
-                      setUserData({
-                        id: payload.id,
-                        name: data.user.name || payload.name || '',
-                        email: payload.email || '',
-                        image: data.user.image || payload.image || null,
-                        backgroundInfo: data.user.backgroundInfo || null,
-                      })
-                    } else {
-                      // Fallback to JWT data if API call fails
-                      setUserData({
-                        id: payload.id,
-                        name: payload.name || '',
-                        email: payload.email || '',
-                        image: payload.image || null,
-                      })
-                    }
-                  } else {
-                    // Fallback to JWT data if API call fails
-                    setUserData({
-                      id: payload.id,
-                      name: payload.name || '',
-                      email: payload.email || '',
-                      image: payload.image || null,
-                    })
-                  }
-                } catch (error) {
-                  // Fallback to JWT data if API call fails
-                  setUserData({
-                    id: payload.id,
-                    name: payload.name || '',
-                    email: payload.email || '',
-                    image: payload.image || null,
-                  })
-                  console.error('Error fetching additional user data:', error)
-                }
-              } else {
-                // Just use JWT data without additional API call
-                setUserData({
-                  id: payload.id,
-                  name: payload.name || '',
-                  email: payload.email || '',
-                  image: payload.image || null,
-                })
-              }
+              // 直接使用JWT负载中的用户数据，所有需要的信息都应该在令牌中
+              setUserData({
+                id: payload.id,
+                name: payload.name || '',
+                email: payload.email || '',
+                image: payload.image || null,
+              })
             }
           }
         } else if (required) {
@@ -111,7 +64,7 @@ export function useAuth(options: UseAuthOptions = {}) {
     }
 
     void loadUserData() // Use void operator to explicitly mark promise as ignored
-  }, [router, required, redirectTo, fetchAdditionalData])
+  }, [router, required, redirectTo])
 
   return {
     user: userData,

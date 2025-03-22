@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { useAuth } from '@/hooks/use-auth'
 import { fetchWithAuth, getJwtToken } from '@/lib/jwt-client'
 
 /**
@@ -21,7 +22,7 @@ export function JwtAuthExample() {
   const [protectedData, setProtectedData] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
   const [debugInfo, setDebugInfo] = useState<string>('')
-
+  const { user } = useAuth()
   // 获取JWT令牌的函数
   const handleGetToken = async () => {
     setLoading(true)
@@ -143,6 +144,15 @@ export function JwtAuthExample() {
               <h3 className="mb-2 font-medium">保护数据:</h3>
               <pre className="overflow-auto text-xs break-all whitespace-pre-wrap">
                 {JSON.stringify(protectedData, null, 2)}
+              </pre>
+            </div>
+          )}
+
+          {user && (
+            <div className="rounded-md bg-gray-50 p-3">
+              <h3 className="mb-2 font-medium">用户信息:</h3>
+              <pre className="overflow-auto text-xs break-all whitespace-pre-wrap">
+                {JSON.stringify(user, null, 2)}
               </pre>
             </div>
           )}

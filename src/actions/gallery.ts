@@ -2,14 +2,12 @@
 
 import { and, desc, eq, sql } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
-import { cache } from 'react'
 import { revalidatePath } from 'next/cache'
 import { db } from '@/db'
 import { favorite, like, project, user } from '@/db/schema'
-import { getServerSession } from '@/lib/auth-server'
 
 // Get all published projects with caching
-export const getPublishedProjects = cache(async () => {
+export const getPublishedProjects = async () => {
   try {
     // Use a simpler query without relations
     const projects = await db
@@ -43,10 +41,10 @@ export const getPublishedProjects = cache(async () => {
     console.error('Failed to get published projects:', error)
     return { success: false, error: 'Failed to get published projects' }
   }
-})
+}
 
 // Get a single project by ID with caching
-export const getProjectById = cache(async (projectId: string) => {
+export const getProjectById = async (projectId: string) => {
   try {
     const projectData = await db.select().from(project).where(eq(project.id, projectId)).limit(1)
 
@@ -75,25 +73,25 @@ export const getProjectById = cache(async (projectId: string) => {
     console.error('Failed to get project:', error)
     return { success: false, error: 'Failed to get project' }
   }
-})
+}
 
 // Create a new project
-export async function createProject(data: {
-  title: string
-  description?: string
-  htmlContent: string
-  thumbnail?: string
-  tags?: string
-  isPublished: boolean
-}) {
-  try {
-    // 获取会话以获取用户ID用于创建项目
-    // 注意: 这里仍然需要验证逻辑，因为服务器操作不经过中间件
-    const session = await getServerSession()
-    if (!session) {
-      return { success: false, error: 'Not authenticated' }
-    }
+export async function createProject(
+  userId: string | undefined,
+  data: {
+    title: string
+    description?: string
+    htmlContent: string
+    thumbnail?: string
+    tags?: string
+    isPublished: boolean
+  },
+) {
+  if (!userId) {
+    return { success: false, error: '请先登录' }
+  }
 
+  try {
     const newProject = await db
       .insert(project)
       .values({
@@ -104,7 +102,7 @@ export async function createProject(data: {
         thumbnail: data.thumbnail || '',
         tags: data.tags || '',
         isPublished: data.isPublished,
-        userId: session.user.id, // 使用用户ID关联项目
+        userId,
         createdAt: new Date(),
         updatedAt: new Date(),
       })
@@ -130,6 +128,7 @@ export async function createProject(data: {
  */
 export async function updateProject(
   projectId: string,
+  userId: string,
   data: {
     title?: string
     description?: string | null
@@ -138,16 +137,9 @@ export async function updateProject(
   },
 ) {
   try {
-    // 获取会话以获取用户ID用于验证项目所有权
-    // 注意: 这里仍然需要验证逻辑，因为服务器操作不经过中间件
-    const session = await getServerSession()
-    if (!session) {
-      return { success: false, error: 'Unauthorized' }
-    }
-
     // Get the project to verify ownership
     const existingProject = await db.query.project.findFirst({
-      where: and(eq(project.id, projectId), eq(project.userId, session.user.id)),
+      where: and(eq(project.id, projectId), eq(project.userId, userId)),
     })
 
     if (!existingProject) {
@@ -177,16 +169,11 @@ export async function updateProject(
  * Delete a project
  * @param projectId - The ID of the project to delete
  */
-export async function deleteProject(projectId: string) {
+export async function deleteProject(projectId: string, userId: string) {
   try {
-    const session = await getServerSession()
-    if (!session) {
-      return { success: false, error: '未授权' }
-    }
-
     // Get the project to verify ownership
     const existingProject = await db.query.project.findFirst({
-      where: and(eq(project.id, projectId), eq(project.userId, session.user.id)),
+      where: and(eq(project.id, projectId), eq(project.userId, userId)),
     })
 
     if (!existingProject) {
@@ -207,16 +194,11 @@ export async function deleteProject(projectId: string) {
 }
 
 // Like a project
-export async function likeProject(projectId: string) {
+export async function likeProject(projectId: string, userId: string) {
   try {
-    const session = await getServerSession()
-    if (!session) {
-      return { success: false, error: '未授权' }
-    }
-
     // Check if the user has already liked the project
     const existingLike = await db.query.like.findFirst({
-      where: and(eq(like.projectId, projectId), eq(like.userId, session.user.id)),
+      where: and(eq(like.projectId, projectId), eq(like.userId, userId)),
     })
 
     if (existingLike) {
@@ -237,7 +219,7 @@ export async function likeProject(projectId: string) {
       await db.insert(like).values({
         id: nanoid(),
         projectId,
-        userId: session.user.id,
+        userId,
         createdAt: new Date(),
       })
 
@@ -258,16 +240,11 @@ export async function likeProject(projectId: string) {
 }
 
 // Favorite a project
-export async function favoriteProject(projectId: string) {
+export async function favoriteProject(projectId: string, userId: string) {
   try {
-    const session = await getServerSession()
-    if (!session) {
-      return { success: false, error: '未授权' }
-    }
-
     // Check if the user has already favorited the project
     const existingFavorite = await db.query.favorite.findFirst({
-      where: and(eq(favorite.projectId, projectId), eq(favorite.userId, session.user.id)),
+      where: and(eq(favorite.projectId, projectId), eq(favorite.userId, userId)),
     })
 
     if (existingFavorite) {
@@ -280,7 +257,7 @@ export async function favoriteProject(projectId: string) {
       await db.insert(favorite).values({
         id: nanoid(),
         projectId,
-        userId: session.user.id,
+        userId,
         createdAt: new Date(),
       })
 
@@ -293,23 +270,16 @@ export async function favoriteProject(projectId: string) {
 }
 
 // Cache user interactions for better performance
-export const getUserInteractions = cache(async (projectId: string) => {
+export const getUserInteractions = async (projectId: string, userId: string) => {
   try {
-    // 获取会话以获取用户ID用于查询互动数据
-    // 注意: 这里仍然需要验证逻辑，因为服务器操作不经过中间件
-    const session = await getServerSession()
-    if (!session) {
-      return { success: false, error: 'Not authenticated' }
-    }
-
     // Check if the user has liked the project
     const userLike = await db.query.like.findFirst({
-      where: and(eq(like.projectId, projectId), eq(like.userId, session.user.id)),
+      where: and(eq(like.projectId, projectId), eq(like.userId, userId)),
     })
 
     // Check if the user has favorited the project
     const userFavorite = await db.query.favorite.findFirst({
-      where: and(eq(favorite.projectId, projectId), eq(favorite.userId, session.user.id)),
+      where: and(eq(favorite.projectId, projectId), eq(favorite.userId, userId)),
     })
 
     return {
@@ -323,23 +293,18 @@ export const getUserInteractions = cache(async (projectId: string) => {
     console.error('Failed to get user interactions:', error)
     return { success: false, error: 'Failed to get user interactions' }
   }
-})
+}
 
 // Cache user favorites for better performance
-export const getUserFavorites = cache(async () => {
+export const getUserFavorites = async (userId: string) => {
   try {
-    const session = await getServerSession()
-    if (!session) {
-      return { success: false, error: 'Not authenticated' }
-    }
-
     // Get the user's favorites
     const userFavorites = await db
       .select({
         projectId: favorite.projectId,
       })
       .from(favorite)
-      .where(eq(favorite.userId, session.user.id))
+      .where(eq(favorite.userId, userId))
 
     // Get the details of each favorited project
     const favoriteProjects = await Promise.all(
@@ -380,30 +345,29 @@ export const getUserFavorites = cache(async () => {
     console.error('Failed to get user favorites:', error)
     return { success: false, error: 'Failed to get user favorites' }
   }
-})
+}
 
 // Cache user projects for better performance
-export const getUserProjects = cache(async () => {
-  try {
-    const session = await getServerSession()
-    if (!session) {
-      return { success: false, error: 'Not authenticated' }
-    }
+export const getUserProjects = async (userId: string | undefined) => {
+  if (!userId) {
+    return { success: false, error: '请先登录' }
+  }
 
+  try {
     // Get the user's projects
     const userProjects = await db
       .select()
       .from(project)
-      .where(eq(project.userId, session.user.id))
+      .where(eq(project.userId, userId))
       .orderBy(desc(project.createdAt))
 
     // Add user information to each project
     const projectsWithUser = userProjects.map((p) => ({
       ...p,
       user: {
-        id: session.user.id,
-        name: session.user.name || '',
-        image: session.user.image || null,
+        id: userId,
+        name: '',
+        image: null,
       },
     }))
 
@@ -412,4 +376,4 @@ export const getUserProjects = cache(async () => {
     console.error('Failed to get user projects:', error)
     return { success: false, error: 'Failed to get user projects' }
   }
-})
+}

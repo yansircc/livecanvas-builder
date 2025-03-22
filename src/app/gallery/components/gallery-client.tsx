@@ -1,12 +1,10 @@
-'use client'
-
 import { AnimatePresence } from 'motion/react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { favoriteProject, getUserInteractions, likeProject } from '@/actions/gallery'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useAuth } from '@/hooks/use-auth'
 import { type Project } from '@/types'
+import { useGalleryStore } from '../store/useGalleryStore'
 import { GalleryHeader } from './gallery-header'
 import { ProjectModal } from './project-modal'
 import { TabContentAll } from './tab-content-all'
@@ -17,428 +15,69 @@ interface GalleryClientProps {
   initialAllProjects: Project[]
   initialFavoriteProjects: Project[]
   initialMyProjects: Project[]
-  hasSession: boolean
+  userId?: string | null
+  isAuthenticated: boolean
 }
 
 export default function GalleryClient({
   initialAllProjects,
   initialFavoriteProjects,
   initialMyProjects,
+  userId,
+  isAuthenticated,
 }: GalleryClientProps) {
   const router = useRouter()
-  const { user: session, isAuthenticated } = useAuth()
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedTags, setSelectedTags] = useState<string[]>([])
 
-  const [allProjects, setAllProjects] = useState<Project[]>(initialAllProjects)
-  const [favoriteProjects, setFavoriteProjects] = useState<Project[]>(initialFavoriteProjects)
-  const [myProjects, setMyProjects] = useState<Project[]>(initialMyProjects)
+  // Use gallery store state and actions
+  const {
+    viewMode,
+    setViewMode,
+    searchQuery,
+    setSearchQuery,
+    selectedTags,
+    setSelectedTags,
+    selectedProject,
+    setSelectedProject,
+    projectInteractions,
+    isInteractionsLoading,
+    initializeProjects,
+    loadInteractions,
+    likeProject: handleLikeProject,
+    favoriteProject: handleFavoriteProject,
+    copyCode: handleCopyCode,
+    availableTags,
+    filteredProjects,
+    filteredFavorites,
+    filteredUserProjects,
+  } = useGalleryStore()
 
-  // Use a subtle loading state that doesn't block UI
-  const [isInteractionsLoading, setIsInteractionsLoading] = useState(false)
-  const [interactionsLoaded, setInteractionsLoaded] = useState(false)
-
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null)
-  // Initialize interactions with empty state for all projects to avoid UI jumps
-  const [projectInteractions, setProjectInteractions] = useState<
-    Record<string, { hasLiked: boolean; hasFavorited: boolean }>
-  >(() => {
-    // Pre-populate with default values for all projects
-    const defaults: Record<string, { hasLiked: boolean; hasFavorited: boolean }> = {}
-
-    // For favorites, we know the user has favorited them
-    initialFavoriteProjects.forEach((project) => {
-      defaults[project.id] = { hasLiked: false, hasFavorited: true }
-    })
-
-    // For other projects, assume not liked/favorited
-    initialAllProjects.forEach((project) => {
-      if (!defaults[project.id]) {
-        defaults[project.id] = { hasLiked: false, hasFavorited: false }
-      }
-    })
-
-    initialMyProjects.forEach((project) => {
-      if (!defaults[project.id]) {
-        defaults[project.id] = { hasLiked: false, hasFavorited: false }
-      }
-    })
-
-    return defaults
-  })
-
-  // Extract all unique tags from projects
-  const availableTags = useMemo(() => {
-    const tagSet = new Set<string>()
-
-    // Function to process tags from a project
-    const processTags = (project: Project) => {
-      if (project.tags) {
-        project.tags.split(',').forEach((tag) => {
-          const trimmedTag = tag.trim()
-          if (trimmedTag) tagSet.add(trimmedTag)
-        })
-      }
-    }
-
-    // Process tags from all project lists
-    allProjects.forEach(processTags)
-    favoriteProjects.forEach(processTags)
-    myProjects.forEach(processTags)
-
-    return Array.from(tagSet).sort()
-  }, [allProjects, favoriteProjects, myProjects])
-
-  // Load user interactions on mount - but with less visual impact
+  // Initialize projects on mount
   useEffect(() => {
-    // Skip if interactions already loaded or no session
-    if (interactionsLoaded || !isAuthenticated) {
-      return
-    }
+    initializeProjects(initialAllProjects, initialFavoriteProjects, initialMyProjects)
+  }, [initializeProjects, initialAllProjects, initialFavoriteProjects, initialMyProjects])
 
-    // Store cache timestamp in sessionStorage to avoid unnecessary refetches
-    const cachedTimestamp = sessionStorage.getItem('gallery-interactions-timestamp')
-    if (cachedTimestamp) {
-      const timestamp = parseInt(cachedTimestamp, 10)
-      // Only refetch if cache is older than 5 minutes
-      if (Date.now() - timestamp < 5 * 60 * 1000) {
-        try {
-          const cachedInteractions = sessionStorage.getItem('gallery-interactions')
-          if (cachedInteractions) {
-            setProjectInteractions((prev) => ({
-              ...prev,
-              ...JSON.parse(cachedInteractions),
-            }))
-            setInteractionsLoaded(true)
-            return
-          }
-        } catch (error) {
-          console.error('Error parsing cached interactions:', error)
-        }
-      }
+  // Load user interactions on mount
+  useEffect(() => {
+    if (isAuthenticated && userId) {
+      void loadInteractions(userId)
     }
+  }, [isAuthenticated, loadInteractions, userId])
 
-    async function loadInteractions() {
-      if (!isAuthenticated) {
+  if (!userId) {
+    toast.error('请先登录')
+  }
+
+  // Handle auth redirect for liking/favoriting when not logged in
+  const handleAuthRedirect = (
+    action: (projectId: string, userId: string, event?: React.MouseEvent) => Promise<void>,
+  ) => {
+    return async (projectId: string, event?: React.MouseEvent) => {
+      if (!isAuthenticated || !userId) {
+        router.push('/signin')
         return
       }
-
-      // Only show subtle loading state for interactions after initial page load
-      setIsInteractionsLoading(true)
-      try {
-        const interactions: Record<string, { hasLiked: boolean; hasFavorited: boolean }> = {}
-
-        await Promise.all(
-          initialAllProjects.map(async (project) => {
-            const result = await getUserInteractions(project.id)
-            if (result.success) {
-              interactions[project.id] = result.data || { hasLiked: false, hasFavorited: false }
-            }
-          }),
-        )
-
-        // Merge with existing interactions to avoid UI jumps
-        setProjectInteractions((prev) => {
-          const newInteractions = { ...prev, ...interactions }
-
-          // Cache interactions for future visits
-          try {
-            sessionStorage.setItem('gallery-interactions', JSON.stringify(interactions))
-            sessionStorage.setItem('gallery-interactions-timestamp', Date.now().toString())
-          } catch (error) {
-            console.error('Error caching interactions:', error)
-          }
-
-          return newInteractions
-        })
-        setInteractionsLoaded(true)
-      } catch (error) {
-        console.error('Failed to load interactions:', error)
-      } finally {
-        setIsInteractionsLoading(false)
-      }
+      await action(projectId, userId, event)
     }
-
-    void loadInteractions()
-  }, [isAuthenticated, initialAllProjects, interactionsLoaded])
-
-  // Filter projects based on search query and selected tags
-  const filterProjects = useCallback(
-    (projects: Project[]) => {
-      const query = searchQuery.toLowerCase()
-
-      return projects.filter((project) => {
-        // Filter by search query
-        const matchesQuery =
-          !query ||
-          project.title.toLowerCase().includes(query) ||
-          (project.description && project.description.toLowerCase().includes(query))
-
-        // Filter by tags
-        const matchesTags =
-          selectedTags.length === 0 ||
-          (project.tags &&
-            selectedTags.every((tag) =>
-              project
-                .tags!.split(',')
-                .map((t) => t.trim())
-                .includes(tag),
-            ))
-
-        return matchesQuery && matchesTags
-      })
-    },
-    [searchQuery, selectedTags],
-  )
-
-  // Apply filters to each project list
-  const filteredProjects = useMemo(() => filterProjects(allProjects), [allProjects, filterProjects])
-  const filteredFavorites = useMemo(
-    () => filterProjects(favoriteProjects),
-    [favoriteProjects, filterProjects],
-  )
-  const filteredUserProjects = useMemo(
-    () => filterProjects(myProjects),
-    [filterProjects, myProjects],
-  )
-
-  // Handle like project with optimistic updates
-  const handleLikeProject = async (projectId: string, event?: React.MouseEvent) => {
-    // Prevent event propagation if called from within modal
-    if (event) {
-      event.preventDefault()
-      event.stopPropagation()
-    }
-
-    if (!isAuthenticated) {
-      router.push('/signin')
-      return
-    }
-
-    // Get current state
-    const currentInteraction = projectInteractions[projectId] || {
-      hasLiked: false,
-      hasFavorited: false,
-    }
-    const isCurrentlyLiked = currentInteraction.hasLiked
-
-    // Apply optimistic update
-    setProjectInteractions((prev) => ({
-      ...prev,
-      [projectId]: {
-        ...currentInteraction,
-        hasLiked: !isCurrentlyLiked,
-      },
-    }))
-
-    // Update like count in projects optimistically
-    const updateLikeCount = (projects: Project[]) =>
-      projects.map((p) =>
-        p.id === projectId
-          ? {
-              ...p,
-              likesCount: !isCurrentlyLiked
-                ? Number(p.likesCount) + 1
-                : Math.max(0, Number(p.likesCount) - 1),
-            }
-          : p,
-      )
-
-    setAllProjects(updateLikeCount)
-    setFavoriteProjects(updateLikeCount)
-    setMyProjects(updateLikeCount)
-
-    // Update selected project if open
-    if (selectedProject && selectedProject.id === projectId) {
-      setSelectedProject({
-        ...selectedProject,
-        likesCount: !isCurrentlyLiked
-          ? Number(selectedProject.likesCount) + 1
-          : Math.max(0, Number(selectedProject.likesCount) - 1),
-      })
-    }
-
-    try {
-      // Make the actual API call
-      const result = await likeProject(projectId)
-
-      if (!result.success) {
-        // Revert optimistic update if the API call fails
-        setProjectInteractions((prev) => ({
-          ...prev,
-          [projectId]: {
-            ...currentInteraction,
-            hasLiked: isCurrentlyLiked,
-          },
-        }))
-
-        // Revert like count
-        const revertLikeCount = (projects: Project[]) =>
-          projects.map((p) =>
-            p.id === projectId
-              ? {
-                  ...p,
-                  likesCount: isCurrentlyLiked
-                    ? Number(p.likesCount)
-                    : Math.max(0, Number(p.likesCount) - 1),
-                }
-              : p,
-          )
-
-        setAllProjects(revertLikeCount)
-        setFavoriteProjects(revertLikeCount)
-        setMyProjects(revertLikeCount)
-
-        // Revert selected project if open
-        if (selectedProject && selectedProject.id === projectId) {
-          setSelectedProject({
-            ...selectedProject,
-            likesCount: isCurrentlyLiked
-              ? Number(selectedProject.likesCount)
-              : Math.max(0, Number(selectedProject.likesCount) - 1),
-          })
-        }
-      }
-    } catch (error) {
-      console.error('Failed to like project:', error)
-
-      // Revert optimistic update if there's an error
-      setProjectInteractions((prev) => ({
-        ...prev,
-        [projectId]: {
-          ...currentInteraction,
-          hasLiked: isCurrentlyLiked,
-        },
-      }))
-
-      // Revert like count
-      const revertLikeCount = (projects: Project[]) =>
-        projects.map((p) =>
-          p.id === projectId
-            ? {
-                ...p,
-                likesCount: isCurrentlyLiked
-                  ? Number(p.likesCount)
-                  : Math.max(0, Number(p.likesCount) - 1),
-              }
-            : p,
-        )
-
-      setAllProjects(revertLikeCount)
-      setFavoriteProjects(revertLikeCount)
-      setMyProjects(revertLikeCount)
-
-      // Revert selected project if open
-      if (selectedProject && selectedProject.id === projectId) {
-        setSelectedProject({
-          ...selectedProject,
-          likesCount: isCurrentlyLiked
-            ? Number(selectedProject.likesCount)
-            : Math.max(0, Number(selectedProject.likesCount) - 1),
-        })
-      }
-    }
-  }
-
-  // Handle favorite project with optimistic updates
-  const handleFavoriteProject = async (projectId: string) => {
-    if (!isAuthenticated) {
-      router.push('/signin')
-      return
-    }
-
-    // Get current state
-    const currentInteraction = projectInteractions[projectId] || {
-      hasLiked: false,
-      hasFavorited: false,
-    }
-    const isCurrentlyFavorited = currentInteraction.hasFavorited
-
-    // Apply optimistic update
-    setProjectInteractions((prev) => ({
-      ...prev,
-      [projectId]: {
-        ...currentInteraction,
-        hasFavorited: !isCurrentlyFavorited,
-      },
-    }))
-
-    // Update favorites list optimistically
-    if (!isCurrentlyFavorited) {
-      // Add to favorites
-      const project =
-        allProjects.find((p) => p.id === projectId) || myProjects.find((p) => p.id === projectId)
-
-      if (project && !favoriteProjects.some((p) => p.id === projectId)) {
-        setFavoriteProjects((prev) => [...prev, project])
-      }
-    } else {
-      // Remove from favorites
-      setFavoriteProjects((prev) => prev.filter((p) => p.id !== projectId))
-    }
-
-    try {
-      // Make the actual API call
-      const result = await favoriteProject(projectId)
-
-      if (!result.success) {
-        // Revert optimistic update if the API call fails
-        setProjectInteractions((prev) => ({
-          ...prev,
-          [projectId]: {
-            ...currentInteraction,
-            hasFavorited: isCurrentlyFavorited,
-          },
-        }))
-
-        // Revert favorites list
-        if (isCurrentlyFavorited) {
-          // Re-add to favorites
-          const project =
-            allProjects.find((p) => p.id === projectId) ||
-            myProjects.find((p) => p.id === projectId)
-
-          if (project) {
-            setFavoriteProjects((prev) => [...prev, project])
-          }
-        } else {
-          // Remove from favorites
-          setFavoriteProjects((prev) => prev.filter((p) => p.id !== projectId))
-        }
-      }
-    } catch (error) {
-      console.error('Failed to favorite project:', error)
-
-      // Revert optimistic update if there's an error
-      setProjectInteractions((prev) => ({
-        ...prev,
-        [projectId]: {
-          ...currentInteraction,
-          hasFavorited: isCurrentlyFavorited,
-        },
-      }))
-
-      // Revert favorites list
-      if (isCurrentlyFavorited) {
-        // Re-add to favorites
-        const project =
-          allProjects.find((p) => p.id === projectId) || myProjects.find((p) => p.id === projectId)
-
-        if (project) {
-          setFavoriteProjects((prev) => [...prev, project])
-        }
-      } else {
-        // Remove from favorites
-        setFavoriteProjects((prev) => prev.filter((p) => p.id !== projectId))
-      }
-    }
-  }
-
-  // Handle copy code
-  const handleCopyCode = () => {
-    // Just log the action, visual feedback is handled in the component
-    console.log('Code copied to clipboard')
   }
 
   return (
@@ -451,7 +90,7 @@ export default function GalleryClient({
           setViewMode={setViewMode}
           selectedTags={selectedTags}
           setSelectedTags={setSelectedTags}
-          availableTags={availableTags}
+          availableTags={availableTags()}
         />
 
         <div className="mt-6">
@@ -464,34 +103,34 @@ export default function GalleryClient({
             <TabsContent value="all" className="mt-6">
               <TabContentAll
                 isLoading={isInteractionsLoading}
-                projects={filteredProjects}
+                projects={filteredProjects()}
                 viewMode={viewMode}
                 interactions={projectInteractions}
                 onSelect={setSelectedProject}
-                onLike={handleLikeProject}
-                onFavorite={handleFavoriteProject}
+                onLike={handleAuthRedirect(handleLikeProject)}
+                onFavorite={handleAuthRedirect(handleFavoriteProject)}
               />
             </TabsContent>
             <TabsContent value="favorites" className="mt-6">
               <TabContentFavorites
                 isLoading={isInteractionsLoading}
-                projects={filteredFavorites}
+                projects={filteredFavorites()}
                 viewMode={viewMode}
                 interactions={projectInteractions}
                 onSelect={setSelectedProject}
-                onLike={handleLikeProject}
-                onFavorite={handleFavoriteProject}
+                onLike={handleAuthRedirect(handleLikeProject)}
+                onFavorite={handleAuthRedirect(handleFavoriteProject)}
               />
             </TabsContent>
             <TabsContent value="my-projects" className="mt-6">
               <TabContentMyProjects
                 isLoading={isInteractionsLoading}
-                projects={filteredUserProjects}
+                projects={filteredUserProjects()}
                 viewMode={viewMode}
                 interactions={projectInteractions}
                 onSelect={setSelectedProject}
-                onLike={handleLikeProject}
-                onFavorite={handleFavoriteProject}
+                onLike={handleAuthRedirect(handleLikeProject)}
+                onFavorite={handleAuthRedirect(handleFavoriteProject)}
               />
             </TabsContent>
           </Tabs>
@@ -505,8 +144,8 @@ export default function GalleryClient({
             onClose={() => setSelectedProject(null)}
             hasLiked={projectInteractions[selectedProject.id]?.hasLiked || false}
             hasFavorited={projectInteractions[selectedProject.id]?.hasFavorited || false}
-            onLike={handleLikeProject}
-            onFavorite={handleFavoriteProject}
+            onLike={handleAuthRedirect(handleLikeProject)}
+            onFavorite={handleAuthRedirect(handleFavoriteProject)}
             onCopyCode={handleCopyCode}
           />
         )}

@@ -21,6 +21,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 
 interface PublishProjectDialogProps {
+  userId: string | undefined
   htmlContent: string
   trigger?: React.ReactNode
   onSuccess?: () => void
@@ -35,6 +36,7 @@ interface Metadata {
 }
 
 export function PublishProjectDialog({
+  userId,
   htmlContent,
   trigger,
   onSuccess,
@@ -136,7 +138,7 @@ export function PublishProjectDialog({
       }
 
       // Create the project
-      await createProject({
+      await createProject(userId, {
         title,
         description,
         htmlContent,

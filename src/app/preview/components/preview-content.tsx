@@ -2,6 +2,7 @@
 
 import { Monitor, Smartphone, Tablet } from 'lucide-react'
 import { MainNav } from '@/components/main-nav'
+import { useAuth } from '@/hooks/use-auth'
 import { usePreview } from '../hooks/use-preview'
 import { useScreenshot } from '../hooks/use-screenshot'
 import { CopyButton } from './copy-button'
@@ -25,6 +26,7 @@ export function PreviewContent() {
     getContentToCopy,
     changeTheme,
   } = usePreview()
+  const { user } = useAuth()
 
   // Use the screenshot hook
   const { getScreenshot, isCapturing } = useScreenshot({
@@ -110,6 +112,7 @@ export function PreviewContent() {
                 htmlContent={getContentToCopy()}
                 getScreenshot={getScreenshot}
                 isCapturingScreenshot={isCapturing}
+                userId={user?.id}
               />
             </div>
           </div>

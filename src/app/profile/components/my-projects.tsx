@@ -19,7 +19,7 @@ import { type Project } from '@/types'
 import { EditProjectDialog } from './edit-project-dialog'
 
 interface MyProjectsProps {
-  userId?: string
+  userId: string
 }
 
 export function MyProjects({ userId }: MyProjectsProps) {
@@ -31,11 +31,14 @@ export function MyProjects({ userId }: MyProjectsProps) {
   // Load user projects
   useEffect(() => {
     async function loadProjects() {
-      if (!userId) return
-
       setIsLoading(true)
       try {
-        const result = await getUserProjects()
+        if (!userId) {
+          toast.error('请先登录')
+          return
+        }
+
+        const result = await getUserProjects(userId)
         if (result.success) {
           setProjects(result.data || [])
         } else {
@@ -65,7 +68,12 @@ export function MyProjects({ userId }: MyProjectsProps) {
     if (!confirm('确定要删除这个项目吗？')) return
 
     try {
-      const result = await deleteProject(projectId)
+      if (!userId) {
+        toast.error('请先登录')
+        return
+      }
+
+      const result = await deleteProject(projectId, userId)
       if (result.success) {
         setProjects((prev) => prev.filter((p) => p.id !== projectId))
         toast.success('项目删除成功')
@@ -81,7 +89,12 @@ export function MyProjects({ userId }: MyProjectsProps) {
   // Handle project update after editing
   const handleProjectUpdate = async (updatedProject: Project) => {
     try {
-      const result = await updateProject(updatedProject.id, {
+      if (!userId) {
+        toast.error('请先登录')
+        return
+      }
+
+      const result = await updateProject(updatedProject.id, userId, {
         title: updatedProject.title,
         description: updatedProject.description,
         tags: updatedProject.tags,
