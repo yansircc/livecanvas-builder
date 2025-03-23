@@ -1,28 +1,70 @@
 import { Suspense } from "react";
+import { ErrorBoundary } from "react-error-boundary";
 import {
-  FallbackRandomNumber,
-  SuspenseRandomNumber,
-} from "./suspense/random-number";
-import { SuspenseAuthComponent, UserFallback } from "./suspense/user";
+	RandomErrorFallback,
+	RandomLoadingFallback,
+	SuspenseRandomNumber,
+} from "./components/random-number/suspense";
+import {
+	SuspenseUserProfile,
+	UserErrorFallback,
+	UserLoadingFallback,
+} from "./components/user-profile/suspense";
 
-export default async function HomePage() {
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 p-4">
-      <div className="flex flex-col items-center gap-2">
-        <h2 className="font-bold text-xl">随机数缓存测试</h2>
-        <p className="mb-2 text-gray-500">缓存时间: 2秒</p>
-        <Suspense fallback={<FallbackRandomNumber />}>
-          <SuspenseRandomNumber />
-        </Suspense>
-      </div>
+export default function HomePage() {
+	return (
+		<div className="container mx-auto flex min-h-screen max-w-screen-lg flex-col items-center justify-center p-4">
+			<h1 className="mb-8 text-center font-bold text-3xl">高级组件设计演示</h1>
 
-      <div className="mt-8">
-        <h2 className="mb-4 text-center font-bold text-xl">认证会话缓存测试</h2>
-        <p className="mb-4 text-center text-gray-500">缓存时间: 1.5秒</p>
-        <Suspense fallback={<UserFallback />}>
-          <SuspenseAuthComponent />
-        </Suspense>
-      </div>
-    </main>
-  );
+			<div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+				{/* 随机数部分 */}
+				<section aria-labelledby="random-number-title">
+					<h2 id="random-number-title" className="mb-4 font-semibold text-xl">
+						随机数服务
+					</h2>
+					<p className="mb-4 text-gray-600 dark:text-gray-400">
+						此组件使用 "use cache" 和 cacheTag
+						实现数据缓存，点击按钮可重新验证缓存。
+					</p>
+					<ErrorBoundary
+						fallback={
+							<RandomErrorFallback error={new Error("随机数服务加载失败")} />
+						}
+					>
+						<Suspense fallback={<RandomLoadingFallback />}>
+							<SuspenseRandomNumber />
+						</Suspense>
+					</ErrorBoundary>
+				</section>
+
+				{/* 用户资料部分 */}
+				<section aria-labelledby="user-profile-title">
+					<h2 id="user-profile-title" className="mb-4 font-semibold text-xl">
+						用户资料服务
+					</h2>
+					<p className="mb-4 text-gray-600 dark:text-gray-400">
+						此组件需要登录才能查看完整内容，同样使用了缓存机制。
+					</p>
+					<ErrorBoundary
+						fallback={
+							<UserErrorFallback error={new Error("用户资料服务加载失败")} />
+						}
+					>
+						<Suspense fallback={<UserLoadingFallback />}>
+							<SuspenseUserProfile />
+						</Suspense>
+					</ErrorBoundary>
+				</section>
+			</div>
+
+			<div className="mt-12 text-center">
+				<a
+					href="/test/error-demo"
+					className="inline-block rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
+				>
+					查看错误边界演示
+				</a>
+			</div>
+		</div>
+	);
 }

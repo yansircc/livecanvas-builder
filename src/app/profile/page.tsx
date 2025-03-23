@@ -1,0 +1,157 @@
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
+import { auth } from "@/server/auth";
+import type { Session } from "next-auth";
+import { unstable_cacheTag as cacheTag } from "next/cache";
+import Image from "next/image";
+import { Suspense } from "react";
+import { EditProfileDialog } from "./compoents/edit-profile-dialog";
+
+/**
+ * 获取缓存会话数据
+ * @param sessionData 会话数据
+ * @returns 返回会话数据
+ */
+async function getCachedSessionData(sessionData: Session | null) {
+	"use cache";
+	cacheTag("auth");
+
+	// 模拟一个加载延迟
+	await new Promise((resolve) => setTimeout(resolve, 1500));
+	return sessionData;
+}
+
+async function SusppenseEditProfileDialog() {
+	const sessionData = await auth();
+	const session = await getCachedSessionData(sessionData);
+
+	return <EditProfileDialog session={session} />;
+}
+
+async function SuspenseUserName() {
+	const sessionData = await auth();
+	const session = await getCachedSessionData(sessionData);
+
+	return (
+		<p className="mt-1 font-medium text-zinc-900 dark:text-zinc-100">
+			{session?.user?.name}
+		</p>
+	);
+}
+
+async function SuspenseUserEmail() {
+	const sessionData = await auth();
+	const session = await getCachedSessionData(sessionData);
+
+	return (
+		<p className="mt-1 font-medium text-zinc-900 dark:text-zinc-100">
+			{session?.user?.email}
+		</p>
+	);
+}
+
+async function SuspenseUserAvatar() {
+	const sessionData = await auth();
+	const session = await getCachedSessionData(sessionData);
+
+	return (
+		<Image
+			src={session?.user?.image || ""}
+			alt="User avatar"
+			fill
+			className="object-cover"
+		/>
+	);
+}
+
+async function SuspenseUserBackgroundInfo() {
+	const sessionData = await auth();
+	const session = await getCachedSessionData(sessionData);
+
+	if (!session?.user?.backgroundInfo) {
+		return (
+			<p className="mt-1 font-medium text-zinc-900 dark:text-zinc-100">
+				尚未添加背景信息。点击&quot;编辑资料&quot;按钮添加您的背景信息，以便AI更好地理解您的需求。
+			</p>
+		);
+	}
+
+	return (
+		<p className="mt-1 font-medium text-zinc-900 dark:text-zinc-100">
+			{session?.user?.backgroundInfo}
+			这是一段测试用户的背景信息，用于AI理解用户的需求。
+		</p>
+	);
+}
+
+export default async function ProfilePage() {
+	return (
+		<Card className="border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+			<CardHeader className="flex flex-row items-center justify-between">
+				<div>
+					<CardTitle>个人信息</CardTitle>
+					<CardDescription>查看和管理您的个人信息</CardDescription>
+				</div>
+				<Suspense fallback={<div>Loading...</div>}>
+					<SusppenseEditProfileDialog />
+				</Suspense>
+			</CardHeader>
+			<CardContent className="space-y-6">
+				<div className="space-y-4">
+					<div>
+						<h3 className="font-medium text-sm text-zinc-900 dark:text-zinc-100">
+							基本信息
+						</h3>
+						<div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+							<div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+								<p className="text-sm text-zinc-500 dark:text-zinc-400">姓名</p>
+								<Suspense fallback={<div>Loading...</div>}>
+									<SuspenseUserName />
+								</Suspense>
+							</div>
+							<div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-800/50">
+								<p className="text-sm text-zinc-500 dark:text-zinc-400">
+									电子邮件（暂不支持修改）
+								</p>
+								<Suspense fallback={<div>Loading...</div>}>
+									<SuspenseUserEmail />
+								</Suspense>
+							</div>
+						</div>
+					</div>
+
+					<div>
+						<h3 className="font-medium text-sm text-zinc-900 dark:text-zinc-100">
+							个人头像
+						</h3>
+						<div className="mt-3 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+							<div className="flex items-center gap-4">
+								<div className="relative h-20 w-20 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+									<Suspense fallback={<div>Loading...</div>}>
+										<SuspenseUserAvatar />
+									</Suspense>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div>
+					<h3 className="font-medium text-sm text-zinc-900 dark:text-zinc-100">
+						背景信息
+					</h3>
+					<div className="mt-3 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+						<Suspense fallback={<div>Loading...</div>}>
+							<SuspenseUserBackgroundInfo />
+						</Suspense>
+					</div>
+				</div>
+			</CardContent>
+		</Card>
+	);
+}

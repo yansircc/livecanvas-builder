@@ -6,9 +6,22 @@ import "./src/env.js";
 
 /** @type {import("next").NextConfig} */
 const config = {
-  experimental: {
-    dynamicIO: true,
-  },
+	experimental: {
+		dynamicIO: true,
+	},
+	images: {
+		remotePatterns: [
+			{
+				hostname: "cdn.discordapp.com",
+			},
+			{
+				hostname: "images.unsplash.com",
+			},
+			{
+				hostname: "livecanvas-builder.b-cdn.net",
+			},
+		],
+	},
 };
 
 export default config;

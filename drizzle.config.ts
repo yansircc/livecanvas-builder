@@ -8,5 +8,5 @@ export default {
 	dbCredentials: {
 		url: env.DATABASE_URL,
 	},
-	tablesFilter: ["try-dataio_*"],
+	tablesFilter: ["lc_builder_*"],
 } satisfies Config;
