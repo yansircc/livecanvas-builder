@@ -322,3 +322,8 @@ export const getUserFavorites = async (userId: string) => {
 
   return { success: true, data: result.data };
 };
+
+export async function revalidateUserProjects(userId: string) {
+  "use server";
+  revalidateTag(`user-projects:${userId}`);
+}
