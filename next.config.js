@@ -6,24 +6,24 @@ import "./src/env.js";
 
 /** @type {import("next").NextConfig} */
 const config = {
-  experimental: {
-    reactCompiler: true,
-    dynamicIO: true,
-    useCache: true,
-  },
-  images: {
-    remotePatterns: [
-      {
-        hostname: "cdn.discordapp.com",
-      },
-      {
-        hostname: "images.unsplash.com",
-      },
-      {
-        hostname: "livecanvas-builder.b-cdn.net",
-      },
-    ],
-  },
+	experimental: {
+		reactCompiler: true,
+		dynamicIO: true,
+		useCache: true,
+	},
+	images: {
+		remotePatterns: [
+			{
+				hostname: "cdn.discordapp.com",
+			},
+			{
+				hostname: "images.unsplash.com",
+			},
+			{
+				hostname: "livecanvas-builder.b-cdn.net",
+			},
+		],
+	},
 };
 
 export default config;

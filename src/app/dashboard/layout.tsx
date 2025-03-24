@@ -1,13 +1,13 @@
 import SessionProvider from "@/app/dashboard/components/session-provider";
 
 export default function DashboardLayout({
-  children,
+	children,
 }: {
-  children: React.ReactNode;
+	children: React.ReactNode;
 }) {
-  return (
-    <SessionProvider>
-      <main className="min-h-screen">{children}</main>
-    </SessionProvider>
-  );
+	return (
+		<SessionProvider>
+			<main className="min-h-screen">{children}</main>
+		</SessionProvider>
+	);
 }
