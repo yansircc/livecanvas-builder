@@ -2,7 +2,7 @@ export const notFoundExample = `
 <section class="bg-base-100" data-theme="light">
   <div class="container grid h-screen place-content-center">
     <div class="text-center">
-      <h1 class="text-9xl font-black text-neutral">404</h1>
+      <h1 class="text-9xl font-heading text-primary">404</h1>
 
       <p class="text-2xl font-bold tracking-tight text-base-content sm:text-4xl editable="inline">Uh-oh!</p>
 

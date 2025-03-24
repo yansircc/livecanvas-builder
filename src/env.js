@@ -23,6 +23,7 @@ export const env = createEnv({
 		TRIGGER_SECRET_KEY: z.string(),
 		VERCEL_ACCESS_TOKEN: z.string(),
 		VERCEL_PROJECT_ID: z.string(),
+		BLOB_READ_WRITE_TOKEN: z.string(),
 	},
 
 	/**
@@ -50,6 +51,7 @@ export const env = createEnv({
 		TRIGGER_SECRET_KEY: process.env.TRIGGER_SECRET_KEY,
 		VERCEL_ACCESS_TOKEN: process.env.VERCEL_ACCESS_TOKEN,
 		VERCEL_PROJECT_ID: process.env.VERCEL_PROJECT_ID,
+		BLOB_READ_WRITE_TOKEN: process.env.BLOB_READ_WRITE_TOKEN,
 	},
 	/**
 	 * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

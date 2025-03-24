@@ -1,3 +1,5 @@
+"use server";
+
 import { db } from "@/server/db";
 import { project } from "@/server/db/schema";
 import { nanoid } from "nanoid";
