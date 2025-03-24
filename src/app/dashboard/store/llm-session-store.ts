@@ -3,11 +3,25 @@ import { persist } from "zustand/middleware";
 
 export interface FormData {
   prompt: string;
+  history?: ConversationHistory[];
+  modelId?: string;
+}
+
+export interface ConversationHistory {
+  prompt: string;
+  response: string;
+}
+
+export interface TokenUsage {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
 }
 
 export interface LlmResponse {
   content: string;
   timestamp: number;
+  usage?: TokenUsage;
 }
 
 export interface Version {
@@ -21,11 +35,13 @@ export interface Session {
   id: number;
   versions: Version[];
   activeVersionId: number | null;
+  selectedModelId: string;
 }
 
 interface LlmSessionState {
   sessions: Session[];
   activeSessionId: number;
+  globalSelectedModelId: string;
 
   // Actions
   addSession: () => void;
@@ -43,20 +59,29 @@ interface LlmSessionState {
     isLoading: boolean
   ) => void;
   setActiveVersion: (sessionId: number, versionId: number) => void;
+  setSessionModelId: (sessionId: number, modelId: string) => void;
+  setGlobalModelId: (modelId: string) => void;
+  getPreviousConversation: (sessionId: number) => ConversationHistory | null;
+  getSelectedModelId: (sessionId: number) => string;
 }
+
+// Default model ID from the first available model
+const defaultModelId = "anthropic/claude-3.7-sonnet";
 
 // Initial session
 const defaultSession: Session = {
   id: 1,
   versions: [],
   activeVersionId: null,
+  selectedModelId: defaultModelId,
 };
 
 export const useLlmSessionStore = create<LlmSessionState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       sessions: [defaultSession],
       activeSessionId: 1,
+      globalSelectedModelId: defaultModelId,
 
       addSession: () =>
         set((state) => {
@@ -66,6 +91,7 @@ export const useLlmSessionStore = create<LlmSessionState>()(
             id: newSessionId,
             versions: [],
             activeVersionId: null,
+            selectedModelId: state.globalSelectedModelId,
           };
 
           return {
@@ -75,8 +101,13 @@ export const useLlmSessionStore = create<LlmSessionState>()(
         }),
 
       clearAllSessions: () =>
-        set(() => ({
-          sessions: [defaultSession],
+        set((state) => ({
+          sessions: [
+            {
+              ...defaultSession,
+              selectedModelId: state.globalSelectedModelId,
+            },
+          ],
           activeSessionId: 1,
         })),
 
@@ -102,9 +133,15 @@ export const useLlmSessionStore = create<LlmSessionState>()(
               ? Math.max(...targetSession.versions.map((v) => v.id)) + 1
               : 1;
 
+          // Ensure the model ID is included in the input
+          const inputWithModel = {
+            ...input,
+            modelId: targetSession.selectedModelId,
+          };
+
           const newVersion: Version = {
             id: newVersionId,
-            input,
+            input: inputWithModel,
             response: null,
             isLoading: true,
           };
@@ -219,12 +256,82 @@ export const useLlmSessionStore = create<LlmSessionState>()(
 
           return { sessions: updatedSessions };
         }),
+
+      setSessionModelId: (sessionId, modelId) =>
+        set((state) => {
+          const sessionIndex = state.sessions.findIndex(
+            (s) => s.id === sessionId
+          );
+          if (sessionIndex === -1) return state;
+
+          const targetSession = state.sessions[sessionIndex];
+          if (!targetSession) return state;
+
+          const updatedSession: Session = {
+            ...targetSession,
+            selectedModelId: modelId,
+          };
+
+          const updatedSessions = [...state.sessions];
+          updatedSessions[sessionIndex] = updatedSession;
+
+          return {
+            sessions: updatedSessions,
+            globalSelectedModelId: modelId,
+          };
+        }),
+
+      setGlobalModelId: (modelId) =>
+        set(() => ({
+          globalSelectedModelId: modelId,
+        })),
+
+      getPreviousConversation: (sessionId) => {
+        const state = get();
+        const session = state.sessions.find((s) => s.id === sessionId);
+
+        if (!session || session.versions.length === 0) {
+          return null;
+        }
+
+        // Get the last version that has a response
+        const versionsWithResponses = session.versions
+          .filter((v) => v.response !== null)
+          .sort((a, b) => b.id - a.id); // Sort by id descending
+
+        if (versionsWithResponses.length === 0) {
+          return null;
+        }
+
+        const lastVersion = versionsWithResponses[0];
+
+        if (!lastVersion || !lastVersion.response) {
+          return null;
+        }
+
+        return {
+          prompt: lastVersion.input.prompt,
+          response: JSON.parse(lastVersion.response.content),
+        };
+      },
+
+      getSelectedModelId: (sessionId) => {
+        const state = get();
+        const session = state.sessions.find((s) => s.id === sessionId);
+
+        if (!session) {
+          return state.globalSelectedModelId;
+        }
+
+        return session.selectedModelId;
+      },
     }),
     {
       name: "llm-session-storage", // name of the item in localStorage
       partialize: (state) => ({
         sessions: state.sessions,
         activeSessionId: state.activeSessionId,
+        globalSelectedModelId: state.globalSelectedModelId,
       }),
     }
   )
