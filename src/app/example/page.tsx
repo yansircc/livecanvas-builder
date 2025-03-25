@@ -16,6 +16,7 @@ import { ErrorBoundary } from "react-error-boundary";
 
 // Must use this wrapper function since the auth session data is not cached by default
 async function getCachedSessionData(sessionData: Session) {
+  "use cache";
   addAuthCacheTags(sessionData.user.id);
 
   // Simulate a loading delay

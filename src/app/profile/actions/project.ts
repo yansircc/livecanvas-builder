@@ -180,7 +180,6 @@ export async function updateProject(
 export const getUserFavorites = async (userId: string) => {
   "use cache";
 
-  // Add cache tags for user's favorites and interactions
   addUserCacheTags(userId);
   addProjectInteractionCacheTags(userId, userId, "FAVORITED");
 

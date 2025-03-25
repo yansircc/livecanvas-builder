@@ -4,20 +4,17 @@ import { tryCatch } from "@/lib/try-catch";
 import {
   addProjectCacheTags,
   addProjectInteractionCacheTags,
-  revalidateProjectCache,
   revalidateProjectInteraction,
 } from "@/server/cache";
 import { db } from "@/server/db";
 import { favorite, project, purchase, user } from "@/server/db/schema";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { revalidateTag } from "next/cache";
 
 // Get all published projects with caching
 export const getPublishedProjects = async () => {
   "use cache";
 
-  // Add cache tag for public project list
   addProjectCacheTags("list");
 
   const result = await tryCatch(
@@ -299,7 +296,6 @@ export const getUserInteractions = async (
 export const getAllUserInteractions = async (userId: string) => {
   "use cache";
 
-  // Add cache tags for user's interaction lists
   addProjectInteractionCacheTags(userId, userId, "PURCHASED");
   addProjectInteractionCacheTags(userId, userId, "FAVORITED");
 

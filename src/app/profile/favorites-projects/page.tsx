@@ -19,7 +19,6 @@ import FavoriteProjectsClient from "./client";
 async function getCachedFavorites(userId: string) {
   "use cache";
 
-  // Add cache tags for user's favorites
   addProjectInteractionCacheTags(userId, userId, "FAVORITED");
 
   try {

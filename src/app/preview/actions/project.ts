@@ -1,10 +1,10 @@
 "use server";
 
 import { tryCatch } from "@/lib/try-catch";
+import { revalidateProjectCache, revalidateUserCache } from "@/server/cache";
 import { db } from "@/server/db";
 import { project } from "@/server/db/schema";
 import { nanoid } from "nanoid";
-import { revalidateTag } from "next/cache";
 
 export async function createProject(
   userId: string | undefined,
@@ -48,8 +48,9 @@ export async function createProject(
     return { success: false, error: "Failed to create project" };
   }
 
-  revalidateTag(`user:projects:${userId}`);
-  revalidateTag(`project:${projectId}`);
+  // Revalidate project and user caches
+  revalidateProjectCache(projectId);
+  revalidateUserCache(userId);
 
   if (data.isPublished) {
     return { success: true, data: newProject[0], redirect: "/gallery" };

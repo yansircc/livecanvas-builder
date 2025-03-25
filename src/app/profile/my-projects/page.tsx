@@ -19,7 +19,6 @@ import MyProjectsClient from "./client";
 async function getCachedProjects(userId: string) {
   "use cache";
 
-  // Add cache tags for user and their projects
   addUserCacheTags(userId);
   addProjectCacheTags("list", userId);
 
