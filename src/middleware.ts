@@ -4,8 +4,13 @@ import type { NextRequest } from "next/server";
 // 检查会话是否有效
 function isValidSession(request: NextRequest): boolean {
 	// 从 Cookie 中获取 session token
-	const sessionToken = request.cookies.get("authjs.session-token")?.value;
-	return Boolean(sessionToken);
+	const developmentSessionToken = request.cookies.get(
+		"authjs.session-token",
+	)?.value;
+	const productionSessionToken = request.cookies.get(
+		"__Secure-authjs.session-token",
+	)?.value;
+	return Boolean(developmentSessionToken || productionSessionToken);
 }
 
 export async function middleware(request: NextRequest) {
