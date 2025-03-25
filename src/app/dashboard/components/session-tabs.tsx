@@ -66,7 +66,7 @@ export default function SessionTabs() {
 				disabled={sessions.length <= 1}
 			>
 				<Trash2 className="mr-1 h-4 w-4" />
-				Clear All
+				清除所有
 			</Button>
 		</div>
 	);

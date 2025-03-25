@@ -17,7 +17,7 @@ export function AdviceList({ advices, onAdviceClick }: AdviceListProps) {
 
 	return (
 		<div className="space-y-4">
-			<h6 className="font-semibold">UI Advice</h6>
+			<h6 className="font-semibold">UI 建议</h6>
 			<ul className="space-y-4">
 				{advices.map((advice) => {
 					if (!advice) return null;

@@ -74,7 +74,7 @@ export function LlmFormComponent({ session }: LlmFormProps) {
 								>
 									<FormControl>
 										<SelectTrigger>
-											<SelectValue placeholder="Select a model" />
+											<SelectValue placeholder="选择模型" />
 										</SelectTrigger>
 									</FormControl>
 									<SelectContent>
@@ -90,8 +90,8 @@ export function LlmFormComponent({ session }: LlmFormProps) {
 							)}
 							{isMounted && currentModelPrice && (
 								<FormDescription>
-									Input: ${currentModelPrice.input.toFixed(3)}/M tokens |
-									Output: ${currentModelPrice.output.toFixed(3)}/M tokens
+									输入: ${currentModelPrice.input.toFixed(3)}/M tokens | 输出: $
+									{currentModelPrice.output.toFixed(3)}/M tokens
 								</FormDescription>
 							)}
 							<FormMessage />
@@ -104,16 +104,16 @@ export function LlmFormComponent({ session }: LlmFormProps) {
 					name="prompt"
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Prompt</FormLabel>
+							<FormLabel>提示词</FormLabel>
 							<FormControl>
 								<Textarea
-									placeholder="Enter your prompt here..."
+									placeholder="生成一个简单的按钮..."
 									className="min-h-32 resize-none"
 									{...field}
 								/>
 							</FormControl>
 							<FormDescription>
-								Type your message for the AI assistant
+								输入你的提示词，例如：生成一个简单的按钮...
 							</FormDescription>
 							<FormMessage />
 						</FormItem>
@@ -133,16 +133,7 @@ export function LlmFormComponent({ session }: LlmFormProps) {
 										disabled={!isUserLoggedIn || !hasBackgroundInfo}
 									/>
 								</FormControl>
-								<div className="space-y-1 leading-none">
-									<FormLabel>Use Background Info</FormLabel>
-									<FormDescription>
-										{!isUserLoggedIn
-											? "Sign in to use background information"
-											: hasBackgroundInfo
-												? "Include your profile background information"
-												: "No background information available in your profile"}
-									</FormDescription>
-								</div>
+								<FormLabel>理解背景</FormLabel>
 							</FormItem>
 						)}
 					/>
@@ -158,12 +149,7 @@ export function LlmFormComponent({ session }: LlmFormProps) {
 										onCheckedChange={field.onChange}
 									/>
 								</FormControl>
-								<div className="space-y-1 leading-none">
-									<FormLabel>Precision Mode</FormLabel>
-									<FormDescription>
-										Enable higher accuracy with increased token usage
-									</FormDescription>
-								</div>
+								<FormLabel>精准模式</FormLabel>
 							</FormItem>
 						)}
 					/>
@@ -171,7 +157,7 @@ export function LlmFormComponent({ session }: LlmFormProps) {
 
 				<Button type="submit" className="w-full" disabled={buttonDisabled}>
 					{buttonDisabled && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-					Submit
+					提交
 				</Button>
 			</form>
 		</Form>

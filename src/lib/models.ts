@@ -1,16 +1,16 @@
 import { env } from "@/env";
-// import { createAnthropic } from '@ai-sdk/anthropic'
+import { createAnthropic } from "@ai-sdk/anthropic";
 import { createDeepSeek } from "@ai-sdk/deepseek";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+// import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import type { LanguageModel } from "ai";
 import { createQwen } from "qwen-ai-provider";
 
 /**
  * Interface defining the structure of an LLM provider
  */
-interface LLM {
+export interface LLM {
 	name: string;
 	availableModels: {
 		name: string;
@@ -33,16 +33,17 @@ export const LLM_LIST: Record<string, LLM> = {
 		availableModels: [
 			{
 				name: "Claude 3.7 Sonnet",
-				value: "anthropic/claude-3.7-sonnet",
+				// value: "anthropic/claude-3.7-sonnet",
+				value: "claude-3-7-sonnet-20250219",
 				price: {
 					input: 3.3,
 					output: 16.5,
 				},
-				canOutputStructuredData: false,
+				canOutputStructuredData: true,
 			},
 			{
-				name: "Claude 3.7 Thinking",
-				value: "anthropic/claude-3.7-sonnet:thinking",
+				name: "Claude 3.5 Sonnet",
+				value: "claude-3-5-sonnet-20241022",
 				price: {
 					input: 3.3,
 					output: 16.5,
@@ -51,8 +52,9 @@ export const LLM_LIST: Record<string, LLM> = {
 			},
 		],
 		model: (modelValue: string) => {
-			const anthropic = createOpenRouter({
-				apiKey: env.OPENROUTER_API_KEY,
+			const anthropic = createAnthropic({
+				apiKey: env.AI_HUB_MIX_API_KEY,
+				baseURL: "https://aihubmix.com/v1",
 			});
 			return anthropic(modelValue) as LanguageModel;
 		},
@@ -154,6 +156,15 @@ export const LLM_LIST: Record<string, LLM> = {
 				price: {
 					input: 0.4,
 					output: 1.6,
+				},
+				canOutputStructuredData: false,
+			},
+			{
+				name: "V3 0324 Beta",
+				value: "deepseek-ai/DeepSeek-V3-0324",
+				price: {
+					input: 0.2,
+					output: 0.8,
 				},
 				canOutputStructuredData: false,
 			},

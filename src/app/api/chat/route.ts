@@ -1,3 +1,8 @@
+import {
+	LLM_LIST,
+	canModelOutputStructuredData,
+	parseModelId,
+} from "@/lib/models";
 import { auth } from "@/server/auth";
 import { chatGenerationTask } from "@/trigger/chat-generation";
 import type { ChatTaskResponse } from "@/types/chat";
@@ -137,12 +142,28 @@ export async function POST(req: Request) {
 		);
 
 		try {
-			// Trigger the task with only the processed prompt and model
+			// Parse the model ID to get provider and model value
+			const { providerId, modelValue } = parseModelId(selectedModelId);
+
+			// Get the provider from LLM_LIST to validate it exists
+			const provider = LLM_LIST[providerId];
+
+			if (!provider) {
+				return createErrorResponse(`Provider ${providerId} not found`, 400);
+			}
+
+			// Check if the selected model can output structured data
+			const canOutputStructuredData =
+				canModelOutputStructuredData(selectedModelId);
+
+			// Trigger the task with processed prompt and provider ID
 			const handle = await tasks.trigger(
 				chatGenerationTask.id,
 				{
 					processedPrompt,
-					model: selectedModelId,
+					providerId,
+					modelValue,
+					canOutputStructuredData,
 				},
 				{
 					tags: [user.email],

@@ -31,7 +31,7 @@ export default function VersionSelector() {
 			onValueChange={handleVersionChange}
 		>
 			<SelectTrigger className="h-8 w-[120px]">
-				<SelectValue placeholder="Select version" />
+				<SelectValue placeholder="选择版本" />
 			</SelectTrigger>
 			<SelectContent>
 				{activeSession.versions.map((version) => (
@@ -40,7 +40,7 @@ export default function VersionSelector() {
 						value={version.id.toString()}
 						disabled={version.isLoading}
 					>
-						{version.isLoading ? "Loading..." : `Version ${version.id}`}
+						{version.isLoading ? "加载中..." : `版本 ${version.id}`}
 					</SelectItem>
 				))}
 			</SelectContent>

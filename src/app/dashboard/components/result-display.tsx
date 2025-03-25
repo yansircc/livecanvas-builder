@@ -61,11 +61,11 @@ export default function ResultDisplay() {
 		return (
 			<Card className="h-full">
 				<CardHeader className="flex flex-row items-center justify-between pb-2">
-					<CardTitle>AI Response</CardTitle>
+					<CardTitle>AI 响应</CardTitle>
 					{activeSession.versions.length > 0 && <VersionSelector />}
 				</CardHeader>
 				<CardContent className="flex h-full items-center justify-center">
-					<p className="text-muted-foreground">No code in response</p>
+					<p className="text-muted-foreground">没有代码</p>
 				</CardContent>
 			</Card>
 		);
@@ -74,7 +74,7 @@ export default function ResultDisplay() {
 	return (
 		<Card className="h-full">
 			<CardHeader className="flex flex-row items-center justify-between pb-2">
-				<CardTitle>Code</CardTitle>
+				<CardTitle>代码</CardTitle>
 				<div className="flex flex-row items-center gap-2">
 					{activeVersion.response.usage && (
 						<ShowCost
@@ -106,9 +106,7 @@ function EmptyState() {
 	return (
 		<Card className="flex h-full items-center justify-center">
 			<CardContent className="p-6 text-center">
-				<p className="text-muted-foreground">
-					Submit a prompt to see AI response
-				</p>
+				<p className="text-muted-foreground">提交提示词以查看 AI 响应</p>
 			</CardContent>
 		</Card>
 	);
