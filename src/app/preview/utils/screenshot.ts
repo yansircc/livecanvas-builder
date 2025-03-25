@@ -54,18 +54,7 @@ export async function captureIframeScreenshot(
 
     // Wait for iframe to load
     await waitForIframeLoad(iframe);
-
-    // Try different strategies to capture the iframe content
-    try {
-      // First try using html2canvas directly on the iframe
-      return await captureIframeWithHtmlToImage(iframe);
-    } catch (error) {
-      console.error(
-        "Failed to capture with html-to-image, trying fallback method:",
-        error
-      );
-      return await captureIframeWithFallbackMethod(iframe);
-    }
+    return await captureIframeWithHtmlToImage(iframe);
   } catch (error) {
     console.error("Failed to capture iframe screenshot:", error);
     return null;
@@ -163,86 +152,5 @@ async function captureIframeWithHtmlToImage(
   } catch (error) {
     console.error("Failed to capture iframe with html-to-image:", error);
     throw error; // Rethrow to try the fallback method
-  }
-}
-
-/**
- * Fallback method to capture iframe using canvas
- * @param iframe The iframe element
- * @returns A Promise that resolves to a base64 data URL of the screenshot
- */
-async function captureIframeWithFallbackMethod(
-  iframe: HTMLIFrameElement
-): Promise<string | null> {
-  try {
-    console.log("Using fallback method to capture iframe");
-
-    // Create a canvas element
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-
-    if (!ctx) {
-      console.error("Could not get canvas context");
-      return null;
-    }
-
-    // Set canvas dimensions to match iframe
-    const width = iframe.clientWidth;
-    const height = iframe.clientHeight;
-
-    // Set the canvas size with device pixel ratio for better quality
-    const scale = window.devicePixelRatio || 1;
-    canvas.width = width * scale;
-    canvas.height = height * scale;
-    canvas.style.width = `${width}px`;
-    canvas.style.height = `${height}px`;
-
-    // Scale the context to match the device pixel ratio
-    ctx.scale(scale, scale);
-
-    // Set white background
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, width, height);
-
-    // Try to draw the iframe content to the canvas
-    try {
-      // Create a temporary img element
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-
-      // Use html2canvas on the iframe element itself
-      const iframeDataUrl = await htmlToImage.toJpeg(iframe, {
-        quality: 0.95,
-        backgroundColor: "#ffffff",
-        skipFonts: true,
-        fontEmbedCSS: "",
-        pixelRatio: scale,
-      });
-
-      if (!iframeDataUrl) {
-        throw new Error("Failed to create data URL from iframe");
-      }
-
-      // Return the data URL directly
-      return iframeDataUrl;
-    } catch (error) {
-      console.error("Failed to draw iframe to canvas:", error);
-
-      // Last resort: just take a screenshot of the iframe element itself
-      try {
-        return await htmlToImage.toJpeg(iframe, {
-          quality: 0.9,
-          backgroundColor: "#ffffff",
-          skipFonts: true,
-          fontEmbedCSS: "",
-        });
-      } catch (finalError) {
-        console.error("Final fallback method failed:", finalError);
-        return null;
-      }
-    }
-  } catch (error) {
-    console.error("Fallback capture method failed:", error);
-    return null;
   }
 }

@@ -289,20 +289,7 @@ export function usePreview() {
     // Get content from the store based on session and version IDs
     let content = getContentFromStore();
 
-    // If no content was found in the store, try legacy contentId approach
-    if (!content) {
-      const contentId = searchParams.get("id");
-      if (contentId) {
-        const storedContent = localStorage.getItem(
-          `preview_content_${contentId}`
-        );
-        if (storedContent) {
-          content = storedContent;
-        }
-      }
-    }
-
-    // If still no content found, use example
+    // If no content found, use example
     if (!content) {
       content = notFoundExample;
     }
@@ -334,7 +321,7 @@ export function usePreview() {
       // No theme store at all
       setShowCssMissingDialog(true);
     }
-  }, [getContentFromStore, detectDataTheme, searchParams]);
+  }, [getContentFromStore, detectDataTheme]);
 
   // Process HTML with current CSS
   useEffect(() => {
