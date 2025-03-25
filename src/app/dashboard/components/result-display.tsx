@@ -2,7 +2,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { calculateCost } from "@/lib/models";
 import { useLlmSessionStore } from "../hooks/llm-session-store";
 import { AdviceList } from "./advice-list";
 import { CopyButton } from "./copy-button";

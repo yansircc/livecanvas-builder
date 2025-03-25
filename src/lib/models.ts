@@ -54,7 +54,7 @@ export const LLM_LIST: Record<string, LLM> = {
 			const anthropic = createOpenRouter({
 				apiKey: env.OPENROUTER_API_KEY,
 			});
-			return anthropic(modelValue);
+			return anthropic(modelValue) as LanguageModel;
 		},
 	},
 	openai: {
@@ -102,7 +102,7 @@ export const LLM_LIST: Record<string, LLM> = {
 				apiKey: env.AI_HUB_MIX_API_KEY,
 				baseURL: env.AI_HUB_MIX_ENDPOINT,
 			});
-			return openai(modelValue);
+			return openai(modelValue) as LanguageModel;
 		},
 	},
 	google: {
@@ -133,7 +133,7 @@ export const LLM_LIST: Record<string, LLM> = {
 				apiKey: env.AI_HUB_MIX_API_KEY,
 				baseURL: env.AI_HUB_MIX_ENDPOINT,
 			});
-			return google(modelValue);
+			return google(modelValue) as LanguageModel;
 		},
 	},
 	deepseek: {
@@ -163,7 +163,7 @@ export const LLM_LIST: Record<string, LLM> = {
 				apiKey: env.AI_HUB_MIX_API_KEY,
 				baseURL: env.AI_HUB_MIX_ENDPOINT,
 			});
-			return deepseek(modelValue);
+			return deepseek(modelValue) as LanguageModel;
 		},
 	},
 	qwen: {
@@ -193,7 +193,7 @@ export const LLM_LIST: Record<string, LLM> = {
 				apiKey: env.AI_HUB_MIX_API_KEY,
 				baseURL: env.AI_HUB_MIX_ENDPOINT,
 			});
-			return qwen(modelValue);
+			return qwen(modelValue) as LanguageModel;
 		},
 	},
 };

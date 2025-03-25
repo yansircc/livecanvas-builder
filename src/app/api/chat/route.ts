@@ -2,24 +2,22 @@ import { auth } from "@/server/auth";
 import { chatGenerationTask } from "@/trigger/chat-generation";
 import type { ChatTaskResponse } from "@/types/chat";
 import { tasks } from "@trigger.dev/sdk/v3";
+import { PROMPT } from "./prompt";
 
 // Allow streaming responses up to 1 minutes
 export const maxDuration = 60;
+
 interface ChatRequestBody {
 	prompt: string;
 	withBackgroundInfo?: boolean;
 	history?: { prompt: string; response?: string }[];
 	modelId?: string;
-	callbackUrl?: string; // URL to call back with results (for long-running tasks)
-	// 精准模式选项，会额外消耗更多token来获取更精准的UI文档
+	callbackUrl?: string;
 	precisionMode?: boolean;
 }
 
 /**
  * 创建错误响应
- * @param message 错误消息
- * @param status HTTP状态码
- * @returns 错误响应
  */
 function createErrorResponse(message: string, status = 500): Response {
 	return new Response(
@@ -39,7 +37,6 @@ function createErrorResponse(message: string, status = 500): Response {
 
 /**
  * 获取DaisyUI教程
- * @link https://daisyui.com/llms.txt
  */
 async function fetchDaisyUIPrompt() {
 	try {
@@ -51,6 +48,51 @@ async function fetchDaisyUIPrompt() {
 	}
 }
 
+/**
+ * 构建上下文提示词
+ */
+function buildContextualPrompt(
+	prompt: string,
+	context?: string,
+	history?: { prompt: string; response?: string }[],
+	uiTutorial?: string,
+): string {
+	let contextualPrompt = PROMPT;
+
+	// Add user context if available
+	if (context?.trim()) {
+		contextualPrompt += `\n\n### User Context:\n${context}`;
+	}
+
+	// Add conversation history if available
+	if (history && history.length > 0) {
+		contextualPrompt += "\n\n### Previous Conversation Context:";
+		history.forEach(
+			(item: { prompt: string; response?: string }, index: number) => {
+				contextualPrompt += `\n\nUser Request ${index + 1}: ${item.prompt}`;
+				if (item.response) {
+					contextualPrompt += `\n\nYour Response ${
+						index + 1
+					}: You generated the following HTML code:\n\`\`\`html\n${
+						item.response
+					}\n\`\`\``;
+				}
+			},
+		);
+		contextualPrompt += "\n\n### Current Request:";
+	}
+
+	// Add daisyUI tutorial if available
+	if (uiTutorial) {
+		contextualPrompt += `\n\n### DaisyUI Tutorial:\n${uiTutorial}`;
+	}
+
+	// Add the current message
+	contextualPrompt += `\n${prompt}`;
+
+	return contextualPrompt;
+}
+
 export async function POST(req: Request) {
 	try {
 		const session = await auth();
@@ -58,12 +100,9 @@ export async function POST(req: Request) {
 			return createErrorResponse("Unauthorized", 401);
 		}
 
-		// 获取用户数据用于任务标记
 		const { user } = session;
-
 		const body = (await req.json()) as ChatRequestBody;
 
-		// Extract prompt, withBackgroundInfo, history, and modelId
 		const {
 			prompt,
 			withBackgroundInfo,
@@ -74,41 +113,42 @@ export async function POST(req: Request) {
 		} = body;
 
 		// Default model if none provided
-		const selectedModelId = modelId ?? "openai/gpt-4o-mini";
+		const selectedModelId = modelId ?? "openai/gpt-4-turbo-preview";
 
-		// 处理用户背景信息
+		// Process user background info
 		let context: string | undefined;
 		if (withBackgroundInfo && user.backgroundInfo) {
 			context = user.backgroundInfo;
 		}
 
-		// 如果启用精准模式，从API获取DaisyUI教程
+		// Fetch DaisyUI tutorial if precision mode is enabled
 		let uiTutorial: string | undefined;
 		if (precisionMode) {
 			uiTutorial = await fetchDaisyUIPrompt();
 			console.log("精准模式已启用，已加载DaisyUI文档");
 		}
 
-		// 所有请求都发送到 Trigger.dev 处理
+		// Build the complete prompt with all context
+		const processedPrompt = buildContextualPrompt(
+			prompt,
+			context,
+			history,
+			uiTutorial,
+		);
+
 		try {
-			// 触发 Trigger.dev 任务
+			// Trigger the task with only the processed prompt and model
 			const handle = await tasks.trigger(
 				chatGenerationTask.id,
 				{
-					prompt,
-					context,
-					history,
+					processedPrompt,
 					model: selectedModelId,
-					callbackUrl,
-					precisionMode,
-					uiTutorial,
 				},
 				{
 					tags: [user.email],
 				},
 			);
 
-			// 返回任务已开始的响应
 			const response: ChatTaskResponse = {
 				taskId: handle.id,
 				status: "processing",

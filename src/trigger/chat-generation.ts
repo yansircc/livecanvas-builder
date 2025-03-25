@@ -1,4 +1,3 @@
-import { PROMPT } from "@/app/api/chat/prompt";
 import { codeSchema } from "@/app/api/chat/schema";
 import type { CodeResponse } from "@/app/api/chat/schema";
 import {
@@ -6,8 +5,6 @@ import {
 	canModelOutputStructuredData,
 	parseModelId,
 } from "@/lib/models";
-import { extractAndParseJSON } from "@/utils/json-parser";
-import { replaceWithUnsplashImages } from "@/utils/replace-with-unsplash";
 import { logger, task } from "@trigger.dev/sdk/v3";
 import { generateObject, generateText } from "ai";
 import type { LanguageModel } from "ai";
@@ -15,38 +12,36 @@ import { z } from "zod";
 
 // Define the input schema for the task
 const chatInputSchema = z.object({
-	prompt: z.string(),
-	context: z.string().optional(),
-	history: z
-		.array(
-			z.object({
-				prompt: z.string(),
-				response: z.string().optional(),
-			}),
-		)
-		.optional(),
-	model: z.string().optional(),
-	callbackUrl: z.string().optional(),
-	// 精准模式选项
-	precisionMode: z.boolean().optional(),
-	// DaisyUI教程，从API传入
-	uiTutorial: z.string().optional(),
+	processedPrompt: z.string(), // The fully processed prompt including context and history
+	model: z.string(),
 });
 
-// Define the task using the task function from Trigger.dev
+// Define the output type for the task
+interface RawLLMResponse {
+	// For structured data output (from generateObject)
+	structuredOutput?: CodeResponse;
+	// For text output (from generateText)
+	textOutput?: string;
+	// Flag to indicate if the response is structured or text
+	isStructured: boolean;
+	// Usage stats
+	usage?: {
+		promptTokens: number;
+		completionTokens: number;
+		totalTokens: number;
+	};
+}
+
 export const chatGenerationTask = task({
 	id: "chat-generation-task",
-	// Set a maximum duration for the task
-	maxDuration: 300, // 5 minutes
-	run: async (payload: z.infer<typeof chatInputSchema>) => {
-		const { prompt, context, history, model, precisionMode, uiTutorial } =
-			payload;
-
-		// Default model if none provided
-		const selectedModelId = model ?? "anthropic/claude-3-7-sonnet-20250219";
+	maxDuration: 300,
+	run: async (
+		payload: z.infer<typeof chatInputSchema>,
+	): Promise<RawLLMResponse> => {
+		const { processedPrompt, model } = payload;
 
 		// Parse the model ID to get provider and model value
-		const { providerId, modelValue } = parseModelId(selectedModelId);
+		const { providerId, modelValue } = parseModelId(model);
 
 		// Get the provider from LLM_LIST
 		const provider = LLM_LIST[providerId];
@@ -56,31 +51,15 @@ export const chatGenerationTask = task({
 		}
 
 		// Check if the selected model can output structured data
-		const canOutputStructuredData =
-			canModelOutputStructuredData(selectedModelId);
-
-		// 精准模式日志记录
-		if (precisionMode && uiTutorial) {
-			logger.info("精准模式已启用，已接收DaisyUI文档");
-		}
-
-		// 构建上下文提示词
-		const contextualPrompt = buildContextualPrompt(
-			prompt,
-			context,
-			history,
-			uiTutorial,
-		);
+		const canOutputStructuredData = canModelOutputStructuredData(model);
 
 		try {
-			// Generate response without retry (trigger.dev handles retries)
-			const response = await generateResponse(
+			// Get raw response from LLM
+			return await generateRawResponse(
 				provider.model(modelValue),
-				contextualPrompt,
+				processedPrompt,
 				canOutputStructuredData,
 			);
-
-			return response;
 		} catch (error) {
 			logger.error("Generation failed", { error });
 			throw error;
@@ -89,83 +68,26 @@ export const chatGenerationTask = task({
 });
 
 /**
- * Build contextual prompt
+ * Generate raw response from LLM without post-processing
  */
-function buildContextualPrompt(
-	prompt: string,
-	context?: string,
-	history?: { prompt: string; response?: string }[],
-	uiTutorial?: string,
-): string {
-	let contextualPrompt = PROMPT;
-
-	// Add user context if available
-	if (context?.trim()) {
-		contextualPrompt += `\n\n### User Context:\n${context}`;
-	}
-
-	// Add conversation history if available
-	if (history && history.length > 0) {
-		contextualPrompt += "\n\n### Previous Conversation Context:";
-		history.forEach(
-			(item: { prompt: string; response?: string }, index: number) => {
-				contextualPrompt += `\n\nUser Request ${index + 1}: ${item.prompt}`;
-				if (item.response) {
-					contextualPrompt += `\n\nYour Response ${
-						index + 1
-					}: You generated the following HTML code:\n\`\`\`html\n${
-						item.response
-					}\n\`\`\``;
-				}
-			},
-		);
-		contextualPrompt += "\n\n### Current Request:";
-	}
-
-	// Add daisyUI tutorial if available
-	if (uiTutorial) {
-		contextualPrompt += `\n\n### DaisyUI Tutorial:\n${uiTutorial}`;
-	}
-
-	// Add the current message
-	contextualPrompt += `\n${prompt}`;
-
-	return contextualPrompt;
-}
-
-/**
- * Generate response without retry (trigger.dev handles retries)
- */
-async function generateResponse(
+async function generateRawResponse(
 	model: LanguageModel,
 	prompt: string,
 	canOutputStructuredData: boolean,
-): Promise<
-	CodeResponse & {
-		usage?: {
-			promptTokens: number;
-			completionTokens: number;
-			totalTokens: number;
-		};
-	}
-> {
+): Promise<RawLLMResponse> {
 	if (canOutputStructuredData) {
-		// Use generateObject
+		// Use generateObject for structured output
 		const { object, usage } = await generateObject({
 			model,
 			schema: codeSchema,
 			prompt,
 		});
 
-		logger.debug("Generated object", { object });
-
-		// Replace image placeholders
-		if (object.code) {
-			object.code = replaceWithUnsplashImages(object.code);
-		}
+		logger.debug("Generated structured object", { object });
 
 		return {
-			...object,
+			structuredOutput: object,
+			isStructured: true,
 			usage: usage
 				? {
 						promptTokens: usage.promptTokens,
@@ -176,7 +98,7 @@ async function generateResponse(
 		};
 	}
 
-	// Use generateText
+	// Use generateText for unstructured output
 	const { text, usage } = await generateText({
 		model,
 		prompt: `${prompt}
@@ -184,19 +106,11 @@ async function generateResponse(
 Please respond with a valid JSON object containing 'code' and 'advices' fields. Format your response as a JSON object without any markdown formatting.`,
 	});
 
-	// Parse response
-	logger.info("Raw response", { text });
-	const parsedObject = extractAndParseJSON<CodeResponse>(text);
-
-	if (!parsedObject?.code) {
-		throw new Error("Failed to parse LLM response as JSON");
-	}
-
-	// Replace image placeholders
-	parsedObject.code = replaceWithUnsplashImages(parsedObject.code);
+	logger.info("Generated raw text", { text });
 
 	return {
-		...parsedObject,
+		textOutput: text,
+		isStructured: false,
 		usage: usage
 			? {
 					promptTokens: usage.promptTokens,

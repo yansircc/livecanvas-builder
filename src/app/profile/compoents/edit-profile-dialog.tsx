@@ -207,7 +207,7 @@ export function EditProfileDialog({ session }: EditProfileDialogProps) {
 										name="backgroundInfo"
 										value={formData.backgroundInfo || ""}
 										onChange={handleInputChange}
-										className="min-h-[120px] resize-y"
+										className="h-[240px] resize-none overflow-auto"
 										placeholder="添加您的背景信息，以便AI更好地理解您的需求"
 										rows={10}
 										maxLength={MAX_BACKGROUND_LENGTH}

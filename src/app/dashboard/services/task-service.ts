@@ -1,35 +1,62 @@
+import { tryCatch } from "@/lib/try-catch";
 import type { ChatTaskResponse } from "@/types/chat";
 import type { TaskStatusResponse } from "@/types/task";
+import { extractAndParseJSON } from "@/utils/json-parser";
+import { replaceLucideIcons } from "@/utils/replace-with-lucide-icon";
+import { replaceWithUnsplashImages } from "@/utils/replace-with-unsplash";
 import type { TokenUsage } from "../hooks/llm-session-store";
 
-/**
- * Submit a chat task to the API
- */
-export async function submitChatTask(params: {
+interface ChatTaskParams {
 	prompt: string;
 	history?: { prompt: string; response?: string }[];
 	modelId?: string;
 	withBackgroundInfo?: boolean;
 	precisionMode?: boolean;
-}): Promise<string> {
-	const response = await fetch("/api/chat", {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-		},
-		body: JSON.stringify(params),
-	});
+}
 
-	if (!response.ok) {
-		const errorData = await response.json().catch(() => ({}));
+interface RawLLMResponse {
+	structuredOutput?: ChatTaskResponse;
+	textOutput?: string;
+	isStructured: boolean;
+	usage?: {
+		promptTokens: number;
+		completionTokens: number;
+		totalTokens: number;
+	};
+}
+
+interface ProcessedLLMResponse {
+	code: string;
+	advices: string[];
+	usage?: TokenUsage;
+}
+
+/**
+ * Submit a chat task to the API
+ */
+export async function submitChatTask(params: ChatTaskParams): Promise<string> {
+	const result = await tryCatch(
+		fetch("/api/chat", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(params),
+		}),
+	);
+
+	if (result.error) {
+		throw new Error(`Failed to submit task: ${result.error.message}`);
+	}
+
+	if (!result.data.ok) {
+		const errorData = await result.data.json().catch(() => ({}));
 		throw new Error(
-			`Failed to submit task: ${response.status} ${response.statusText}${
+			`Failed to submit task: ${result.data.status} ${result.data.statusText}${
 				errorData.error ? ` - ${errorData.error}` : ""
 			}`,
 		);
 	}
 
-	const data = (await response.json()) as ChatTaskResponse;
+	const data = (await result.data.json()) as ChatTaskResponse;
 
 	if (!data.taskId) {
 		throw new Error("No task ID returned from the server");
@@ -39,110 +66,129 @@ export async function submitChatTask(params: {
 }
 
 /**
+ * Process the raw LLM response into a standardized format
+ */
+async function processLLMResponse(
+	rawResponse: RawLLMResponse,
+): Promise<ProcessedLLMResponse> {
+	if (rawResponse.isStructured && rawResponse.structuredOutput) {
+		const { code, advices, usage } = rawResponse.structuredOutput;
+		return {
+			code: code
+				? replaceWithUnsplashImages(replaceLucideIcons(code))
+				: "<!-- No code generated -->",
+			advices: advices || [],
+			usage,
+		};
+	}
+
+	if (!rawResponse.isStructured && rawResponse.textOutput) {
+		const parsedResult = await tryCatch(
+			Promise.resolve(
+				extractAndParseJSON<ChatTaskResponse>(rawResponse.textOutput),
+			),
+		);
+
+		if (parsedResult.error || !parsedResult.data?.code) {
+			return {
+				code: "<!-- Error: Failed to parse LLM response -->",
+				advices: ["There was an error processing the LLM response"],
+				usage: rawResponse.usage,
+			};
+		}
+
+		return {
+			code: replaceWithUnsplashImages(
+				replaceLucideIcons(parsedResult.data.code),
+			),
+			advices: parsedResult.data.advices || [],
+			usage: rawResponse.usage,
+		};
+	}
+
+	return {
+		code: "<!-- Error: Invalid LLM response format -->",
+		advices: ["Invalid LLM response format"],
+		usage: rawResponse.usage,
+	};
+}
+
+/**
  * Poll for task status until completion or error
  */
 export async function pollTaskStatus(
 	taskId: string,
 	intervalMs = 3000,
 	maxAttempts = 100,
-): Promise<{
-	code: string;
-	advices: string[];
-	usage?: TokenUsage;
-}> {
+): Promise<ProcessedLLMResponse> {
 	let attempts = 0;
 
-	// Create a promise that resolves with the task result or rejects with an error
-	return new Promise((resolve, reject) => {
-		const poll = async () => {
-			if (attempts >= maxAttempts) {
-				reject(new Error("Max polling attempts reached"));
-				return;
+	const pollOnce = async (): Promise<ProcessedLLMResponse> => {
+		if (attempts >= maxAttempts) {
+			throw new Error("Max polling attempts reached");
+		}
+
+		attempts++;
+
+		const result = await tryCatch(
+			fetch(`/api/task-status?taskId=${taskId}`, {
+				headers: { "Cache-Control": "no-cache" },
+			}),
+		);
+
+		if (result.error) {
+			throw new Error(`Network error while polling: ${result.error.message}`);
+		}
+
+		if (!result.data.ok) {
+			if (result.data.status === 404) {
+				// Task not found, continue polling
+				await new Promise((resolve) => setTimeout(resolve, intervalMs));
+				return pollOnce();
 			}
 
-			attempts++;
+			const errorData = await result.data.json().catch(() => ({}));
+			throw new Error(
+				`API error: ${result.data.status} ${result.data.statusText}${
+					errorData.error ? ` - ${errorData.error}` : ""
+				}`,
+			);
+		}
 
-			try {
-				const response = await fetch(`/api/task-status?taskId=${taskId}`, {
-					headers: {
-						"Cache-Control": "no-cache",
-					},
-				});
+		const data = (await result.data.json()) as TaskStatusResponse;
 
-				if (!response.ok) {
-					if (response.status === 404) {
-						// Task not found, wait and retry
-						setTimeout(poll, intervalMs);
-						return;
-					}
+		switch (data.status) {
+			case "processing":
+				await new Promise((resolve) => setTimeout(resolve, intervalMs));
+				return pollOnce();
 
-					const errorData = await response.json().catch(() => ({}));
-					throw new Error(
-						`API error: ${response.status} ${response.statusText}${
-							errorData.error ? ` - ${errorData.error}` : ""
-						}`,
-					);
+			case "error":
+				throw new Error(
+					`Task failed: ${
+						typeof data.error === "string"
+							? data.error
+							: JSON.stringify(data.error)
+					}`,
+				);
+
+			case "completed": {
+				if (!data.output) {
+					throw new Error("Task completed but no output received");
 				}
 
-				const data = (await response.json()) as TaskStatusResponse;
+				const rawOutput: RawLLMResponse =
+					typeof data.output === "string"
+						? JSON.parse(data.output)
+						: (data.output as RawLLMResponse);
 
-				// Check task status
-				if (data.status === "processing") {
-					// Still processing, continue polling
-					setTimeout(poll, intervalMs);
-					return;
-				}
-
-				if (data.status === "error") {
-					// Task failed
-					reject(
-						new Error(
-							`Task failed: ${
-								typeof data.error === "string"
-									? data.error
-									: JSON.stringify(data.error)
-							}`,
-						),
-					);
-					return;
-				}
-
-				if (data.status === "completed") {
-					// Task completed, check output
-					if (!data.output) {
-						reject(new Error("Task completed but no output received"));
-						return;
-					}
-
-					const { code, advices, usage } = JSON.parse(
-						data.output,
-					) as ChatTaskResponse;
-
-					// Return the result
-					resolve({
-						code,
-						advices: advices || [],
-						usage: usage
-							? {
-									promptTokens: usage.promptTokens,
-									completionTokens: usage.completionTokens,
-									totalTokens: usage.totalTokens,
-								}
-							: undefined,
-					});
-					return;
-				}
-
-				// Unexpected status, retry
-				setTimeout(poll, intervalMs);
-			} catch (error) {
-				// Network error or other unexpected error, retry
-				console.error("Error polling task status:", error);
-				setTimeout(poll, intervalMs);
+				return processLLMResponse(rawOutput);
 			}
-		};
 
-		// Start polling
-		poll();
-	});
+			default:
+				await new Promise((resolve) => setTimeout(resolve, intervalMs));
+				return pollOnce();
+		}
+	};
+
+	return pollOnce();
 }
