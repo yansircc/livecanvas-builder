@@ -1,9 +1,9 @@
 "use server";
 
 import { auth } from "@/server/auth";
+import { addAuthCacheTags } from "@/server/cache";
 import type { Project } from "@/types/project";
 import type { Session } from "next-auth";
-import { unstable_cacheTag as cacheTag, revalidateTag } from "next/cache";
 import { Suspense } from "react";
 import { getAllUserInteractions, getPublishedProjects } from "./actions";
 import { ClientGallery } from "./components/client-gallery";
@@ -19,9 +19,8 @@ interface UserInteraction {
  * @param sessionData 会话数据
  * @returns 返回会话数据
  */
-async function getCachedSessionData(sessionData: Session | null) {
-  "use cache";
-  cacheTag("auth");
+async function getCachedSessionData(sessionData: Session) {
+  addAuthCacheTags(sessionData.user.id);
 
   // 模拟一个加载延迟
   await new Promise((resolve) => setTimeout(resolve, 1500));
@@ -30,8 +29,12 @@ async function getCachedSessionData(sessionData: Session | null) {
 
 // This is the client boundary component that will be wrapped in Suspense
 async function GalleryContent() {
+  const sessionData = await auth();
+  if (!sessionData) {
+    return null;
+  }
   // Get user session in parallel with data fetching
-  const sessionPromise = getCachedSessionData(await auth());
+  const sessionPromise = getCachedSessionData(sessionData);
   const projectsPromise = getPublishedProjects();
 
   // Wait for all data to be fetched

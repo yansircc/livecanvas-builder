@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { auth } from "@/server/auth";
-import { unstable_cacheTag as cacheTag } from "next/cache";
+import { addProjectCacheTags, addUserCacheTags } from "@/server/cache";
 import { Suspense } from "react";
 import { getUserProjects } from "../actions/project";
 import MyProjectsClient from "./client";
@@ -18,7 +18,10 @@ import MyProjectsClient from "./client";
  */
 async function getCachedProjects(userId: string) {
   "use cache";
-  cacheTag(`projects:${userId}`);
+
+  // Add cache tags for user and their projects
+  addUserCacheTags(userId);
+  addProjectCacheTags("list", userId);
 
   try {
     const result = await getUserProjects(userId);

@@ -7,8 +7,8 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { auth } from "@/server/auth";
+import { addAuthCacheTags } from "@/server/cache";
 import type { Session } from "next-auth";
-import { unstable_cacheTag as cacheTag } from "next/cache";
 import { Suspense } from "react";
 import { EditProfileDialog } from "./compoents/edit-profile-dialog";
 
@@ -17,9 +17,8 @@ import { EditProfileDialog } from "./compoents/edit-profile-dialog";
  * @param sessionData 会话数据
  * @returns 返回会话数据
  */
-async function getCachedSessionData(sessionData: Session | null) {
-  "use cache";
-  cacheTag("auth");
+async function getCachedSessionData(sessionData: Session) {
+  addAuthCacheTags(sessionData.user.id);
 
   // 模拟一个加载延迟
   await new Promise((resolve) => setTimeout(resolve, 1500));
@@ -28,6 +27,9 @@ async function getCachedSessionData(sessionData: Session | null) {
 
 async function SusppenseEditProfileDialog() {
   const sessionData = await auth();
+  if (!sessionData) {
+    return null;
+  }
   const session = await getCachedSessionData(sessionData);
 
   return <EditProfileDialog session={session} />;
@@ -35,6 +37,9 @@ async function SusppenseEditProfileDialog() {
 
 async function SuspenseUserName() {
   const sessionData = await auth();
+  if (!sessionData) {
+    return null;
+  }
   const session = await getCachedSessionData(sessionData);
 
   return (
@@ -46,6 +51,9 @@ async function SuspenseUserName() {
 
 async function SuspenseUserEmail() {
   const sessionData = await auth();
+  if (!sessionData) {
+    return null;
+  }
   const session = await getCachedSessionData(sessionData);
 
   return (
@@ -57,6 +65,9 @@ async function SuspenseUserEmail() {
 
 async function SuspenseUserBackgroundInfo() {
   const sessionData = await auth();
+  if (!sessionData) {
+    return null;
+  }
   const session = await getCachedSessionData(sessionData);
 
   if (!session?.user?.backgroundInfo) {

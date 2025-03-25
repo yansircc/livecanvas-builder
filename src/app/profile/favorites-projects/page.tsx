@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { auth } from "@/server/auth";
-import { unstable_cacheTag as cacheTag } from "next/cache";
+import { addProjectInteractionCacheTags } from "@/server/cache";
 import { Suspense } from "react";
 import { getUserFavorites } from "../actions/project";
 import FavoriteProjectsClient from "./client";
@@ -18,7 +18,9 @@ import FavoriteProjectsClient from "./client";
  */
 async function getCachedFavorites(userId: string) {
   "use cache";
-  cacheTag(`favorites:${userId}`);
+
+  // Add cache tags for user's favorites
+  addProjectInteractionCacheTags(userId, userId, "FAVORITED");
 
   try {
     const result = await getUserFavorites(userId);

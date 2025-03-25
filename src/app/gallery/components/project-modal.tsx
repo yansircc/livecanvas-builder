@@ -77,7 +77,7 @@ export function ProjectModal({
     ? project.tags
         .split(",")
         .map((tag) => tag.trim())
-        .filter(Boolean)
+        .filter((tag) => tag.length > 0)
     : [];
 
   return (

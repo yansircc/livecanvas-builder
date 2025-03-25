@@ -1,17 +1,24 @@
 "use server";
 
 import { tryCatch } from "@/lib/try-catch";
+import {
+  addProjectCacheTags,
+  addProjectInteractionCacheTags,
+  revalidateProjectCache,
+  revalidateProjectInteraction,
+} from "@/server/cache";
 import { db } from "@/server/db";
 import { favorite, project, purchase, user } from "@/server/db/schema";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { unstable_cacheTag as cacheTag, revalidateTag } from "next/cache";
+import { revalidateTag } from "next/cache";
 
 // Get all published projects with caching
 export const getPublishedProjects = async () => {
   "use cache";
 
-  cacheTag("projects");
+  // Add cache tag for public project list
+  addProjectCacheTags("list");
 
   const result = await tryCatch(
     (async () => {
@@ -21,6 +28,11 @@ export const getPublishedProjects = async () => {
         .from(project)
         .where(eq(project.isPublished, true))
         .orderBy(desc(project.createdAt));
+
+      // Add cache tags for each project
+      for (const p of projects) {
+        addProjectCacheTags(p.id);
+      }
 
       // Fetch user information for each project
       const projectsWithData = await Promise.all(
@@ -59,7 +71,7 @@ export const getPublishedProjects = async () => {
 export const getProjectById = async (projectId: string) => {
   "use cache";
 
-  cacheTag(`project:${projectId}`);
+  addProjectCacheTags(projectId);
 
   const result = await tryCatch(
     (async () => {
@@ -149,9 +161,7 @@ export async function purchaseProject(projectId: string, userId: string) {
     }
 
     // Revalidate caches
-    revalidateTag(`project:${projectId}`);
-    revalidateTag("projects");
-    revalidateTag(`user:interactions:${userId}`);
+    revalidateProjectInteraction(projectId, userId, "PURCHASED");
 
     return { success: true, purchased: false };
   }
@@ -187,9 +197,7 @@ export async function purchaseProject(projectId: string, userId: string) {
   }
 
   // Revalidate caches
-  revalidateTag(`project:${projectId}`);
-  revalidateTag("projects");
-  revalidateTag(`user:interactions:${userId}`);
+  revalidateProjectInteraction(projectId, userId, "PURCHASED");
 
   return { success: true, purchased: true };
 }
@@ -223,10 +231,7 @@ export async function favoriteProject(projectId: string, userId: string) {
     }
 
     // Revalidate caches
-    revalidateTag(`project:${projectId}`);
-    revalidateTag("projects");
-    revalidateTag(`user:interactions:${userId}`);
-    revalidateTag(`user:favorites:${userId}`);
+    revalidateProjectInteraction(projectId, userId, "FAVORITED");
 
     return { success: true, favorited: false };
   }
@@ -247,10 +252,7 @@ export async function favoriteProject(projectId: string, userId: string) {
   }
 
   // Revalidate caches
-  revalidateTag(`project:${projectId}`);
-  revalidateTag("projects");
-  revalidateTag(`user:interactions:${userId}`);
-  revalidateTag(`user:favorites:${userId}`);
+  revalidateProjectInteraction(projectId, userId, "FAVORITED");
 
   return { success: true, favorited: true };
 }
@@ -297,7 +299,9 @@ export const getUserInteractions = async (
 export const getAllUserInteractions = async (userId: string) => {
   "use cache";
 
-  cacheTag(`user:interactions:${userId}`);
+  // Add cache tags for user's interaction lists
+  addProjectInteractionCacheTags(userId, userId, "PURCHASED");
+  addProjectInteractionCacheTags(userId, userId, "FAVORITED");
 
   const result = await tryCatch(
     (async () => {
@@ -360,8 +364,5 @@ export const getAllUserInteractions = async (userId: string) => {
     return { success: false, error: "Failed to get all user interactions" };
   }
 
-  return {
-    success: true,
-    data: result.data,
-  };
+  return { success: true, data: result.data };
 };

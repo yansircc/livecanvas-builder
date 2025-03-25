@@ -34,6 +34,7 @@ export async function createProject(
         description: data.description || "",
         htmlContent: data.htmlContent,
         thumbnail: data.thumbnail || "",
+        tags: data.tags || "",
         isPublished: data.isPublished,
         userId,
         createdAt: new Date(),
@@ -48,7 +49,7 @@ export async function createProject(
   }
 
   revalidateTag(`user:projects:${userId}`);
-  revalidateTag("projects");
+  revalidateTag(`project:${projectId}`);
 
   if (data.isPublished) {
     return { success: true, data: newProject[0], redirect: "/gallery" };

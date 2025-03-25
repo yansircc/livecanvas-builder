@@ -2,10 +2,17 @@
 
 import { tryCatch } from "@/lib/try-catch";
 import { deleteFromVercelBlob } from "@/lib/vercel-blob";
+import {
+  addProjectCacheTags,
+  addProjectInteractionCacheTags,
+  addUserCacheTags,
+  revalidateProjectCache,
+  revalidateProjectInteraction,
+  revalidateUserCache,
+} from "@/server/cache";
 import { db } from "@/server/db";
 import { favorite, project, user } from "@/server/db/schema";
 import { and, desc, eq, inArray } from "drizzle-orm";
-import { unstable_cacheTag as cacheTag, revalidateTag } from "next/cache";
 import { z } from "zod";
 
 const profileSchema = z.object({
@@ -20,11 +27,13 @@ export type ProfileFormData = z.infer<typeof profileSchema>;
 export const getUserProjects = async (userId: string | undefined) => {
   "use cache";
 
-  cacheTag(`user:projects:${userId}`);
-
   if (!userId) {
     return { success: false, error: "请先登录" };
   }
+
+  // Add cache tags for user's project list
+  addUserCacheTags(userId);
+  addProjectCacheTags("list", userId);
 
   // Get the user's projects
   const { data: userProjects, error: projectsError } = await tryCatch(
@@ -42,6 +51,11 @@ export const getUserProjects = async (userId: string | undefined) => {
 
   if (!userProjects.length) {
     return { success: true, data: [] };
+  }
+
+  // Add cache tags for each project
+  for (const p of userProjects) {
+    addProjectCacheTags(p.id);
   }
 
   // Map projects with user info
@@ -102,8 +116,9 @@ export async function deleteProject(projectId: string, userId: string) {
     return { success: false, error: "Failed to delete project" };
   }
 
-  // Revalidate cache
-  revalidateTag(`user:projects:${userId}`);
+  // Revalidate caches
+  revalidateProjectCache(projectId);
+  revalidateUserCache(userId);
 
   return { success: true };
 }
@@ -152,8 +167,11 @@ export async function updateProject(
     return { success: false, error: "Failed to update project" };
   }
 
-  // Revalidate cache
-  revalidateTag(`user:projects:${userId}`);
+  // Revalidate caches
+  revalidateProjectCache(projectId);
+  if (data.isPublished !== undefined) {
+    revalidateUserCache(userId);
+  }
 
   return { success: true };
 }
@@ -162,7 +180,9 @@ export async function updateProject(
 export const getUserFavorites = async (userId: string) => {
   "use cache";
 
-  cacheTag(`user:favorites:${userId}`);
+  // Add cache tags for user's favorites and interactions
+  addUserCacheTags(userId);
+  addProjectInteractionCacheTags(userId, userId, "FAVORITED");
 
   // Get user favorites
   const { data: userFavorites, error: favoritesError } = await tryCatch(
@@ -203,6 +223,11 @@ export const getUserFavorites = async (userId: string) => {
     return { success: true, data: [] };
   }
 
+  // Add cache tags for each project
+  for (const p of projectsData) {
+    addProjectCacheTags(p.id);
+  }
+
   // Get all users data in a single query
   const userIds = projectsData.map((p) => p.userId).filter(Boolean);
   const { data: usersData, error: usersError } = await tryCatch(
@@ -219,6 +244,11 @@ export const getUserFavorites = async (userId: string) => {
   if (usersError) {
     console.error("Failed to get users data:", usersError);
     return { success: false, error: "Failed to get users data" };
+  }
+
+  // Add cache tags for each user
+  for (const u of usersData || []) {
+    addUserCacheTags(u.id);
   }
 
   // Create lookup map for users

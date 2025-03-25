@@ -1,18 +1,13 @@
 import { auth } from "@/server/auth";
+import { addAuthCacheTags } from "@/server/cache";
 import type { Session } from "next-auth";
-import {
-  unstable_cacheLife as cacheLife,
-  unstable_cacheTag as cacheTag,
-  revalidateTag,
-} from "next/cache";
 import { Suspense } from "react";
 import LlmForm from "./components/llm-form";
 import ResultDisplay from "./components/result-display";
 import SessionTabs from "./components/session-tabs";
 
-async function getCachedSessionData(sessionData: Session | null) {
-  "use cache";
-  cacheTag("auth");
+async function getCachedSessionData(sessionData: Session) {
+  addAuthCacheTags(sessionData.user.id);
 
   // Simulate a loading delay
   await new Promise((resolve) => setTimeout(resolve, 1500));
@@ -21,6 +16,9 @@ async function getCachedSessionData(sessionData: Session | null) {
 
 async function SuspenseLlmForm() {
   const sessionData = await auth();
+  if (!sessionData) {
+    return null;
+  }
   const session = await getCachedSessionData(sessionData);
   return <LlmForm session={session} />;
 }
