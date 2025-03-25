@@ -1,0 +1,17 @@
+# Check lockfile consistency
+bun install --dry-run --frozen-lockfile >/dev/null 2>&1 || (
+  echo "❌ Lockfile is out of sync" 
+  exit 1
+)
+
+# Run biome check
+bun check || (
+  echo "❌ biome check failed" 
+  exit 1
+)
+
+# Run unit test
+bun test || (
+  echo "❌ unit test failed" 
+  exit 1
+)
