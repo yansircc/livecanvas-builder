@@ -9,10 +9,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import type { Project } from "@/types/project";
 import { Eye, MoreHorizontal, Search } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
-import type { Project } from "../types";
 
 interface FavoriteProjectsClientProps {
   initialProjects: Project[];

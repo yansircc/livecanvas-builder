@@ -9,12 +9,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import type { Project } from "@/types/project";
 import { Edit, Eye, MoreHorizontal, Search, Trash } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
 import { toast } from "sonner";
 import { deleteProject, updateProject } from "../actions/project";
-import type { Project } from "../types";
 import { EditProjectDialog } from "./edit-project-dialog";
 
 interface MyProjectsClientProps {

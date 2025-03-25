@@ -3,7 +3,7 @@
 import { tryCatch } from "@/lib/try-catch";
 import { deleteFromVercelBlob } from "@/lib/vercel-blob";
 import { db } from "@/server/db";
-import { favorite, project, tag, user } from "@/server/db/schema";
+import { favorite, project, user } from "@/server/db/schema";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { unstable_cacheTag as cacheTag, revalidateTag } from "next/cache";
 import { z } from "zod";
@@ -44,42 +44,9 @@ export const getUserProjects = async (userId: string | undefined) => {
     return { success: true, data: [] };
   }
 
-  // Get tags for all projects in a single query
-  const { data: allTags, error: tagsError } = await tryCatch(
-    db
-      .select({
-        projectId: tag.projectId,
-        name: tag.name,
-      })
-      .from(tag)
-      .where(
-        inArray(
-          tag.projectId,
-          userProjects.map((p) => p.id)
-        )
-      )
-  );
-
-  if (tagsError) {
-    console.error("Failed to get project tags:", tagsError);
-    return { success: false, error: "Failed to get project tags" };
-  }
-
-  // Group tags by project ID
-  const tagsByProject = (allTags || []).reduce((acc, tag) => {
-    const projectId = tag?.projectId;
-    const name = tag?.name;
-    if (projectId && name) {
-      acc[projectId] = acc[projectId] || [];
-      acc[projectId].push(name);
-    }
-    return acc;
-  }, {} as Record<string, string[]>);
-
-  // Map projects with their tags
-  const projectsWithTags = userProjects.map((p) => ({
+  // Map projects with user info
+  const projectsWithData = userProjects.map((p) => ({
     ...p,
-    tags: tagsByProject[p.id]?.join(", ") || null,
     user: {
       id: userId,
       name: "",
@@ -87,7 +54,7 @@ export const getUserProjects = async (userId: string | undefined) => {
     },
   }));
 
-  return { success: true, data: projectsWithTags };
+  return { success: true, data: projectsWithData };
 };
 
 /**
@@ -254,38 +221,12 @@ export const getUserFavorites = async (userId: string) => {
     return { success: false, error: "Failed to get users data" };
   }
 
-  // Get all tags in a single query
-  const { data: tagsData, error: tagsError } = await tryCatch(
-    db
-      .select({
-        projectId: tag.projectId,
-        name: tag.name,
-      })
-      .from(tag)
-      .where(inArray(tag.projectId, projectIds))
-  );
-
-  if (tagsError) {
-    console.error("Failed to get project tags:", tagsError);
-    return { success: false, error: "Failed to get project tags" };
-  }
-
-  // Create lookup maps for efficient access
+  // Create lookup map for users
   const userMap = new Map(usersData?.map((u) => [u.id, u]) || []);
-  const tagMap = (tagsData || []).reduce((acc, tag) => {
-    const projectId = tag?.projectId;
-    const name = tag?.name;
-    if (projectId && name) {
-      acc[projectId] = acc[projectId] || [];
-      acc[projectId].push(name);
-    }
-    return acc;
-  }, {} as Record<string, string[]>);
 
   // Combine all data
   const favoriteProjects = projectsData.map((p) => ({
     ...p,
-    tags: tagMap[p.id]?.join(", ") || null,
     user: userMap.get(p.userId) || undefined,
   }));
 

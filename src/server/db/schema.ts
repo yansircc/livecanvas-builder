@@ -156,6 +156,7 @@ export const project = createTable(
     description: d.text(),
     htmlContent: d.text().notNull(),
     thumbnail: d.varchar({ length: 255 }),
+    tags: d.varchar({ length: 255 }).default(""),
     purchaseCount: d.integer().notNull().default(0),
     isPublished: d.boolean().notNull().default(false),
     userId: d
@@ -182,7 +183,6 @@ export const projectRelation = relations(project, ({ one, many }) => ({
   user: one(user, { fields: [project.userId], references: [user.id] }),
   purchase: many(purchase),
   favorite: many(favorite),
-  tag: many(tag),
 }));
 
 export const purchase = createTable(
@@ -254,35 +254,4 @@ export const favoriteRelation = relations(favorite, ({ one }) => ({
     references: [project.id],
   }),
   user: one(user, { fields: [favorite.userId], references: [user.id] }),
-}));
-
-export const tag = createTable(
-  "tag",
-  (d) => ({
-    id: d
-      .varchar({ length: 255 })
-      .notNull()
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
-    name: d.varchar({ length: 255 }).notNull(),
-    projectId: d
-      .varchar({ length: 255 })
-      .notNull()
-      .references(() => project.id, { onDelete: "cascade" }),
-    createdAt: d
-      .timestamp({ withTimezone: true })
-      .default(sql`CURRENT_TIMESTAMP`)
-      .notNull(),
-  }),
-  (t) => [
-    index("tag_name_idx").on(t.name),
-    index("tag_project_id_idx").on(t.projectId),
-  ]
-);
-
-export const tagRelation = relations(tag, ({ one }) => ({
-  project: one(project, {
-    fields: [tag.projectId],
-    references: [project.id],
-  }),
 }));

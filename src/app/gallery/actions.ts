@@ -2,7 +2,7 @@
 
 import { tryCatch } from "@/lib/try-catch";
 import { db } from "@/server/db";
-import { favorite, project, purchase, tag, user } from "@/server/db/schema";
+import { favorite, project, purchase, user } from "@/server/db/schema";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { unstable_cacheTag as cacheTag, revalidateTag } from "next/cache";
@@ -22,7 +22,7 @@ export const getPublishedProjects = async () => {
         .where(eq(project.isPublished, true))
         .orderBy(desc(project.createdAt));
 
-      // Fetch user information and tags for each project
+      // Fetch user information for each project
       const projectsWithData = await Promise.all(
         projects.map(async (p) => {
           // Fetch user information
@@ -36,21 +36,8 @@ export const getPublishedProjects = async () => {
             .where(eq(user.id, p.userId))
             .limit(1);
 
-          // Fetch tags for this project
-          const tagData = await db
-            .select({
-              name: tag.name,
-            })
-            .from(tag)
-            .where(eq(tag.projectId, p.id));
-
-          // Convert tags to comma-separated string
-          const tagsString =
-            tagData.length > 0 ? tagData.map((t) => t.name).join(", ") : null;
-
           return {
             ...p,
-            tags: tagsString, // Add tags as a string
             user: userData.length > 0 ? userData[0] : undefined,
           };
         })
@@ -97,21 +84,8 @@ export const getProjectById = async (projectId: string) => {
         .where(eq(user.id, projectData[0].userId))
         .limit(1);
 
-      // Fetch tags for this project
-      const tagData = await db
-        .select({
-          name: tag.name,
-        })
-        .from(tag)
-        .where(eq(tag.projectId, projectId));
-
-      // Convert tags to comma-separated string
-      const tagsString =
-        tagData.length > 0 ? tagData.map((t) => t.name).join(", ") : null;
-
       return {
         ...projectData[0],
-        tags: tagsString, // Add tags as a string
         user: userData.length > 0 ? userData[0] : undefined,
       };
     })()
