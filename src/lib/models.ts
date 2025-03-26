@@ -5,6 +5,7 @@ import { createAnthropic } from "@ai-sdk/anthropic";
 import { createDeepSeek } from "@ai-sdk/deepseek";
 import { createOpenAI } from "@ai-sdk/openai";
 import { get, has } from "@vercel/edge-config";
+import type { LanguageModelV1 } from "ai";
 import { createQwen } from "qwen-ai-provider";
 
 export type AvailableProviderId =
@@ -99,28 +100,31 @@ const getModelList = async () => {
 	}
 };
 
-const getModel = async (providerId: AvailableProviderId, modelId: string) => {
+const getModel = async (
+	providerId: AvailableProviderId,
+	modelId: AvailableModelId,
+) => {
 	try {
 		switch (providerId) {
 			case "anthropic": {
 				const anthropic = createAnthropic(AHM_CONFIG);
-				return anthropic(modelId);
+				return anthropic(modelId) as LanguageModelV1;
 			}
 			case "openai": {
 				const openai = createOpenAI(AHM_CONFIG);
-				return openai(modelId);
+				return openai(modelId) as LanguageModelV1;
 			}
 			case "deepseek": {
 				const deepseek = createDeepSeek(AHM_CONFIG);
-				return deepseek(modelId);
+				return deepseek(modelId) as LanguageModelV1;
 			}
 			case "qwen": {
 				const qwen = createQwen(AHM_CONFIG);
-				return qwen(modelId);
+				return qwen(modelId) as LanguageModelV1;
 			}
 			case "google": {
 				const google = createOpenAI(AHM_CONFIG);
-				return google(modelId);
+				return google(modelId) as LanguageModelV1;
 			}
 			default: {
 				throw new Error(`Unknown provider: ${providerId}`);

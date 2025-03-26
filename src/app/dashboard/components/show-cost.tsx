@@ -20,8 +20,8 @@ interface ShowCostProps {
 				completionTokens: number;
 		  }
 		| undefined;
-	providerId: AvailableProviderId;
-	modelId: AvailableModelId;
+	providerId: AvailableProviderId | undefined;
+	modelId: AvailableModelId | undefined;
 	modelList: ModelList;
 }
 
@@ -31,6 +31,8 @@ export default function ShowCost({
 	modelId,
 	modelList,
 }: ShowCostProps) {
+	if (!providerId || !modelId) return null;
+
 	const cost = calculateCost(usage, modelList, providerId, modelId);
 	if (!usage || !cost) return null;
 

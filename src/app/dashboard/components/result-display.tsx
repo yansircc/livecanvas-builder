@@ -85,8 +85,8 @@ export default function ResultDisplay({ modelList }: ResultDisplayProps) {
 					{activeVersion.response.usage && (
 						<ShowCost
 							usage={activeVersion.response.usage}
-							modelId={activeVersion.input.modelId || ""}
-							providerId={activeVersion.input.providerId || ""}
+							modelId={activeVersion.input.modelId}
+							providerId={activeVersion.input.providerId}
 							modelList={modelList}
 						/>
 					)}
