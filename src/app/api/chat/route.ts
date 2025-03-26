@@ -1,4 +1,8 @@
-import { type ModelProvider, isValidModel } from "@/lib/models";
+import {
+	type AvailableModelId,
+	type AvailableProviderId,
+	isValidModel,
+} from "@/lib/models";
 import { auth } from "@/server/auth";
 import { chatGenerationTask } from "@/trigger/chat-generation";
 import type { ChatTaskResponse } from "@/types/chat";
@@ -9,8 +13,8 @@ import { PROMPT } from "./prompt";
 export const maxDuration = 60;
 
 interface ChatRequestBody {
-	providerId: ModelProvider;
-	modelId: string;
+	providerId: AvailableProviderId;
+	modelId: AvailableModelId;
 	prompt: string;
 	withBackgroundInfo?: boolean;
 	precisionMode?: boolean;

@@ -1,4 +1,4 @@
-import type { ModelProvider } from "@/lib/models";
+import type { AvailableModelId, AvailableProviderId } from "@/lib/models";
 import { tryCatch } from "@/lib/try-catch";
 import type { ChatTaskResponse } from "@/types/chat";
 import type { TaskStatusResponse } from "@/types/task";
@@ -10,8 +10,8 @@ import type { TokenUsage } from "../hooks/llm-session-store";
 interface ChatTaskParams {
 	prompt: string;
 	history?: { prompt: string; response?: string }[];
-	providerId?: ModelProvider;
-	modelId?: string;
+	providerId?: AvailableProviderId;
+	modelId?: AvailableModelId;
 	withBackgroundInfo?: boolean;
 	precisionMode?: boolean;
 }

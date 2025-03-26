@@ -1,30 +1,23 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Form,
 	FormControl,
-	FormDescription,
 	FormField,
 	FormItem,
-	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import type { ModelList, ModelProvider } from "@/lib/models";
-import { Loader2 } from "lucide-react";
+import type { ModelList } from "@/lib/models";
+import { cn } from "@/lib/utils";
+import { Loader2, Send } from "lucide-react";
 import type { Session } from "next-auth";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type * as z from "zod";
 import { formSchema, useLlmForm } from "../hooks/use-llm-form";
+import { BackgroundCheckbox } from "./background-checkbox";
+import { ModelSelector } from "./model-selector";
+import { PrecisionCheckbox } from "./precision-checkbox";
 
 export type FormValues = z.infer<typeof formSchema>;
 
@@ -37,186 +30,100 @@ export function LlmForm({ session, modelList }: LlmFormProps) {
 	// State to track if component is mounted (to avoid hydration mismatch)
 	const [isMounted, setIsMounted] = useState(false);
 
-	const {
-		form,
-		isLoading,
-		isSubmitting,
-		handleSubmit,
-		hasBackgroundInfo,
-		isUserLoggedIn,
-	} = useLlmForm({
-		session,
-		isMounted,
-		setIsMounted,
-		formSchema,
-		modelList,
-	});
+	const { form, isLoading, isSubmitting, handleSubmit, hasBackgroundInfo } =
+		useLlmForm({
+			session,
+			isMounted,
+			setIsMounted,
+			formSchema,
+			modelList,
+		});
 
 	// Use either our custom loading state or the form's built-in state
 	const buttonDisabled = isLoading || isSubmitting;
 
+	const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+		if (e.key === "Enter" && !e.shiftKey) {
+			e.preventDefault();
+			form.handleSubmit(handleSubmit)();
+		}
+	};
+
 	return (
 		<Form {...form}>
-			<form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-				<FormField
-					control={form.control}
-					name="providerId"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>服务商</FormLabel>
-							{isMounted ? (
-								<Select
-									onValueChange={(value: ModelProvider) => {
-										field.onChange(value);
-										// Get the first model of the new provider
-										const firstModel = modelList[value][0];
-										if (firstModel) {
-											form.setValue("modelId", firstModel.value);
-										}
-									}}
-									value={field.value}
-									defaultValue="anthropic"
-								>
-									<FormControl>
-										<SelectTrigger>
-											<SelectValue placeholder="选择服务商" />
-										</SelectTrigger>
-									</FormControl>
-									<SelectContent>
-										{Object.entries(modelList).map(([provider, _]) => (
-											<SelectItem key={provider} value={provider}>
-												{provider.toUpperCase()}
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
-							) : (
-								<div className="h-10 w-full rounded-md border border-input bg-background" />
-							)}
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
+			<form onSubmit={form.handleSubmit(handleSubmit)} className="w-full py-4">
+				<div className="relative mx-auto w-full max-w-xl">
+					<div className="relative flex flex-col">
+						{/* Model Selector Component */}
+						<ModelSelector
+							form={form}
+							modelList={modelList}
+							isMounted={isMounted}
+						/>
 
-				<FormField
-					control={form.control}
-					name="modelId"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>模型</FormLabel>
-							{isMounted ? (
-								<Select
-									onValueChange={field.onChange}
-									value={field.value}
-									disabled={!form.getValues("providerId")}
-								>
-									<FormControl>
-										<SelectTrigger>
-											<SelectValue placeholder="选择模型" />
-										</SelectTrigger>
-									</FormControl>
-									<SelectContent>
-										{(() => {
-											const provider = form.getValues(
-												"providerId",
-											) as ModelProvider;
-											return provider
-												? modelList[provider].map((model) => (
-														<SelectItem key={model.value} value={model.value}>
-															{model.name}
-														</SelectItem>
-													))
-												: null;
-										})()}
-									</SelectContent>
-								</Select>
-							) : (
-								<div className="h-10 w-full rounded-md border border-input bg-background" />
-							)}
-							{isMounted && (
-								<FormDescription>
-									{(() => {
-										const provider = form.getValues(
-											"providerId",
-										) as ModelProvider;
-										const modelId = field.value;
-										if (provider && modelId) {
-											const model = modelList[provider].find(
-												(m) => m.value === modelId,
-											);
-											if (model) {
-												return `输入: $${model.price.input.toFixed(2)}/M tokens | 输出: $${model.price.output.toFixed(2)}/M tokens`;
-											}
-										}
-										return null;
-									})()}
-								</FormDescription>
-							)}
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
+						{/* Textarea Input Section */}
+						<div className="max-h-[200px] overflow-y-auto">
+							<FormField
+								control={form.control}
+								name="prompt"
+								render={({ field }) => (
+									<FormItem>
+										<FormControl>
+											<Textarea
+												{...field}
+												placeholder="输入你的提示词，例如：生成一个简单的按钮..."
+												className={cn(
+													"w-full resize-none rounded-none border-none bg-black/5 px-4 py-3 leading-[1.2] placeholder:text-black/70 focus-visible:ring-0 dark:bg-white/5 dark:text-white dark:placeholder:text-white/70",
+													"min-h-[52px]",
+												)}
+												onKeyDown={handleKeyDown}
+												onChange={(e) => {
+													field.onChange(e);
+												}}
+											/>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						</div>
 
-				<FormField
-					control={form.control}
-					name="prompt"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>提示词</FormLabel>
-							<FormControl>
-								<Textarea
-									placeholder="生成一个简单的按钮..."
-									className="min-h-32 resize-none"
-									{...field}
+						{/* Bottom Toolbar */}
+						<div className="h-12 rounded-b-xl bg-black/5 dark:bg-white/5">
+							{/* Separate the controls from the ref to allow them to intercept clicks */}
+							<div className="absolute bottom-3 left-3 z-10 flex items-center gap-2">
+								{/* Background Info Toggle */}
+								<BackgroundCheckbox
+									form={form}
+									hasBackgroundInfo={hasBackgroundInfo}
+									backgroundInfo={session?.user?.backgroundInfo || ""}
 								/>
-							</FormControl>
-							<FormDescription>
-								输入你的提示词，例如：生成一个简单的按钮...
-							</FormDescription>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
 
-				<div className="flex flex-col gap-4 sm:flex-row">
-					<FormField
-						control={form.control}
-						name="withBackgroundInfo"
-						render={({ field }) => (
-							<FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-								<FormControl>
-									<Checkbox
-										checked={field.value}
-										onCheckedChange={field.onChange}
-										disabled={!isUserLoggedIn || !hasBackgroundInfo}
-									/>
-								</FormControl>
-								<FormLabel>理解背景</FormLabel>
-							</FormItem>
-						)}
-					/>
+								{/* Precision Mode Toggle */}
+								<PrecisionCheckbox form={form} modelList={modelList} />
+							</div>
 
-					<FormField
-						control={form.control}
-						name="precisionMode"
-						render={({ field }) => (
-							<FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-								<FormControl>
-									<Checkbox
-										checked={field.value}
-										onCheckedChange={field.onChange}
-									/>
-								</FormControl>
-								<FormLabel>精准模式</FormLabel>
-							</FormItem>
-						)}
-					/>
+							<div className="absolute right-3 bottom-3">
+								<button
+									type="submit"
+									disabled={buttonDisabled}
+									className={cn(
+										"rounded-lg p-2 transition-colors",
+										form.watch("prompt") && !buttonDisabled
+											? "bg-sky-500/15 text-sky-500"
+											: "cursor-pointer bg-black/5 text-black/40 hover:text-black dark:bg-white/5 dark:text-white/40 dark:hover:text-white",
+									)}
+								>
+									{buttonDisabled ? (
+										<Loader2 className="h-4 w-4 animate-spin" />
+									) : (
+										<Send className="h-4 w-4" />
+									)}
+								</button>
+							</div>
+						</div>
+					</div>
 				</div>
-
-				<Button type="submit" className="w-full" disabled={buttonDisabled}>
-					{buttonDisabled && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-					提交
-				</Button>
 			</form>
 		</Form>
 	);

@@ -1,7 +1,8 @@
 import { codeSchema } from "@/app/api/chat/schema";
 import type { CodeResponse } from "@/app/api/chat/schema";
 import {
-	type ModelProvider,
+	type AvailableModelId,
+	type AvailableProviderId,
 	canModelOutputStructuredData,
 	getModel,
 } from "@/lib/models";
@@ -11,8 +12,8 @@ import type { LanguageModel } from "ai";
 
 interface ChatInput {
 	processedPrompt: string;
-	providerId: ModelProvider;
-	modelId: string;
+	providerId: AvailableProviderId;
+	modelId: AvailableModelId;
 }
 
 // Define the output type for the task

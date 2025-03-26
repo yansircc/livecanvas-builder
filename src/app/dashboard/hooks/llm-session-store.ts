@@ -1,12 +1,12 @@
-import type { ModelProvider } from "@/lib/models";
+import type { AvailableModelId, AvailableProviderId } from "@/lib/models";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export interface FormData {
 	prompt: string;
 	history?: ConversationHistory[];
-	providerId?: ModelProvider;
-	modelId?: string;
+	providerId?: AvailableProviderId;
+	modelId?: AvailableModelId;
 	withBackgroundInfo?: boolean;
 	precisionMode?: boolean;
 }
@@ -40,15 +40,15 @@ export interface Session {
 	id: number;
 	versions: Version[];
 	activeVersionId: number | null;
-	selectedProviderId: ModelProvider;
-	selectedModelId: string;
+	selectedProviderId: AvailableProviderId;
+	selectedModelId: AvailableModelId;
 }
 
 interface LlmSessionState {
 	sessions: Session[];
 	activeSessionId: number;
-	globalSelectedProviderId: ModelProvider;
-	globalSelectedModelId: string;
+	globalSelectedProviderId: AvailableProviderId;
+	globalSelectedModelId: AvailableModelId;
 
 	// Actions
 	addSession: () => void;
@@ -68,18 +68,21 @@ interface LlmSessionState {
 	setActiveVersion: (sessionId: number, versionId: number) => void;
 	setSessionModel: (
 		sessionId: number,
-		providerId: ModelProvider,
-		modelId: string,
+		providerId: AvailableProviderId,
+		modelId: AvailableModelId,
 	) => void;
-	setGlobalModel: (providerId: ModelProvider, modelId: string) => void;
+	setGlobalModel: (
+		providerId: AvailableProviderId,
+		modelId: AvailableModelId,
+	) => void;
 	getPreviousConversation: (sessionId: number) => ConversationHistory | null;
-	getSelectedProvider: (sessionId: number) => ModelProvider;
-	getSelectedModelId: (sessionId: number) => string;
+	getSelectedProvider: (sessionId: number) => AvailableProviderId;
+	getSelectedModelId: (sessionId: number) => AvailableModelId;
 }
 
 // Default provider and model values
-const defaultProviderId: ModelProvider = "anthropic";
-const defaultModelId = "claude-3.7-sonnet";
+const defaultProviderId: AvailableProviderId = "anthropic";
+const defaultModelId: AvailableModelId = "claude-3-7-sonnet-20250219";
 
 // Initial session
 const defaultSession: Session = {

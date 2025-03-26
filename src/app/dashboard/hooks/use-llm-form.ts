@@ -1,6 +1,10 @@
 "use client";
 
-import type { ModelList, ModelProvider } from "@/lib/models";
+import type {
+	AvailableModelId,
+	AvailableProviderId,
+	ModelList,
+} from "@/lib/models";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Session } from "next-auth";
 import { useEffect, useRef, useState } from "react";
@@ -12,8 +16,8 @@ import { useTaskPolling } from "./use-task-polling";
 // Define the form schema type directly in this file
 export const formSchema = z.object({
 	prompt: z.string().min(1, "Prompt is required"),
-	providerId: z.custom<ModelProvider>(),
-	modelId: z.string(),
+	providerId: z.custom<AvailableProviderId>(),
+	modelId: z.custom<AvailableModelId>(),
 	withBackgroundInfo: z.boolean().default(false),
 	precisionMode: z.boolean().default(false),
 });
@@ -53,8 +57,8 @@ export function useLlmForm({
 	// Ref to prevent infinite loops in useEffect
 	const isUpdatingModelRef = useRef<boolean>(false);
 	// Ref for previous provider and model IDs to detect changes
-	const prevProviderIdRef = useRef<ModelProvider | null>(null);
-	const prevModelIdRef = useRef<string | null>(null);
+	const prevProviderIdRef = useRef<AvailableProviderId | null>(null);
+	const prevModelIdRef = useRef<AvailableModelId | null>(null);
 	// Track session changes with a ref
 	const prevSessionIdRef = useRef<number>(activeSessionId);
 	// Ref to track if initial setup is done
@@ -117,7 +121,7 @@ export function useLlmForm({
 		defaultValues: {
 			prompt: "",
 			providerId: selectedProviderId || "anthropic",
-			modelId: selectedModelId || "",
+			modelId: selectedModelId,
 			withBackgroundInfo: false,
 			precisionMode: false,
 		},
@@ -129,7 +133,7 @@ export function useLlmForm({
 
 	// Get the current model's price info directly from modelList
 	const currentModelPrice = modelList[watchedProviderId]?.find(
-		(model) => model.value === watchedModelId,
+		(model) => model.id === watchedModelId,
 	)?.price;
 
 	// One-time setup of the form after component mounts
