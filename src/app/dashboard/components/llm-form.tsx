@@ -52,8 +52,9 @@ export function LlmForm({ session, modelList }: LlmFormProps) {
 		modelList,
 	});
 
-	// 获取当前活动的session ID
+	// 获取当前活动的session ID和version
 	const activeSessionId = useLlmSessionStore((state) => state.activeSessionId);
+	const activeVersion = useLlmSessionStore((state) => state.getActiveVersion());
 
 	// 添加额外调试日志
 	useEffect(() => {
@@ -180,7 +181,16 @@ export function LlmForm({ session, modelList }: LlmFormProps) {
 							isSubmitting={isSubmitting}
 							taskId={taskId}
 							taskStatus={taskStatus}
-							cancelTask={(id) => cancelTask(id, activeSessionId)}
+							cancelTask={async (id) => {
+								if (activeVersion) {
+									return await cancelTask(
+										id,
+										activeSessionId,
+										activeVersion.id,
+									);
+								}
+								return false;
+							}}
 							hasContent={hasContent}
 							onCancelingChange={setIsCanceling}
 						/>

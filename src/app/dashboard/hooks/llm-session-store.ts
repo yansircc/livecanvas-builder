@@ -1,4 +1,5 @@
 import type { AvailableModelId, AvailableProviderId } from "@/lib/models";
+import type { TaskStatus } from "@/types/task";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
@@ -34,12 +35,15 @@ export interface Version {
 	input: FormData;
 	response: LlmResponse | null;
 	isLoading: boolean;
+	taskStatus?: TaskStatus;
+	taskError?: string;
 }
 
 export interface Session {
 	id: number;
 	versions: Version[];
 	activeVersionId: number | null;
+	hasCompletedVersion?: boolean;
 }
 
 interface LlmSessionState {
@@ -47,6 +51,14 @@ interface LlmSessionState {
 	activeSessionId: number;
 	globalSelectedProviderId: AvailableProviderId;
 	globalSelectedModelId: AvailableModelId;
+
+	// Getters
+	getActiveSession: () => Session | undefined;
+	getActiveVersion: () => Version | undefined;
+	getSessionVersion: (
+		sessionId: number,
+		versionId: number,
+	) => Version | undefined;
 
 	// Actions
 	addSession: () => void;
@@ -63,6 +75,12 @@ interface LlmSessionState {
 		versionId: number,
 		isLoading: boolean,
 	) => void;
+	setVersionTaskStatus: (
+		sessionId: number,
+		versionId: number,
+		status: TaskStatus,
+		error?: string,
+	) => void;
 	setActiveVersion: (sessionId: number, versionId: number) => void;
 	setGlobalModel: (
 		providerId: AvailableProviderId,
@@ -74,6 +92,8 @@ interface LlmSessionState {
 	cleanupIncompleteVersions: () => void;
 	deleteVersion: (sessionId: number, versionId: number) => void;
 	deleteSession: (sessionId: number) => void;
+	markSessionCompleted: (sessionId: number) => void;
+	clearSessionCompleted: (sessionId: number) => void;
 }
 
 // Default provider and model values
@@ -95,6 +115,26 @@ export const useLlmSessionStore = create<LlmSessionState>()(
 			globalSelectedProviderId: defaultProviderId,
 			globalSelectedModelId: defaultModelId,
 
+			// Getters
+			getActiveSession: () => {
+				const state = get();
+				return state.sessions.find((s) => s.id === state.activeSessionId);
+			},
+
+			getActiveVersion: () => {
+				const activeSession = get().getActiveSession();
+				if (!activeSession?.activeVersionId) return undefined;
+				return activeSession.versions.find(
+					(v) => v.id === activeSession.activeVersionId,
+				);
+			},
+
+			getSessionVersion: (sessionId, versionId) => {
+				const session = get().sessions.find((s) => s.id === sessionId);
+				return session?.versions.find((v) => v.id === versionId);
+			},
+
+			// Actions
 			addSession: () =>
 				set((state) => {
 					const newSessionId =
@@ -231,6 +271,52 @@ export const useLlmSessionStore = create<LlmSessionState>()(
 					const updatedVersion: Version = {
 						...targetVersion,
 						isLoading,
+					};
+
+					const updatedVersions = [...targetSession.versions];
+					updatedVersions[versionIndex] = updatedVersion;
+
+					const updatedSession: Session = {
+						...targetSession,
+						versions: updatedVersions,
+					};
+
+					const updatedSessions = [...state.sessions];
+					updatedSessions[sessionIndex] = updatedSession;
+
+					return { sessions: updatedSessions };
+				}),
+
+			setVersionTaskStatus: (sessionId, versionId, status, error) =>
+				set((state) => {
+					const sessionIndex = state.sessions.findIndex(
+						(s) => s.id === sessionId,
+					);
+					if (sessionIndex === -1) return state;
+
+					const targetSession = state.sessions[sessionIndex];
+					if (!targetSession) return state;
+
+					const versionIndex = targetSession.versions.findIndex(
+						(v) => v.id === versionId,
+					);
+					if (versionIndex === -1) return state;
+
+					const targetVersion = targetSession.versions[versionIndex];
+					if (!targetVersion) return state;
+
+					const updatedVersion: Version = {
+						...targetVersion,
+						taskStatus: status,
+						taskError: error,
+						isLoading: ![
+							"COMPLETED",
+							"FAILED",
+							"CRASHED",
+							"SYSTEM_FAILURE",
+							"INTERRUPTED",
+							"CANCELED",
+						].includes(status),
 					};
 
 					const updatedVersions = [...targetSession.versions];
@@ -428,9 +514,39 @@ export const useLlmSessionStore = create<LlmSessionState>()(
 						activeSessionId,
 					};
 				}),
+
+			markSessionCompleted: (sessionId) =>
+				set((state) => {
+					const sessionIndex = state.sessions.findIndex(
+						(s) => s.id === sessionId,
+					);
+					if (sessionIndex === -1) return state;
+
+					const updatedSessions = [...state.sessions];
+					const session = { ...updatedSessions[sessionIndex] };
+					session.hasCompletedVersion = true;
+					updatedSessions[sessionIndex] = session as Session;
+
+					return { sessions: updatedSessions };
+				}),
+
+			clearSessionCompleted: (sessionId) =>
+				set((state) => {
+					const sessionIndex = state.sessions.findIndex(
+						(s) => s.id === sessionId,
+					);
+					if (sessionIndex === -1) return state;
+
+					const updatedSessions = [...state.sessions];
+					const session = { ...updatedSessions[sessionIndex] };
+					session.hasCompletedVersion = false;
+					updatedSessions[sessionIndex] = session as Session;
+
+					return { sessions: updatedSessions };
+				}),
 		}),
 		{
-			name: "llm-session-storage", // name of the item in localStorage
+			name: "llm-session-storage",
 			partialize: (state) => ({
 				sessions: state.sessions,
 				activeSessionId: state.activeSessionId,

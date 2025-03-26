@@ -31,6 +31,7 @@ export default function SessionTabs() {
 		clearAllSessions,
 		cleanupIncompleteVersions,
 		deleteSession,
+		clearSessionCompleted,
 	} = useLlmSessionStore();
 
 	const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
@@ -64,6 +65,15 @@ export default function SessionTabs() {
 		clearAllSessions();
 	};
 
+	const handleSessionClick = (sessionId: number) => {
+		// 如果点击的是已完成的session，先清除完成状态
+		const session = sessions.find((s) => s.id === sessionId);
+		if (session?.hasCompletedVersion) {
+			clearSessionCompleted(sessionId);
+		}
+		setActiveSession(sessionId);
+	};
+
 	return (
 		<>
 			<div className="mb-2 flex items-center justify-between py-2">
@@ -87,6 +97,9 @@ export default function SessionTabs() {
 							if (hasLoadingVersion) {
 								statusStyle =
 									"animate-pulse border-sky-400 bg-sky-500/15 text-sky-500 ring-1 ring-sky-400/30";
+							} else if (session.hasCompletedVersion) {
+								statusStyle =
+									"animate-pulse border-emerald-400 bg-emerald-500/15 text-emerald-500 ring-1 ring-emerald-400/30";
 							}
 
 							return (
@@ -100,10 +113,10 @@ export default function SessionTabs() {
 														"flex h-6 w-6 cursor-pointer items-center justify-center rounded-sm font-medium text-xs transition-all",
 														statusStyle,
 													)}
-													onClick={() => setActiveSession(session.id)}
+													onClick={() => handleSessionClick(session.id)}
 													onKeyDown={(e) => {
 														if (e.key === "Enter" || e.key === " ") {
-															setActiveSession(session.id);
+															handleSessionClick(session.id);
 														}
 													}}
 												>
@@ -131,6 +144,13 @@ export default function SessionTabs() {
 											<TooltipContent>
 												<p className="mt-1 text-sky-500 text-xs">
 													生成中...您可以切换到其他对话
+												</p>
+											</TooltipContent>
+										)}
+										{session.hasCompletedVersion && (
+											<TooltipContent>
+												<p className="mt-1 text-emerald-500 text-xs">
+													任务已完成，点击查看
 												</p>
 											</TooltipContent>
 										)}

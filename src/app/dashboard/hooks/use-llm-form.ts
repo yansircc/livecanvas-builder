@@ -45,7 +45,8 @@ export function useLlmForm({
 }: UseLlmFormProps) {
 	const {
 		activeSessionId,
-		sessions,
+		getActiveSession,
+		getActiveVersion,
 		addVersion,
 		setVersionResponse,
 		setVersionLoading,
@@ -53,31 +54,20 @@ export function useLlmForm({
 		getSelectedProvider,
 		getSelectedModelId,
 		setGlobalModel,
+		markSessionCompleted,
 	} = useLlmSessionStore();
 
 	const setHandleAdviceClick = useAdviceStore(
 		(state) => state.setHandleAdviceClick,
 	);
 
-	// 修改：使用Map来存储每个session的loading状态
-	const [sessionLoadingStates, setSessionLoadingStates] = useState<
-		Map<number, boolean>
-	>(new Map());
+	// Use the task polling hook
+	const { getSessionTaskState, taskId, submitAndPollTask, cancelTask } =
+		useTaskPolling();
 
 	// 获取当前session的loading状态
-	const isLoading = sessionLoadingStates.get(activeSessionId) || false;
-
-	// 设置特定session的loading状态
-	const setSessionLoading = useCallback(
-		(sessionId: number, loading: boolean) => {
-			setSessionLoadingStates((prev) => {
-				const newMap = new Map(prev);
-				newMap.set(sessionId, loading);
-				return newMap;
-			});
-		},
-		[],
-	);
+	const activeSession = getActiveSession();
+	const isLoading = activeSession?.versions.some((v) => v.isLoading) || false;
 
 	// Ref to prevent infinite loops in useEffect
 	const isUpdatingModelRef = useRef<boolean>(false);
@@ -88,10 +78,6 @@ export function useLlmForm({
 	const prevSessionIdRef = useRef<number>(activeSessionId);
 	// Ref to track if initial setup is done
 	const initialSetupDoneRef = useRef<boolean>(false);
-
-	const activeSession = sessions.find(
-		(session) => session.id === activeSessionId,
-	);
 
 	// Get the currently selected provider and model
 	const selectedProviderId = getSelectedProvider();
@@ -105,27 +91,13 @@ export function useLlmForm({
 	// Whether user is logged in
 	const isUserLoggedIn = Boolean(session?.user);
 
-	const [taskCompleted, setTaskCompleted] = useState(false);
-
-	// 添加额外的状态变量来更明确地跟踪任务状态
-	const [currentTaskStatus, setCurrentTaskStatus] = useState<
-		TaskStatus | undefined
-	>(undefined);
-
-	// Use the task polling hook
-	const { getSessionTaskState, taskId, submitAndPollTask, cancelTask } =
-		useTaskPolling();
-
 	// 获取当前session的任务状态
-	const currentSessionState = getSessionTaskState(activeSessionId);
-	const taskStatus = currentSessionState.status;
-	const taskError = currentSessionState.error;
+	const activeVersion = getActiveVersion();
+	const taskStatus = activeVersion?.taskStatus ?? null;
+	const taskError = activeVersion?.taskError ?? null;
 
 	// 重置版本加载状态的辅助函数
 	const resetVersionLoadingState = () => {
-		const activeSession = sessions.find(
-			(session) => session.id === activeSessionId,
-		);
 		if (activeSession?.activeVersionId) {
 			setVersionLoading(activeSessionId, activeSession.activeVersionId, false);
 		}
@@ -272,18 +244,8 @@ export function useLlmForm({
 		isMounted,
 	]);
 
-	// 添加一个 effect 来监视 pollingStatus
-	useEffect(() => {
-		if (taskStatus) {
-			setCurrentTaskStatus(taskStatus);
-		}
-	}, [taskStatus]);
-
 	async function handleSubmit(values: FormValues & { sessionId: number }) {
 		try {
-			// 设置当前session的loading状态
-			setSessionLoading(values.sessionId, true);
-
 			// Get previous conversation if available
 			const previousConversation = getPreviousConversation(values.sessionId);
 
@@ -305,6 +267,7 @@ export function useLlmForm({
 				const response = await submitAndPollTask({
 					...formData,
 					sessionId: values.sessionId,
+					versionId,
 					withBackgroundInfo: values.withBackgroundInfo && hasBackgroundInfo,
 				});
 
@@ -326,19 +289,25 @@ export function useLlmForm({
 					usage: usageData,
 					advices: response.advices,
 				});
+
+				// 任务成功完成时标记session
+				if (response.status === "COMPLETED") {
+					markSessionCompleted(values.sessionId);
+				}
 			} catch (error) {
 				console.error("Error submitting form:", error);
 				resetVersionLoadingState();
 			}
 		} finally {
-			setSessionLoading(values.sessionId, false);
+			if (activeSession?.activeVersionId) {
+				setVersionLoading(
+					values.sessionId,
+					activeSession.activeVersionId,
+					false,
+				);
+			}
 		}
 	}
-
-	// Get the active version if it exists
-	const activeVersion = activeSession?.activeVersionId
-		? activeSession.versions.find((v) => v.id === activeSession.activeVersionId)
-		: null;
 
 	// Use the active version's input if it exists and we're not submitting
 	useEffect(() => {

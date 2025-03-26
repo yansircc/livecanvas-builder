@@ -9,6 +9,7 @@ import {
 	submitChatTask,
 } from "../services/task-service";
 import type { TokenUsage } from "./llm-session-store";
+import { useLlmSessionStore } from "./llm-session-store";
 
 interface TaskPollingOptions {
 	onTaskSubmitted?: (taskId: string) => void;
@@ -25,44 +26,30 @@ export interface TaskResult {
 	error?: string;
 }
 
+interface TaskParams {
+	prompt: string;
+	history?: { prompt: string; response?: string }[];
+	providerId?: AvailableProviderId;
+	modelId?: AvailableModelId;
+	withBackgroundInfo?: boolean;
+	precisionMode?: boolean;
+	sessionId: number;
+	versionId: number;
+}
+
 export function useTaskPolling(options: TaskPollingOptions = {}) {
-	const [taskStates, setTaskStates] = useState<
-		Map<
-			string,
-			{
-				isLoading: boolean;
-				error: Error | null;
-				status: TaskStatus | null;
-			}
-		>
-	>(new Map());
 	const [taskId, setTaskId] = useState<string | null>(null);
+	const { setVersionTaskStatus, getSessionVersion } = useLlmSessionStore();
 
 	const submitAndPollTask = useCallback(
-		async (params: {
-			prompt: string;
-			history?: { prompt: string; response?: string }[];
-			providerId?: AvailableProviderId;
-			modelId?: AvailableModelId;
-			withBackgroundInfo?: boolean;
-			precisionMode?: boolean;
-			sessionId: number;
-		}) => {
+		async (params: TaskParams) => {
 			try {
-				// 为新的任务创建状态
-				setTaskStates((prev) => {
-					const newMap = new Map(prev);
-					newMap.set(String(params.sessionId), {
-						isLoading: true,
-						error: null,
-						status: null,
-					});
-					return newMap;
-				});
-
 				// Submit the task
 				const newTaskId = await submitChatTask(params);
 				setTaskId(newTaskId);
+
+				// 设置初始状态为 PENDING
+				setVersionTaskStatus(params.sessionId, params.versionId, "PENDING");
 
 				// Notify that task was submitted
 				if (options.onTaskSubmitted) {
@@ -77,16 +64,13 @@ export function useTaskPolling(options: TaskPollingOptions = {}) {
 				// Start polling for results
 				const result = await pollTaskStatus(newTaskId);
 
-				// Update task state
-				setTaskStates((prev) => {
-					const newMap = new Map(prev);
-					newMap.set(String(params.sessionId), {
-						isLoading: false,
-						error: null,
-						status: result.status,
-					});
-					return newMap;
-				});
+				// 更新任务状态
+				setVersionTaskStatus(
+					params.sessionId,
+					params.versionId,
+					result.status,
+					result.error,
+				);
 
 				// Transform the result to match TaskResult interface
 				const taskResult: TaskResult = {
@@ -105,16 +89,13 @@ export function useTaskPolling(options: TaskPollingOptions = {}) {
 				const errorObj = err instanceof Error ? err : new Error(String(err));
 				console.error("Task polling error:", errorObj.message);
 
-				// Update error state for the specific session
-				setTaskStates((prev) => {
-					const newMap = new Map(prev);
-					newMap.set(String(params.sessionId), {
-						isLoading: false,
-						error: errorObj,
-						status: errorObj.message.includes("取消") ? "CANCELED" : "FAILED",
-					});
-					return newMap;
-				});
+				// 更新错误状态
+				setVersionTaskStatus(
+					params.sessionId,
+					params.versionId,
+					"FAILED",
+					errorObj.message,
+				);
 
 				if (options.onError) {
 					options.onError(errorObj);
@@ -123,43 +104,43 @@ export function useTaskPolling(options: TaskPollingOptions = {}) {
 				throw errorObj;
 			}
 		},
-		[options],
+		[options, setVersionTaskStatus],
 	);
 
-	const cancelTask = useCallback(async (id: string, sessionId: number) => {
-		try {
-			const result = await apiCancelTask(id);
-			if (result.success) {
-				setTaskStates((prev) => {
-					const newMap = new Map(prev);
-					newMap.set(String(sessionId), {
-						isLoading: false,
-						error: null,
-						status: "CANCELED",
-					});
-					return newMap;
-				});
-				return true;
+	const cancelTask = useCallback(
+		async (id: string, sessionId: number, versionId: number) => {
+			try {
+				const result = await apiCancelTask(id);
+				if (result.success) {
+					// 更新取消状态
+					setVersionTaskStatus(
+						sessionId,
+						versionId,
+						"CANCELED",
+						"任务已被取消",
+					);
+					return true;
+				}
+				return false;
+			} catch (err) {
+				console.error("Error canceling task:", err);
+				return false;
 			}
-			return false;
-		} catch (err) {
-			console.error("Error canceling task:", err);
-			return false;
-		}
-	}, []);
+		},
+		[setVersionTaskStatus],
+	);
 
 	// 获取特定session的状态
 	const getSessionTaskState = useCallback(
-		(sessionId: number) => {
-			return (
-				taskStates.get(String(sessionId)) || {
-					isLoading: false,
-					error: null,
-					status: null,
-				}
-			);
+		(sessionId: number, versionId: number) => {
+			const version = getSessionVersion(sessionId, versionId);
+			return {
+				isLoading: version?.isLoading ?? false,
+				error: version?.taskError ?? null,
+				status: version?.taskStatus ?? null,
+			};
 		},
-		[taskStates],
+		[getSessionVersion],
 	);
 
 	return {
