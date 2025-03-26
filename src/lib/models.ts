@@ -33,7 +33,7 @@ const AHM_CONFIG = {
 
 const getModelList = async () => {
 	try {
-		const modelList = (await get("model-list")) as ModelList;
+		const modelList = (await get("modelList")) as ModelList;
 		// Validate the model list structure
 		if (!modelList || typeof modelList !== "object") {
 			throw new Error("Invalid model list format");
@@ -102,7 +102,7 @@ const getModel = async (providerId: ModelProvider, modelId: string) => {
 
 const hasModelList = async () => {
 	try {
-		return await has("model-list");
+		return await has("modelList");
 	} catch (error) {
 		console.error("Failed to check model list existence:", error);
 		return false;

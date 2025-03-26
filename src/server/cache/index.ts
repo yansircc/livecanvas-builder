@@ -125,6 +125,6 @@ export async function revalidateAuthCache(userId: string) {
 /**
  * Revalidate edge config cache tags
  */
-export async function revalidateEdgeConfigCache() {
+export async function revalidateModelListCache() {
 	revalidateTag(CACHE_TAGS.EDGE_CONFIG.MODEL_LIST);
 }

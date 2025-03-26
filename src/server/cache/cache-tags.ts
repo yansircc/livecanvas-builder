@@ -41,6 +41,6 @@ export const CACHE_TAGS = {
 
 	// Edge config cache tags
 	EDGE_CONFIG: {
-		MODEL_LIST: "edge-config:model-list",
+		MODEL_LIST: "edge-config:modelList",
 	},
 } as const;
