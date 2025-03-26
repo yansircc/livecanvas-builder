@@ -11,7 +11,6 @@ import { Textarea } from "@/components/ui/textarea";
 import type { ModelList } from "@/lib/models";
 import { cn } from "@/lib/utils";
 import type { TaskStatus } from "@/types/task";
-import { Loader2, Send } from "lucide-react";
 import type { Session } from "next-auth";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -20,6 +19,7 @@ import { formSchema, useLlmForm } from "../hooks/use-llm-form";
 import { BackgroundCheckbox } from "./background-checkbox";
 import { ModelSelector } from "./model-selector";
 import { PrecisionCheckbox } from "./precision-checkbox";
+import { TaskActionButton } from "./task-action-button";
 
 export type FormValues = z.infer<typeof formSchema>;
 
@@ -31,6 +31,8 @@ interface LlmFormProps {
 export function LlmForm({ session, modelList }: LlmFormProps) {
 	// State to track if component is mounted (to avoid hydration mismatch)
 	const [isMounted, setIsMounted] = useState(false);
+	// 本地状态来跟踪是否正在取消
+	const [isCanceling, setIsCanceling] = useState(false);
 
 	const {
 		form,
@@ -41,6 +43,8 @@ export function LlmForm({ session, modelList }: LlmFormProps) {
 		extraPromptCost,
 		taskStatus,
 		taskError,
+		taskId,
+		cancelTask,
 	} = useLlmForm({
 		session,
 		isMounted,
@@ -86,15 +90,15 @@ export function LlmForm({ session, modelList }: LlmFormProps) {
 		}
 	}, [taskStatus, taskError, isMounted]);
 
-	// Use either our custom loading state or the form's built-in state
-	const buttonDisabled = isLoading || isSubmitting;
-
 	const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
 		if (e.key === "Enter" && !e.shiftKey) {
 			e.preventDefault();
 			form.handleSubmit(handleSubmit)();
 		}
 	};
+
+	// 是否有内容可提交
+	const hasContent = !!form.watch("prompt");
 
 	return (
 		<Form {...form}>
@@ -129,6 +133,7 @@ export function LlmForm({ session, modelList }: LlmFormProps) {
 											onChange={(e) => {
 												field.onChange(e);
 											}}
+											disabled={isLoading || isSubmitting}
 										/>
 									</FormControl>
 									<FormMessage className="px-4 text-xs" />
@@ -155,26 +160,27 @@ export function LlmForm({ session, modelList }: LlmFormProps) {
 							/>
 						</div>
 
-						<div className="absolute right-4 bottom-4">
-							<button
-								type="submit"
-								disabled={buttonDisabled}
-								className={cn(
-									"rounded-md p-2.5 transition-colors duration-150",
-									form.watch("prompt") && !buttonDisabled
-										? "bg-zinc-100 text-zinc-900 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
-										: "cursor-pointer bg-zinc-100 text-zinc-400 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-500 dark:hover:bg-zinc-700",
-								)}
-							>
-								{buttonDisabled ? (
-									<Loader2 className="h-4 w-4 animate-spin" />
-								) : (
-									<Send className="h-4 w-4" />
-								)}
-							</button>
-						</div>
+						{/* 任务操作按钮 */}
+						<TaskActionButton
+							isLoading={isLoading}
+							isSubmitting={isSubmitting}
+							taskId={taskId}
+							taskStatus={taskStatus}
+							cancelTask={cancelTask}
+							hasContent={hasContent}
+							onCancelingChange={setIsCanceling}
+						/>
 					</div>
 				</div>
+
+				{/* 底部状态提示文本 */}
+				{isLoading && taskId && (
+					<div className="mt-1 text-center">
+						<span className="text-xs text-zinc-500 dark:text-zinc-400">
+							{isCanceling ? "正在取消任务..." : "AI正在努力思考..."}
+						</span>
+					</div>
+				)}
 			</form>
 		</Form>
 	);

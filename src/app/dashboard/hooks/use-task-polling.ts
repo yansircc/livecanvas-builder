@@ -3,7 +3,11 @@
 import type { AvailableModelId, AvailableProviderId } from "@/lib/models";
 import type { TaskStatus } from "@/types/task";
 import { useCallback, useState } from "react";
-import { pollTaskStatus, submitChatTask } from "../services/task-service";
+import {
+	cancelTask as apiCancelTask,
+	pollTaskStatus,
+	submitChatTask,
+} from "../services/task-service";
 import type { TokenUsage } from "./llm-session-store";
 
 interface TaskPollingOptions {
@@ -98,11 +102,26 @@ export function useTaskPolling(options: TaskPollingOptions = {}) {
 		[options],
 	);
 
+	const cancelTask = useCallback(async (id: string) => {
+		try {
+			const result = await apiCancelTask(id);
+			if (result.success) {
+				setCurrentStatus("CANCELED");
+				return true;
+			}
+			return false;
+		} catch (err) {
+			console.error("Error canceling task:", err);
+			return false;
+		}
+	}, []);
+
 	return {
 		isLoading,
 		taskId,
 		error,
 		status: currentStatus,
 		submitAndPollTask,
+		cancelTask,
 	};
 }

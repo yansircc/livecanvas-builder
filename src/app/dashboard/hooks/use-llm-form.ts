@@ -100,7 +100,9 @@ export function useLlmForm({
 		isLoading: isTaskLoading,
 		error: taskError,
 		status: pollingStatus,
+		taskId,
 		submitAndPollTask,
+		cancelTask,
 	} = useTaskPolling({
 		onPollingStarted: () => {
 			setTaskCompleted(false);
@@ -409,5 +411,7 @@ export function useLlmForm({
 		handleAdviceClick,
 		extraPromptCost,
 		taskStatus: pollingStatus || currentTaskStatus,
+		taskId,
+		cancelTask,
 	};
 }

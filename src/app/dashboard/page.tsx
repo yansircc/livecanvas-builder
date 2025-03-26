@@ -4,7 +4,9 @@ import { addAuthCacheTags, addEdgeConfigCacheTags } from "@/server/cache";
 import type { Session } from "next-auth";
 import { Suspense } from "react";
 import { LlmForm } from "./components/llm-form";
+import { LlmFormSkeleton } from "./components/llm-form-skeleton";
 import ResultDisplay from "./components/result-display";
+import { ResultDisplaySkeleton } from "./components/result-display-skeleton";
 import SessionTabs from "./components/session-tabs";
 
 async function getCachedSessionData(sessionData: Session) {
@@ -44,11 +46,11 @@ export default function Dashboard() {
 
 			<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 				<div className="space-y-4">
-					<Suspense fallback={<div>Loading...</div>}>
+					<Suspense fallback={<LlmFormSkeleton />}>
 						<SuspenseLlmForm />
 					</Suspense>
 				</div>
-				<Suspense fallback={<div>Loading...</div>}>
+				<Suspense fallback={<ResultDisplaySkeleton />}>
 					<SuspenseResultDisplay />
 				</Suspense>
 			</div>

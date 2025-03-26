@@ -142,7 +142,7 @@ export async function pollTaskStatus(
 		attempts++;
 
 		const result = await tryCatch(
-			fetch(`/api/task-status?taskId=${taskId}`, {
+			fetch(`/api/task/status?taskId=${taskId}`, {
 				headers: { "Cache-Control": "no-cache" },
 			}),
 		);
@@ -231,4 +231,43 @@ export async function pollTaskStatus(
 	};
 
 	return pollOnce();
+}
+
+/**
+ * 取消任务
+ */
+export async function cancelTask(
+	taskId: string,
+): Promise<{ success: boolean; message: string }> {
+	const result = await tryCatch(
+		fetch("/api/task/cancel", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ taskId }),
+		}),
+	);
+
+	if (result.error) {
+		console.error("Failed to cancel task:", result.error);
+		return {
+			success: false,
+			message: `Failed to cancel task: ${result.error.message}`,
+		};
+	}
+
+	if (!result.data.ok) {
+		const errorData = await result.data.json().catch(() => ({}));
+		return {
+			success: false,
+			message: `Failed to cancel task: ${result.data.status} ${result.data.statusText}${
+				errorData.error ? ` - ${errorData.error}` : ""
+			}`,
+		};
+	}
+
+	const data = await result.data.json();
+	return {
+		success: true,
+		message: data.message || "Task cancelled successfully",
+	};
 }
