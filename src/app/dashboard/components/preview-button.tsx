@@ -2,13 +2,13 @@ import { Button } from "@/components/ui/button";
 import { Eye } from "lucide-react";
 
 interface PreviewButtonProps {
-	sessionId: number;
+	dialogueId: number;
 	versionId: number;
 }
 
-export function PreviewButton({ sessionId, versionId }: PreviewButtonProps) {
+export function PreviewButton({ dialogueId, versionId }: PreviewButtonProps) {
 	const handleClick = () => {
-		const url = `/preview?s=${sessionId}&v=${versionId}`;
+		const url = `/preview?s=${dialogueId}&v=${versionId}`;
 		window.open(url, "_blank");
 	};
 

@@ -13,41 +13,41 @@ import {
 import { cn } from "@/lib/utils";
 import { ChevronDown, Clock, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { useLlmSessionStore } from "../hooks/llm-session-store";
+import { useLlmDialogueStore } from "../hooks/llm-dialogue-store";
 
 export default function VersionSelector() {
-	const { sessions, activeSessionId, setActiveVersion, deleteVersion } =
-		useLlmSessionStore();
+	const { dialogues, activeDialogueId, setActiveVersion, deleteVersion } =
+		useLlmDialogueStore();
 	const [isAlertOpen, setIsAlertOpen] = useState(false);
 	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 	const [versionToDelete, setVersionToDelete] = useState<number | null>(null);
 	const dropdownRef = useRef<HTMLDivElement>(null);
 
-	// Find active session
-	const activeSession = sessions.find(
-		(session) => session.id === activeSessionId,
+	// Find active dialogue
+	const activeDialogue = dialogues.find(
+		(dialogue) => dialogue.id === activeDialogueId,
 	);
 
-	// If no session or no versions, don't render anything
-	if (!activeSession || activeSession.versions.length === 0) {
+	// If no dialogue or no versions, don't render anything
+	if (!activeDialogue || activeDialogue.versions.length === 0) {
 		return null;
 	}
 
 	const handleVersionSelect = (versionId: number) => {
-		setActiveVersion(activeSessionId, versionId);
+		setActiveVersion(activeDialogueId, versionId);
 		setIsDropdownOpen(false);
 	};
 
 	const handleDeleteClick = (e: React.MouseEvent, versionId: number) => {
 		e.stopPropagation();
-		if (activeSession.versions.length <= 1) return;
+		if (activeDialogue.versions.length <= 1) return;
 		setVersionToDelete(versionId);
 		setIsAlertOpen(true);
 	};
 
 	const handleConfirmDelete = () => {
 		if (versionToDelete) {
-			deleteVersion(activeSessionId, versionToDelete);
+			deleteVersion(activeDialogueId, versionToDelete);
 		}
 		setVersionToDelete(null);
 	};
@@ -69,9 +69,9 @@ export default function VersionSelector() {
 	}, []);
 
 	// Only show delete button if there's more than one version
-	const showDeleteButton = activeSession.versions.length > 1;
-	const activeVersionId = activeSession.activeVersionId;
-	const activeVersion = activeSession.versions.find(
+	const showDeleteButton = activeDialogue.versions.length > 1;
+	const activeVersionId = activeDialogue.activeVersionId;
+	const activeVersion = activeDialogue.versions.find(
 		(v) => v.id === activeVersionId,
 	);
 
@@ -102,7 +102,7 @@ export default function VersionSelector() {
 				{isDropdownOpen && (
 					<div className="absolute z-10 mt-1 w-36 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/10 ring-opacity-5 focus:outline-none dark:bg-zinc-900 dark:ring-zinc-700">
 						<div className="py-1">
-							{activeSession.versions.map((version) => (
+							{activeDialogue.versions.map((version) => (
 								<div
 									key={version.id}
 									className={cn(

@@ -5,7 +5,7 @@ import type { TaskStatus, TaskStatusResponse } from "@/types/task";
 import { extractAndParseJSON } from "@/utils/json-parser";
 import { replaceLucideIcons } from "@/utils/replace-with-lucide-icon";
 import { replaceWithUnsplashImages } from "@/utils/replace-with-unsplash";
-import type { TokenUsage } from "../hooks/llm-session-store";
+import type { TokenUsage } from "../hooks/llm-dialogue-store";
 
 interface ChatTaskParams {
 	prompt: string;

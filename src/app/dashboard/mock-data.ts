@@ -1,6 +1,6 @@
 "use server";
 
-import type { ConversationHistory } from "./hooks/llm-session-store";
+import type { ConversationHistory } from "./hooks/llm-dialogue-store";
 
 const animals = ["dog", "cat", "bird", "fish", "snake"];
 

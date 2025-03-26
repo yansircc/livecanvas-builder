@@ -8,8 +8,8 @@ import {
 	pollTaskStatus,
 	submitChatTask,
 } from "../services/task-service";
-import type { TokenUsage } from "./llm-session-store";
-import { useLlmSessionStore } from "./llm-session-store";
+import type { TokenUsage } from "./llm-dialogue-store";
+import { useLlmDialogueStore } from "./llm-dialogue-store";
 
 interface TaskPollingOptions {
 	onTaskSubmitted?: (taskId: string) => void;
@@ -33,13 +33,13 @@ interface TaskParams {
 	modelId?: AvailableModelId;
 	withBackgroundInfo?: boolean;
 	precisionMode?: boolean;
-	sessionId: number;
+	dialogueId: number;
 	versionId: number;
 }
 
 export function useTaskPolling(options: TaskPollingOptions = {}) {
 	const [taskId, setTaskId] = useState<string | null>(null);
-	const { setVersionTaskStatus, getSessionVersion } = useLlmSessionStore();
+	const { setVersionTaskStatus, getDialogueVersion } = useLlmDialogueStore();
 
 	const submitAndPollTask = useCallback(
 		async (params: TaskParams) => {
@@ -49,7 +49,7 @@ export function useTaskPolling(options: TaskPollingOptions = {}) {
 				setTaskId(newTaskId);
 
 				// 设置初始状态为 PENDING
-				setVersionTaskStatus(params.sessionId, params.versionId, "PENDING");
+				setVersionTaskStatus(params.dialogueId, params.versionId, "PENDING");
 
 				// Notify that task was submitted
 				if (options.onTaskSubmitted) {
@@ -66,7 +66,7 @@ export function useTaskPolling(options: TaskPollingOptions = {}) {
 
 				// 更新任务状态
 				setVersionTaskStatus(
-					params.sessionId,
+					params.dialogueId,
 					params.versionId,
 					result.status,
 					result.error,
@@ -91,7 +91,7 @@ export function useTaskPolling(options: TaskPollingOptions = {}) {
 
 				// 更新错误状态
 				setVersionTaskStatus(
-					params.sessionId,
+					params.dialogueId,
 					params.versionId,
 					"FAILED",
 					errorObj.message,
@@ -108,13 +108,13 @@ export function useTaskPolling(options: TaskPollingOptions = {}) {
 	);
 
 	const cancelTask = useCallback(
-		async (id: string, sessionId: number, versionId: number) => {
+		async (id: string, dialogueId: number, versionId: number) => {
 			try {
 				const result = await apiCancelTask(id);
 				if (result.success) {
 					// 更新取消状态
 					setVersionTaskStatus(
-						sessionId,
+						dialogueId,
 						versionId,
 						"CANCELED",
 						"任务已被取消",
@@ -130,21 +130,21 @@ export function useTaskPolling(options: TaskPollingOptions = {}) {
 		[setVersionTaskStatus],
 	);
 
-	// 获取特定session的状态
-	const getSessionTaskState = useCallback(
-		(sessionId: number, versionId: number) => {
-			const version = getSessionVersion(sessionId, versionId);
+	// 获取特定dialogue的状态
+	const getDialogueTaskState = useCallback(
+		(dialogueId: number, versionId: number) => {
+			const version = getDialogueVersion(dialogueId, versionId);
 			return {
 				isLoading: version?.isLoading ?? false,
 				error: version?.taskError ?? null,
 				status: version?.taskStatus ?? null,
 			};
 		},
-		[getSessionVersion],
+		[getDialogueVersion],
 	);
 
 	return {
-		getSessionTaskState,
+		getDialogueTaskState,
 		taskId,
 		submitAndPollTask,
 		cancelTask,

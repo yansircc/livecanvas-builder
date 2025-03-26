@@ -5,15 +5,13 @@ import type {
 	AvailableProviderId,
 	ModelList,
 } from "@/lib/models";
-import type { TaskStatus } from "@/types/task";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Session } from "next-auth";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 import { z } from "zod";
 import { calculateExtraPromptCost } from "../utils/calculate-cost";
-import { useLlmSessionStore } from "./llm-session-store";
+import { useLlmDialogueStore } from "./llm-dialogue-store";
 import { useAdviceStore } from "./use-advice-store";
 import { useTaskPolling } from "./use-task-polling";
 
@@ -44,8 +42,8 @@ export function useLlmForm({
 	modelList,
 }: UseLlmFormProps) {
 	const {
-		activeSessionId,
-		getActiveSession,
+		activeDialogueId,
+		getActiveDialogue,
 		getActiveVersion,
 		addVersion,
 		setVersionResponse,
@@ -54,28 +52,28 @@ export function useLlmForm({
 		getSelectedProvider,
 		getSelectedModelId,
 		setGlobalModel,
-		markSessionCompleted,
-	} = useLlmSessionStore();
+		markDialogueCompleted,
+	} = useLlmDialogueStore();
 
 	const setHandleAdviceClick = useAdviceStore(
 		(state) => state.setHandleAdviceClick,
 	);
 
 	// Use the task polling hook
-	const { getSessionTaskState, taskId, submitAndPollTask, cancelTask } =
+	const { getDialogueTaskState, taskId, submitAndPollTask, cancelTask } =
 		useTaskPolling();
 
-	// 获取当前session的loading状态
-	const activeSession = getActiveSession();
-	const isLoading = activeSession?.versions.some((v) => v.isLoading) || false;
+	// 获取当前dialogue的loading状态
+	const activeDialogue = getActiveDialogue();
+	const isLoading = activeDialogue?.versions.some((v) => v.isLoading) || false;
 
 	// Ref to prevent infinite loops in useEffect
 	const isUpdatingModelRef = useRef<boolean>(false);
 	// Ref for previous provider and model IDs to detect changes
 	const prevProviderIdRef = useRef<AvailableProviderId | null>(null);
 	const prevModelIdRef = useRef<AvailableModelId | null>(null);
-	// Track session changes with a ref
-	const prevSessionIdRef = useRef<number>(activeSessionId);
+	// Track dialogue changes with a ref
+	const prevDialogueIdRef = useRef<number>(activeDialogueId);
 	// Ref to track if initial setup is done
 	const initialSetupDoneRef = useRef<boolean>(false);
 
@@ -83,23 +81,28 @@ export function useLlmForm({
 	const selectedProviderId = getSelectedProvider();
 	const selectedModelId = getSelectedModelId();
 
-	// Check if user has background info from the session data
+	// Check if user has background info from the dialogue data
 	const hasBackgroundInfo = Boolean(
-		session?.user?.backgroundInfo && session.user.backgroundInfo.trim() !== "",
+		session?.user?.backgroundInfo &&
+			session?.user?.backgroundInfo.trim() !== "",
 	);
 
 	// Whether user is logged in
 	const isUserLoggedIn = Boolean(session?.user);
 
-	// 获取当前session的任务状态
+	// 获取当前dialogue的任务状态
 	const activeVersion = getActiveVersion();
 	const taskStatus = activeVersion?.taskStatus ?? null;
 	const taskError = activeVersion?.taskError ?? null;
 
 	// 重置版本加载状态的辅助函数
 	const resetVersionLoadingState = () => {
-		if (activeSession?.activeVersionId) {
-			setVersionLoading(activeSessionId, activeSession.activeVersionId, false);
+		if (activeDialogue?.activeVersionId) {
+			setVersionLoading(
+				activeDialogueId,
+				activeDialogue.activeVersionId,
+				false,
+			);
 		}
 	};
 
@@ -180,10 +183,10 @@ export function useLlmForm({
 		}
 	}, [isMounted, selectedProviderId, selectedModelId, form]);
 
-	// Update form when session changes
+	// Update form when dialogue changes
 	useEffect(() => {
-		if (isMounted && prevSessionIdRef.current !== activeSessionId) {
-			prevSessionIdRef.current = activeSessionId;
+		if (isMounted && prevDialogueIdRef.current !== activeDialogueId) {
+			prevDialogueIdRef.current = activeDialogueId;
 			const currentProviderId = getSelectedProvider();
 			const currentModelId = getSelectedModelId();
 
@@ -199,7 +202,7 @@ export function useLlmForm({
 			});
 		}
 	}, [
-		activeSessionId,
+		activeDialogueId,
 		form,
 		getSelectedProvider,
 		getSelectedModelId,
@@ -244,10 +247,10 @@ export function useLlmForm({
 		isMounted,
 	]);
 
-	async function handleSubmit(values: FormValues & { sessionId: number }) {
+	async function handleSubmit(values: FormValues & { dialogueId: number }) {
 		try {
 			// Get previous conversation if available
-			const previousConversation = getPreviousConversation(values.sessionId);
+			const previousConversation = getPreviousConversation(values.dialogueId);
 
 			// Prepare form data with history if available
 			const formData = {
@@ -260,13 +263,13 @@ export function useLlmForm({
 			};
 
 			// Create a new version with the input and history
-			const versionId = addVersion(values.sessionId, formData);
+			const versionId = addVersion(values.dialogueId, formData);
 
 			try {
 				// Submit task to the API and poll for results
 				const response = await submitAndPollTask({
 					...formData,
-					sessionId: values.sessionId,
+					dialogueId: values.dialogueId,
 					versionId,
 					withBackgroundInfo: values.withBackgroundInfo && hasBackgroundInfo,
 				});
@@ -279,7 +282,7 @@ export function useLlmForm({
 				};
 
 				// Update the version with the API response
-				setVersionResponse(values.sessionId, versionId, {
+				setVersionResponse(values.dialogueId, versionId, {
 					content: JSON.stringify({
 						code: response.code,
 						advices: response.advices,
@@ -290,19 +293,19 @@ export function useLlmForm({
 					advices: response.advices,
 				});
 
-				// 任务成功完成时标记session
+				// 任务成功完成时标记dialogue
 				if (response.status === "COMPLETED") {
-					markSessionCompleted(values.sessionId);
+					markDialogueCompleted(values.dialogueId);
 				}
 			} catch (error) {
 				console.error("Error submitting form:", error);
 				resetVersionLoadingState();
 			}
 		} finally {
-			if (activeSession?.activeVersionId) {
+			if (activeDialogue?.activeVersionId) {
 				setVersionLoading(
-					values.sessionId,
-					activeSession.activeVersionId,
+					values.dialogueId,
+					activeDialogue.activeVersionId,
 					false,
 				);
 			}

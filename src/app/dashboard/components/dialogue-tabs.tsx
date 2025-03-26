@@ -20,41 +20,41 @@ import {
 import { cn } from "@/lib/utils";
 import { Plus, RotateCcw, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useLlmSessionStore } from "../hooks/llm-session-store";
+import { useLlmDialogueStore } from "../hooks/llm-dialogue-store";
 
-export default function SessionTabs() {
+export default function DialogueTabs() {
 	const {
-		sessions,
-		activeSessionId,
-		setActiveSession,
-		addSession,
-		clearAllSessions,
+		dialogues,
+		activeDialogueId,
+		setActiveDialogue,
+		addDialogue,
+		clearAllDialogues,
 		cleanupIncompleteVersions,
-		deleteSession,
-		clearSessionCompleted,
-	} = useLlmSessionStore();
+		deleteDialogue,
+		clearDialogueCompleted,
+	} = useLlmDialogueStore();
 
 	const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
 	const [isResetAlertOpen, setIsResetAlertOpen] = useState(false);
-	const [sessionToDelete, setSessionToDelete] = useState<number | null>(null);
+	const [dialogueToDelete, setDialogueToDelete] = useState<number | null>(null);
 
 	// Clean up incomplete versions on component mount
 	useEffect(() => {
 		cleanupIncompleteVersions();
 	}, [cleanupIncompleteVersions]);
 
-	const handleDeleteClick = (e: React.MouseEvent, sessionId: number) => {
+	const handleDeleteClick = (e: React.MouseEvent, dialogueId: number) => {
 		e.stopPropagation();
-		if (sessions.length <= 1) return;
-		setSessionToDelete(sessionId);
+		if (dialogues.length <= 1) return;
+		setDialogueToDelete(dialogueId);
 		setIsDeleteAlertOpen(true);
 	};
 
 	const handleConfirmDelete = () => {
-		if (sessionToDelete) {
-			deleteSession(sessionToDelete);
+		if (dialogueToDelete) {
+			deleteDialogue(dialogueToDelete);
 		}
-		setSessionToDelete(null);
+		setDialogueToDelete(null);
 	};
 
 	const handleResetClick = () => {
@@ -62,16 +62,16 @@ export default function SessionTabs() {
 	};
 
 	const handleConfirmReset = () => {
-		clearAllSessions();
+		clearAllDialogues();
 	};
 
-	const handleSessionClick = (sessionId: number) => {
-		// 如果点击的是已完成的session，先清除完成状态
-		const session = sessions.find((s) => s.id === sessionId);
-		if (session?.hasCompletedVersion) {
-			clearSessionCompleted(sessionId);
+	const handleDialogueClick = (dialogueId: number) => {
+		// 如果点击的是已完成的dialogue，先清除完成状态
+		const dialogue = dialogues.find((s) => s.id === dialogueId);
+		if (dialogue?.hasCompletedVersion) {
+			clearDialogueCompleted(dialogueId);
 		}
-		setActiveSession(sessionId);
+		setActiveDialogue(dialogueId);
 	};
 
 	return (
@@ -82,12 +82,12 @@ export default function SessionTabs() {
 						对话：
 					</span>
 					<div className="flex flex-wrap gap-1.5">
-						{sessions.map((session, index) => {
-							// Check if this specific session has any loading versions
-							const hasLoadingVersion = session.versions.some(
+						{dialogues.map((dialogue, index) => {
+							// Check if this specific dialogue has any loading versions
+							const hasLoadingVersion = dialogue.versions.some(
 								(version) => version.isLoading,
 							);
-							const isActive = session.id === activeSessionId;
+							const isActive = dialogue.id === activeDialogueId;
 
 							// Determine status styling
 							let statusStyle = isActive
@@ -97,13 +97,13 @@ export default function SessionTabs() {
 							if (hasLoadingVersion) {
 								statusStyle =
 									"animate-pulse border-sky-400 bg-sky-500/15 text-sky-500 ring-1 ring-sky-400/30";
-							} else if (session.hasCompletedVersion) {
+							} else if (dialogue.hasCompletedVersion) {
 								statusStyle =
 									"animate-pulse border-emerald-400 bg-emerald-500/15 text-emerald-500 ring-1 ring-emerald-400/30";
 							}
 
 							return (
-								<TooltipProvider key={session.id}>
+								<TooltipProvider key={dialogue.id}>
 									<Tooltip>
 										<TooltipTrigger asChild>
 											<div className="group relative">
@@ -113,10 +113,10 @@ export default function SessionTabs() {
 														"flex h-6 w-6 cursor-pointer items-center justify-center rounded-sm font-medium text-xs transition-all",
 														statusStyle,
 													)}
-													onClick={() => handleSessionClick(session.id)}
+													onClick={() => handleDialogueClick(dialogue.id)}
 													onKeyDown={(e) => {
 														if (e.key === "Enter" || e.key === " ") {
-															handleSessionClick(session.id);
+															handleDialogueClick(dialogue.id);
 														}
 													}}
 												>
@@ -128,11 +128,11 @@ export default function SessionTabs() {
 														</span>
 													)}
 												</button>
-												{sessions.length > 1 && (
+												{dialogues.length > 1 && (
 													<button
 														type="button"
 														className="-top-1 -right-1 absolute flex h-3 w-3 items-center justify-center rounded-full bg-red-100 text-red-600 opacity-0 transition-opacity hover:bg-red-200 group-hover:opacity-100 dark:bg-red-900/40 dark:text-red-400 dark:hover:bg-red-900/60"
-														onClick={(e) => handleDeleteClick(e, session.id)}
+														onClick={(e) => handleDeleteClick(e, dialogue.id)}
 														aria-label="删除会话"
 													>
 														<X className="h-2 w-2" />
@@ -147,7 +147,7 @@ export default function SessionTabs() {
 												</p>
 											</TooltipContent>
 										)}
-										{session.hasCompletedVersion && (
+										{dialogue.hasCompletedVersion && (
 											<TooltipContent>
 												<p className="mt-1 text-emerald-500 text-xs">
 													任务已完成，点击查看
@@ -165,10 +165,10 @@ export default function SessionTabs() {
 									<button
 										type="button"
 										className="relative flex h-6 w-6 cursor-pointer items-center justify-center rounded-sm bg-muted/20 text-muted-foreground hover:bg-sky-500/15 hover:text-sky-500 dark:hover:bg-sky-900/30 dark:hover:text-sky-400"
-										onClick={addSession}
+										onClick={addDialogue}
 										onKeyDown={(e) => {
 											if (e.key === "Enter" || e.key === " ") {
-												addSession();
+												addDialogue();
 											}
 										}}
 									>
@@ -176,7 +176,7 @@ export default function SessionTabs() {
 									</button>
 								</TooltipTrigger>
 								<TooltipContent>
-									<p className="text-xs">创建新对话 #{sessions.length + 1}</p>
+									<p className="text-xs">创建新对话 #{dialogues.length + 1}</p>
 									<p className="text-muted-foreground text-xs">
 										可随时创建新对话，无需等待生成完成
 									</p>
@@ -194,7 +194,7 @@ export default function SessionTabs() {
 								type="button"
 								className="flex h-6 items-center gap-1 rounded-sm px-1.5 text-muted-foreground text-xs hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30 dark:hover:text-red-400"
 								onClick={handleResetClick}
-								disabled={sessions.length <= 1}
+								disabled={dialogues.length <= 1}
 								aria-label="重置所有会话"
 							>
 								<RotateCcw className="h-3 w-3" />
@@ -213,14 +213,14 @@ export default function SessionTabs() {
 				</TooltipProvider>
 			</div>
 
-			{/* Delete Session Alert Dialog */}
+			{/* Delete Dialogue Alert Dialog */}
 			<AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
 				<AlertDialogContent>
 					<AlertDialogHeader>
 						<AlertDialogTitle>确认删除</AlertDialogTitle>
 						<AlertDialogDescription>
 							确定要删除对话{" "}
-							{sessions.findIndex((s) => s.id === sessionToDelete) + 1}{" "}
+							{dialogues.findIndex((s) => s.id === dialogueToDelete) + 1}{" "}
 							吗？此操作无法撤销。
 						</AlertDialogDescription>
 					</AlertDialogHeader>
@@ -236,7 +236,7 @@ export default function SessionTabs() {
 				</AlertDialogContent>
 			</AlertDialog>
 
-			{/* Reset All Sessions Alert Dialog */}
+			{/* Reset All Dialogues Alert Dialog */}
 			<AlertDialog open={isResetAlertOpen} onOpenChange={setIsResetAlertOpen}>
 				<AlertDialogContent>
 					<AlertDialogHeader>

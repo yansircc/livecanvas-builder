@@ -14,7 +14,7 @@ import type { Session } from "next-auth";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import type * as z from "zod";
-import { useLlmSessionStore } from "../hooks/llm-session-store";
+import { useLlmDialogueStore } from "../hooks/llm-dialogue-store";
 import { formSchema, useLlmForm } from "../hooks/use-llm-form";
 import { BackgroundCheckbox } from "./background-checkbox";
 import { ModelSelector } from "./model-selector";
@@ -52,18 +52,22 @@ export function LlmForm({ session, modelList }: LlmFormProps) {
 		modelList,
 	});
 
-	// 获取当前活动的session ID和version
-	const activeSessionId = useLlmSessionStore((state) => state.activeSessionId);
-	const activeVersion = useLlmSessionStore((state) => state.getActiveVersion());
+	// 获取当前活动的dialogue ID和version
+	const activeDialogueId = useLlmDialogueStore(
+		(state) => state.activeDialogueId,
+	);
+	const activeVersion = useLlmDialogueStore((state) =>
+		state.getActiveVersion(),
+	);
 
 	// 添加额外调试日志
 	useEffect(() => {
 		if (isMounted && taskStatus) {
-			console.log("Form state updated for session", activeSessionId, {
+			console.log("Form state updated for dialogue", activeDialogueId, {
 				taskStatus,
 			});
 		}
-	}, [isMounted, taskStatus, activeSessionId]);
+	}, [isMounted, taskStatus, activeDialogueId]);
 
 	// Show toast notifications for task status changes
 	useEffect(() => {
@@ -92,8 +96,8 @@ export function LlmForm({ session, modelList }: LlmFormProps) {
 		}
 	}, [taskStatus, isMounted]);
 
-	// 扩展FormValues类型以包含sessionId
-	type ExtendedFormValues = FormValues & { sessionId: number };
+	// 扩展FormValues类型以包含dialogueId
+	type ExtendedFormValues = FormValues & { dialogueId: number };
 
 	const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
 		if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
@@ -101,7 +105,7 @@ export function LlmForm({ session, modelList }: LlmFormProps) {
 			form.handleSubmit((values: FormValues) =>
 				handleSubmit({
 					...values,
-					sessionId: activeSessionId,
+					dialogueId: activeDialogueId,
 				} as ExtendedFormValues),
 			)();
 		}
@@ -116,7 +120,7 @@ export function LlmForm({ session, modelList }: LlmFormProps) {
 				onSubmit={form.handleSubmit((values: FormValues) =>
 					handleSubmit({
 						...values,
-						sessionId: activeSessionId,
+						dialogueId: activeDialogueId,
 					} as ExtendedFormValues),
 				)}
 				className="relative mx-auto w-full"
@@ -185,7 +189,7 @@ export function LlmForm({ session, modelList }: LlmFormProps) {
 								if (activeVersion) {
 									return await cancelTask(
 										id,
-										activeSessionId,
+										activeDialogueId,
 										activeVersion.id,
 									);
 								}

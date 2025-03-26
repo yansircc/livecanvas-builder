@@ -6,7 +6,7 @@ import type { ModelList } from "@/lib/models";
 import { cn } from "@/lib/utils";
 import { CodeIcon } from "lucide-react";
 import { z } from "zod";
-import { useLlmSessionStore } from "../hooks/llm-session-store";
+import { useLlmDialogueStore } from "../hooks/llm-dialogue-store";
 import { useAdviceStore } from "../hooks/use-advice-store";
 import { formSchema, useLlmForm } from "../hooks/use-llm-form";
 import { AdviceList } from "./advice-list";
@@ -26,19 +26,21 @@ interface ResultDisplayProps {
 }
 
 export default function ResultDisplay({ modelList }: ResultDisplayProps) {
-	const { sessions, activeSessionId } = useLlmSessionStore();
+	const { dialogues, activeDialogueId } = useLlmDialogueStore();
 	const handleAdviceClick = useAdviceStore((state) => state.handleAdviceClick);
 
-	const activeSession = sessions.find(
-		(session) => session.id === activeSessionId,
+	const activeDialogue = dialogues.find(
+		(dialogue) => dialogue.id === activeDialogueId,
 	);
 
-	if (!activeSession) {
+	if (!activeDialogue) {
 		return <EmptyState />;
 	}
 
-	const activeVersion = activeSession.activeVersionId
-		? activeSession.versions.find((v) => v.id === activeSession.activeVersionId)
+	const activeVersion = activeDialogue.activeVersionId
+		? activeDialogue.versions.find(
+				(v) => v.id === activeDialogue.activeVersionId,
+			)
 		: null;
 
 	if (!activeVersion) {
@@ -77,7 +79,7 @@ export default function ResultDisplay({ modelList }: ResultDisplayProps) {
 					<CardTitle className="font-medium text-lg text-zinc-800 dark:text-zinc-200">
 						AI 响应
 					</CardTitle>
-					{activeSession.versions.length > 0 && <VersionSelector />}
+					{activeDialogue.versions.length > 0 && <VersionSelector />}
 				</CardHeader>
 				<CardContent className="flex h-full items-center justify-center p-8">
 					<p className="text-zinc-500 dark:text-zinc-400">没有代码</p>
@@ -90,8 +92,8 @@ export default function ResultDisplay({ modelList }: ResultDisplayProps) {
 		<Card className="h-full border border-zinc-200 shadow-none dark:border-zinc-800">
 			<CardHeader className="flex flex-row items-center justify-between border-zinc-200 border-b pb-3 dark:border-zinc-800">
 				<CardTitle className="flex items-center font-medium text-lg text-zinc-800 dark:text-zinc-200">
-					{activeSession.versions.length <= 1 && "代码"}
-					{activeSession.versions.length > 1 && <VersionSelector />}
+					{activeDialogue.versions.length <= 1 && "代码"}
+					{activeDialogue.versions.length > 1 && <VersionSelector />}
 				</CardTitle>
 				<div className="flex flex-row items-center gap-2.5">
 					{activeVersion.response.usage && (
@@ -103,7 +105,7 @@ export default function ResultDisplay({ modelList }: ResultDisplayProps) {
 						/>
 					)}
 					<PreviewButton
-						sessionId={activeSession.id}
+						dialogueId={activeDialogue.id}
 						versionId={activeVersion.id}
 					/>
 					<CopyButton text={codeContent} />
