@@ -1,7 +1,6 @@
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { notFoundExample } from "../mock-htmls/404";
-// import { createTaosInitScript } from '../utils/animation-utils'
 import { processCss } from "../utils/css-processor";
 
 // Device configuration
@@ -13,7 +12,7 @@ export const deviceConfigs = {
 	desktop: { width: "100%", height: "auto", label: "Desktop" },
 };
 
-interface Session {
+interface Dialogue {
 	id: number;
 	versions: Array<{
 		id: number;
@@ -26,8 +25,8 @@ interface Session {
 
 interface StoreState {
 	state: {
-		sessions: Session[];
-		activeSessionId: number;
+		dialogues: Dialogue[];
+		activeDialogueId: number;
 	};
 }
 
@@ -234,28 +233,28 @@ export function usePreview() {
 		[htmlContent, hasDataTheme, processHtml],
 	);
 
-	// Extract HTML content from the store based on session and version IDs
+	// Extract HTML content from the store based on dialogue and version IDs
 	const getContentFromStore = useCallback(() => {
 		try {
 			// Get store from localStorage
-			const storeJson = localStorage.getItem("llm-session-storage");
+			const storeJson = localStorage.getItem("llm-dialogue-storage");
 			if (!storeJson) return null;
 
 			const store: StoreState = JSON.parse(storeJson);
 
-			// If both session and version are provided in URL
+			// If both dialogue and version are provided in URL
 			if (dialogueId && versionId) {
 				const dialogueIdNum = Number.parseInt(dialogueId, 10);
 				const versionIdNum = Number.parseInt(versionId, 10);
 
-				// Find the session
-				const session = store.state.sessions.find(
-					(s) => s.id === dialogueIdNum,
+				// Find the dialogue
+				const dialogue = store.state.dialogues.find(
+					(d) => d.id === dialogueIdNum,
 				);
-				if (!session) return null;
+				if (!dialogue) return null;
 
 				// Find the version
-				const version = session.versions.find((v) => v.id === versionIdNum);
+				const version = dialogue.versions.find((v) => v.id === versionIdNum);
 				if (!version) return null;
 
 				// Extract content from response
@@ -288,7 +287,7 @@ export function usePreview() {
 
 	// Load content and check for custom CSS on mount
 	useEffect(() => {
-		// Get content from the store based on session and version IDs
+		// Get content from the store based on dialogue and version IDs
 		let content = getContentFromStore();
 
 		// If no content found, use example
