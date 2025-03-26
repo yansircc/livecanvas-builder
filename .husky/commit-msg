@@ -1,1 +1,7 @@
+# Run typeheck
+bun typecheck || (
+  echo "❌ typecheck failed" 
+  exit 1
+)
+
 bun commitlint --edit $1 
