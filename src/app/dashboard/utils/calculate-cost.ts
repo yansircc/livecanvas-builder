@@ -4,6 +4,8 @@ import type {
 	ModelList,
 } from "@/lib/models";
 
+const EXCHANGE_RATE = 7.3;
+
 export function calculateCost(
 	usage:
 		| {
@@ -21,10 +23,28 @@ export function calculateCost(
 		(model) => model.id === modelId,
 	)?.price;
 	if (!price) return null;
-	const exchangeRate = 7.3;
+	const promptCost = (usage.totalTokens / 1000000) * price.input;
+	const completionCost = (usage.completionTokens / 1000000) * price.output;
 	const cost = {
-		usd: (usage.totalTokens / 1000000) * price.input,
-		cny: (usage.totalTokens / 1000000) * price.input * exchangeRate,
+		usd: promptCost + completionCost,
+		cny: (promptCost + completionCost) * EXCHANGE_RATE,
+	};
+	return cost;
+}
+
+export function calculateExtraPromptCost(
+	promptTokens: number,
+	modelList: ModelList,
+	providerId: AvailableProviderId,
+	modelId: AvailableModelId,
+) {
+	const price = modelList[providerId as AvailableProviderId]?.find(
+		(model) => model.id === modelId,
+	)?.price;
+	if (!price) return null;
+	const cost = {
+		usd: (promptTokens / 1000000) * price.input,
+		cny: (promptTokens / 1000000) * price.input * EXCHANGE_RATE,
 	};
 	return cost;
 }

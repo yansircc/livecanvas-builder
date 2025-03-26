@@ -10,9 +10,11 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import type { ModelList } from "@/lib/models";
 import { cn } from "@/lib/utils";
+import type { TaskStatus } from "@/types/task";
 import { Loader2, Send } from "lucide-react";
 import type { Session } from "next-auth";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import type * as z from "zod";
 import { formSchema, useLlmForm } from "../hooks/use-llm-form";
 import { BackgroundCheckbox } from "./background-checkbox";
@@ -30,14 +32,59 @@ export function LlmForm({ session, modelList }: LlmFormProps) {
 	// State to track if component is mounted (to avoid hydration mismatch)
 	const [isMounted, setIsMounted] = useState(false);
 
-	const { form, isLoading, isSubmitting, handleSubmit, hasBackgroundInfo } =
-		useLlmForm({
-			session,
-			isMounted,
-			setIsMounted,
-			formSchema,
-			modelList,
-		});
+	const {
+		form,
+		isLoading,
+		isSubmitting,
+		handleSubmit,
+		hasBackgroundInfo,
+		extraPromptCost,
+		taskStatus,
+		taskError,
+	} = useLlmForm({
+		session,
+		isMounted,
+		setIsMounted,
+		formSchema,
+		modelList,
+	});
+
+	// 添加额外调试日志
+	useEffect(() => {
+		if (isMounted && (taskStatus || taskError)) {
+			console.log("Form state updated:", {
+				taskStatus,
+				hasError: !!taskError,
+			});
+		}
+	}, [isMounted, taskStatus, taskError]);
+
+	// Show toast notifications for task status changes
+	useEffect(() => {
+		if (!isMounted || !taskStatus) return;
+
+		switch (taskStatus) {
+			case "COMPLETED":
+				toast.success("任务已完成");
+				break;
+			case "FAILED":
+				toast.error(`任务失败${taskError ? `: ${taskError.message}` : ""}`);
+				break;
+			case "CRASHED":
+				toast.error(`任务崩溃${taskError ? `: ${taskError.message}` : ""}`);
+				break;
+			case "SYSTEM_FAILURE":
+				toast.error(`系统错误${taskError ? `: ${taskError.message}` : ""}`);
+				break;
+			case "INTERRUPTED":
+				toast.error(`任务中断${taskError ? `: ${taskError.message}` : ""}`);
+				break;
+			case "CANCELED":
+				toast.error("任务已被取消");
+				break;
+			// 默认不显示 toast
+		}
+	}, [taskStatus, taskError, isMounted]);
 
 	// Use either our custom loading state or the form's built-in state
 	const buttonDisabled = isLoading || isSubmitting;
@@ -102,7 +149,10 @@ export function LlmForm({ session, modelList }: LlmFormProps) {
 							/>
 
 							{/* Precision Mode Toggle */}
-							<PrecisionCheckbox form={form} modelList={modelList} />
+							<PrecisionCheckbox
+								form={form}
+								extraPromptCost={Number(extraPromptCost?.cny.toFixed(2)) || 0}
+							/>
 						</div>
 
 						<div className="absolute right-4 bottom-4">

@@ -1,7 +1,7 @@
 import type { AvailableModelId, AvailableProviderId } from "@/lib/models";
 import { tryCatch } from "@/lib/try-catch";
 import type { ChatTaskResponse } from "@/types/chat";
-import type { TaskStatusResponse } from "@/types/task";
+import type { TaskStatus, TaskStatusResponse } from "@/types/task";
 import { extractAndParseJSON } from "@/utils/json-parser";
 import { replaceLucideIcons } from "@/utils/replace-with-lucide-icon";
 import { replaceWithUnsplashImages } from "@/utils/replace-with-unsplash";
@@ -31,6 +31,12 @@ interface ProcessedLLMResponse {
 	code: string;
 	advices: string[];
 	usage?: TokenUsage;
+}
+
+interface PollTaskResult {
+	response: ProcessedLLMResponse;
+	status: TaskStatus;
+	error?: string;
 }
 
 /**
@@ -125,10 +131,10 @@ export async function pollTaskStatus(
 	taskId: string,
 	intervalMs = 3000,
 	maxAttempts = 100,
-): Promise<ProcessedLLMResponse> {
+): Promise<PollTaskResult> {
 	let attempts = 0;
 
-	const pollOnce = async (): Promise<ProcessedLLMResponse> => {
+	const pollOnce = async (): Promise<PollTaskResult> => {
 		if (attempts >= maxAttempts) {
 			throw new Error("Max polling attempts reached");
 		}
@@ -162,21 +168,46 @@ export async function pollTaskStatus(
 
 		const data = (await result.data.json()) as TaskStatusResponse;
 
+		// 根据任务状态处理响应
 		switch (data.status) {
-			case "processing":
+			// 处理中的状态 - 继续轮询
+			case "PENDING":
+			case "WAITING":
+			case "RUNNING":
+			case "EXECUTING":
 				await new Promise((resolve) => setTimeout(resolve, intervalMs));
 				return pollOnce();
 
-			case "error":
-				throw new Error(
-					`Task failed: ${
+			// 错误状态 - 返回错误信息
+			case "FAILED":
+			case "CRASHED":
+			case "SYSTEM_FAILURE":
+			case "INTERRUPTED":
+				return {
+					response: {
+						code: `<!-- Error: Task ${data.status.toLowerCase()} -->`,
+						advices: [`Task ${data.status.toLowerCase()}`],
+					},
+					status: data.status,
+					error:
 						typeof data.error === "string"
 							? data.error
-							: JSON.stringify(data.error)
-					}`,
-				);
+							: JSON.stringify(data.error),
+				};
 
-			case "completed": {
+			// 取消状态 - 返回取消信息
+			case "CANCELED":
+				return {
+					response: {
+						code: "<!-- Task was canceled -->",
+						advices: ["The task was canceled"],
+					},
+					status: "CANCELED",
+					error: "任务已被取消",
+				};
+
+			// 完成状态 - 处理并返回结果
+			case "COMPLETED": {
 				if (!data.output) {
 					throw new Error("Task completed but no output received");
 				}
@@ -186,12 +217,13 @@ export async function pollTaskStatus(
 						? JSON.parse(data.output)
 						: (data.output as RawLLMResponse);
 
-				// Log the raw output to debug usage data
-				console.log("Raw LLM response:", JSON.stringify(rawOutput, null, 2));
-
-				return processLLMResponse(rawOutput);
+				return {
+					response: await processLLMResponse(rawOutput),
+					status: "COMPLETED",
+				};
 			}
 
+			// 其他未知状态 - 继续轮询
 			default:
 				await new Promise((resolve) => setTimeout(resolve, intervalMs));
 				return pollOnce();

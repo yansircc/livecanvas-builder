@@ -93,7 +93,7 @@ function buildContextualPrompt(
 	}
 
 	// Add the current message
-	contextualPrompt += `\n${prompt}`;
+	contextualPrompt += `\n\n Here is the command you need to execute:${prompt}`;
 
 	return contextualPrompt;
 }

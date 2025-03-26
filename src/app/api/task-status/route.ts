@@ -24,31 +24,15 @@ export async function GET(request: Request) {
 			`${taskId} 任务状态: ${result.status}, 输出状态: ${!!result.output}`,
 		);
 
-		// Map Trigger.dev status to our application status
-		let status: TaskStatus = "processing";
-
-		// Check status based on the status string
-		if (result.status === "COMPLETED") {
-			status = "completed";
-		} else if (
-			result.status === "FAILED" ||
-			result.status === "CRASHED" ||
-			result.status === "SYSTEM_FAILURE" ||
-			result.status === "CANCELED" ||
-			result.status === "INTERRUPTED"
-		) {
-			status = "error";
-		} else {
-			// Running, delayed, etc.
-			status = "processing";
-		}
+		// Directly use the Trigger.dev status as our TaskStatus
+		const status = result.status as TaskStatus;
 
 		// Prepare the response
 		const response: TaskStatusResponse = {
 			taskId: result.id,
 			status,
 			output: result.output,
-			error: result.status === "CANCELED" ? "任务已被取消" : result.error,
+			error: status === "CANCELED" ? "任务已被取消" : result.error,
 			startedAt: result.startedAt
 				? new Date(result.startedAt).toISOString()
 				: undefined,
@@ -59,9 +43,9 @@ export async function GET(request: Request) {
 		};
 
 		// Use different cache headers based on task status
-		// For completed/error tasks, cache with revalidation
-		// For processing tasks, no cache
-		if (status === "completed" || status === "error") {
+		// For completed tasks, cache with revalidation
+		// For other statuses, no cache
+		if (status === "COMPLETED") {
 			return NextResponse.json(response, {
 				headers: {
 					"Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
@@ -82,7 +66,7 @@ export async function GET(request: Request) {
 		return NextResponse.json(
 			{
 				taskId,
-				status: "error",
+				status: "FAILED",
 				error:
 					error instanceof Error
 						? error.message

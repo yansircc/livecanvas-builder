@@ -45,7 +45,7 @@ export function PreviewContent({ session }: PreviewContentProps) {
 	}[device];
 
 	return (
-		<div className="flex flex-col gap-8 bg-neutral-50 dark:bg-neutral-900">
+		<div className="flex flex-col gap-8">
 			{/* CSS Missing Dialog */}
 			<CssMissingDialog
 				open={showCssMissingDialog}

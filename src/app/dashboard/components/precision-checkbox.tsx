@@ -4,27 +4,22 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type {
-	AvailableModelId,
-	AvailableProviderId,
-	ModelList,
-} from "@/lib/models";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { Atom } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
-import { calculateCost } from "../utils/calculate-cost";
 import type { FormValues } from "./llm-form";
 
 interface PrecisionCheckboxProps {
 	form: UseFormReturn<FormValues>;
-	modelList: ModelList;
+	extraPromptCost: number;
 }
 
-export function PrecisionCheckbox({ form, modelList }: PrecisionCheckboxProps) {
-	const providerId = form.watch("providerId") as AvailableProviderId;
-	const modelId = form.watch("modelId") as AvailableModelId;
+export function PrecisionCheckbox({
+	form,
+	extraPromptCost,
+}: PrecisionCheckboxProps) {
 	const formValue = form.watch("precisionMode");
 	// Local state to control animation
 	const [isPrecisionMode, setIsPrecisionMode] = useState(formValue);
@@ -40,18 +35,6 @@ export function PrecisionCheckbox({ form, modelList }: PrecisionCheckboxProps) {
 		setIsPrecisionMode(newValue);
 		form.setValue("precisionMode", newValue);
 	};
-
-	// Calculate the extra cost for precision mode (approx 13k tokens)
-	const extraCost = calculateCost(
-		{
-			promptTokens: 13000,
-			completionTokens: 0,
-			totalTokens: 13000,
-		},
-		modelList,
-		providerId,
-		modelId,
-	);
 
 	return (
 		<TooltipProvider>
@@ -112,7 +95,7 @@ export function PrecisionCheckbox({ form, modelList }: PrecisionCheckboxProps) {
 				<TooltipContent side="top" className="max-w-xs">
 					<p className="text-xs">
 						精准模式会加载额外的参考文档，提供更精确的UI组件生成，但会额外消耗大约13k的token，关闭精准模式将节省
-						{extraCost?.cny.toFixed(2)}元
+						{extraPromptCost}元
 					</p>
 				</TooltipContent>
 			</Tooltip>

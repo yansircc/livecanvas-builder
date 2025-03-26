@@ -5,11 +5,14 @@ import type {
 	AvailableProviderId,
 	ModelList,
 } from "@/lib/models";
+import type { TaskStatus } from "@/types/task";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Session } from "next-auth";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { z } from "zod";
+import { calculateExtraPromptCost } from "../utils/calculate-cost";
 import { useLlmSessionStore } from "./llm-session-store";
 import { useAdviceStore } from "./use-advice-store";
 import { useTaskPolling } from "./use-task-polling";
@@ -49,7 +52,7 @@ export function useLlmForm({
 		getPreviousConversation,
 		getSelectedProvider,
 		getSelectedModelId,
-		setSessionModel,
+		setGlobalModel,
 	} = useLlmSessionStore();
 
 	const setHandleAdviceClick = useAdviceStore(
@@ -73,9 +76,9 @@ export function useLlmForm({
 		(session) => session.id === activeSessionId,
 	);
 
-	// Get the currently selected provider and model for this session
-	const selectedProviderId = getSelectedProvider(activeSessionId);
-	const selectedModelId = getSelectedModelId(activeSessionId);
+	// Get the currently selected provider and model
+	const selectedProviderId = getSelectedProvider();
+	const selectedModelId = getSelectedModelId();
 
 	// Check if user has background info from the session data
 	const hasBackgroundInfo = Boolean(
@@ -85,30 +88,55 @@ export function useLlmForm({
 	// Whether user is logged in
 	const isUserLoggedIn = Boolean(session?.user);
 
+	const [taskCompleted, setTaskCompleted] = useState(false);
+
+	// 添加额外的状态变量来更明确地跟踪任务状态
+	const [currentTaskStatus, setCurrentTaskStatus] = useState<
+		TaskStatus | undefined
+	>(undefined);
+
 	// Use the task polling hook
 	const {
 		isLoading: isTaskLoading,
 		error: taskError,
+		status: pollingStatus,
 		submitAndPollTask,
 	} = useTaskPolling({
 		onPollingStarted: () => {
-			console.log("Task polling started");
+			setTaskCompleted(false);
+			setCurrentTaskStatus(undefined);
 		},
 		onError: (error: Error) => {
 			console.error("Task polling error:", error);
-			// Reset loading state for active version
-			const activeSession = sessions.find(
-				(session) => session.id === activeSessionId,
-			);
-			if (activeSession?.activeVersionId) {
-				setVersionLoading(
-					activeSessionId,
-					activeSession.activeVersionId,
-					false,
-				);
+			resetVersionLoadingState();
+		},
+		onPollingCompleted: (result) => {
+			if (result.status === "COMPLETED") {
+				setTaskCompleted(true);
+			}
+
+			// 处理错误和取消状态
+			if (
+				result.status === "FAILED" ||
+				result.status === "CRASHED" ||
+				result.status === "SYSTEM_FAILURE" ||
+				result.status === "INTERRUPTED" ||
+				result.status === "CANCELED"
+			) {
+				resetVersionLoadingState();
 			}
 		},
 	});
+
+	// 重置版本加载状态的辅助函数
+	const resetVersionLoadingState = () => {
+		const activeSession = sessions.find(
+			(session) => session.id === activeSessionId,
+		);
+		if (activeSession?.activeVersionId) {
+			setVersionLoading(activeSessionId, activeSession.activeVersionId, false);
+		}
+	};
 
 	// Add useEffect to set isMounted to true after component mounts
 	useEffect(() => {
@@ -191,8 +219,8 @@ export function useLlmForm({
 	useEffect(() => {
 		if (isMounted && prevSessionIdRef.current !== activeSessionId) {
 			prevSessionIdRef.current = activeSessionId;
-			const currentProviderId = getSelectedProvider(activeSessionId);
-			const currentModelId = getSelectedModelId(activeSessionId);
+			const currentProviderId = getSelectedProvider();
+			const currentModelId = getSelectedModelId();
 
 			prevProviderIdRef.current = currentProviderId;
 			prevModelIdRef.current = currentModelId;
@@ -213,7 +241,7 @@ export function useLlmForm({
 		isMounted,
 	]);
 
-	// Handle model changes from the form to the store
+	// Handle model changes from the form to the global store
 	useEffect(() => {
 		if (
 			!isMounted ||
@@ -237,7 +265,7 @@ export function useLlmForm({
 
 		if (providerChanged || modelChanged) {
 			isUpdatingModelRef.current = true;
-			setSessionModel(activeSessionId, watchedProviderId, watchedModelId);
+			setGlobalModel(watchedProviderId, watchedModelId);
 			prevProviderIdRef.current = watchedProviderId;
 			prevModelIdRef.current = watchedModelId;
 			isUpdatingModelRef.current = false;
@@ -245,12 +273,18 @@ export function useLlmForm({
 	}, [
 		watchedProviderId,
 		watchedModelId,
-		activeSessionId,
 		selectedProviderId,
 		selectedModelId,
-		setSessionModel,
+		setGlobalModel,
 		isMounted,
 	]);
+
+	// 添加一个 effect 来监视 pollingStatus
+	useEffect(() => {
+		if (pollingStatus) {
+			setCurrentTaskStatus(pollingStatus);
+		}
+	}, [pollingStatus]);
 
 	async function handleSubmit(values: FormValues) {
 		try {
@@ -305,17 +339,12 @@ export function useLlmForm({
 				});
 			} catch (error) {
 				console.error("Error submitting form:", error);
-				// Set version as not loading
-				const activeSession = sessions.find(
-					(session) => session.id === activeSessionId,
-				);
-				if (activeSession?.activeVersionId) {
-					setVersionLoading(
-						activeSessionId,
-						activeSession.activeVersionId,
-						false,
-					);
-				}
+
+				// 更新任务状态 - 检测取消还是其他错误
+				// 注意：这里不需要重复设置状态，因为 useTaskPolling 中已经处理了
+
+				// 重置版本的加载状态
+				resetVersionLoadingState();
 			}
 		} finally {
 			setIsLoading(false);
@@ -359,6 +388,13 @@ export function useLlmForm({
 		}
 	}, [activeVersion, form, isSubmitting, isMounted]);
 
+	const extraPromptCost = calculateExtraPromptCost(
+		13000,
+		modelList,
+		selectedProviderId,
+		selectedModelId,
+	);
+
 	return {
 		form,
 		isLoading: isLoading || isTaskLoading,
@@ -371,5 +407,7 @@ export function useLlmForm({
 		isUserLoggedIn,
 		taskError,
 		handleAdviceClick,
+		extraPromptCost,
+		taskStatus: pollingStatus || currentTaskStatus,
 	};
 }

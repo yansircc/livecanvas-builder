@@ -18,7 +18,7 @@ export function CopyButton({ text }: { text: string }) {
 
 	return (
 		<Button
-			variant="outline"
+			variant="ghost"
 			size="icon"
 			onClick={handleClick}
 			className={cn(

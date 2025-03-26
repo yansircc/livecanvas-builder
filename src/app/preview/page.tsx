@@ -1,5 +1,3 @@
-import { Footer } from "@/components/footer";
-import { MainNav } from "@/components/nav/main-nav";
 import { auth } from "@/server/auth";
 import { addAuthCacheTags } from "@/server/cache";
 import type { Session } from "next-auth";
@@ -48,14 +46,10 @@ async function ErrorFallbackComponent() {
 
 export default function PreviewPage() {
 	return (
-		<div className="flex min-h-screen flex-col">
-			<MainNav />
-			<ErrorBoundary FallbackComponent={ErrorFallbackComponent}>
-				<Suspense fallback={<LoadingSpinner />}>
-					<SuspensePreviewContent />
-				</Suspense>
-			</ErrorBoundary>
-			<Footer />
-		</div>
+		<ErrorBoundary FallbackComponent={ErrorFallbackComponent}>
+			<Suspense fallback={<LoadingSpinner />}>
+				<SuspensePreviewContent />
+			</Suspense>
+		</ErrorBoundary>
 	);
 }

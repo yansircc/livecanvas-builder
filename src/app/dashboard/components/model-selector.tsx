@@ -7,6 +7,9 @@ import { Brain, ChevronDown } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import type { FormValues } from "./llm-form";
+import { RefreshModelsButton } from "./refresh-models-button";
+
+const EXCHANGE_RATE = 7.3;
 
 interface ModelSelectorProps {
 	form: UseFormReturn<FormValues>;
@@ -75,7 +78,7 @@ export function ModelSelector({
 				<button
 					type="button"
 					onClick={() => setIsModelMenuOpen(!isModelMenuOpen)}
-					className="group flex items-center gap-2 rounded-md px-3 py-1.5 transition-colors duration-150"
+					className="group flex items-center gap-2 rounded-md px-3 py-1.5 transition-all duration-200 hover:bg-zinc-100 dark:hover:bg-zinc-800"
 					aria-expanded={isModelMenuOpen}
 					aria-haspopup="true"
 				>
@@ -84,7 +87,7 @@ export function ModelSelector({
 						{isMounted ? (
 							<Badge
 								variant="outline"
-								className="group-hover:bg-zinc-200 dark:group-hover:bg-zinc-800"
+								className="bg-white transition-colors duration-200 group-hover:bg-zinc-100 dark:bg-zinc-900 dark:group-hover:bg-zinc-800"
 							>
 								{form.watch("providerId").toUpperCase()} - {currentModelName}
 							</Badge>
@@ -94,55 +97,73 @@ export function ModelSelector({
 					</span>
 					<ChevronDown
 						className={cn(
-							"h-3.5 w-3.5 text-zinc-400 transition-transform duration-150 dark:text-zinc-500",
+							"h-3.5 w-3.5 text-zinc-400 transition-transform duration-200 dark:text-zinc-500",
 							isModelMenuOpen && "rotate-180",
 						)}
 					/>
 				</button>
 
 				{isModelMenuOpen && (
-					<div className="absolute top-full left-0 z-50 mt-1 w-72 overflow-hidden rounded-md border border-zinc-200 bg-white transition-colors duration-150 dark:border-zinc-700 dark:bg-zinc-800">
-						{Object.entries(modelList).map(([providerId, models]) => (
-							<div key={`provider-${providerId}`} className="px-3 py-2">
-								<div className="mb-1.5 px-2 font-semibold text-xs text-zinc-500 uppercase tracking-wider dark:text-zinc-400">
-									{providerId.toUpperCase()}
-								</div>
-								<div className="space-y-1">
-									{models.map((model) => (
-										<button
-											type="button"
-											key={`model-${model.id}`}
-											className={cn(
-												"flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors",
-												"hover:bg-zinc-100 dark:hover:bg-zinc-700",
-												form.getValues("modelId") === model.id &&
-													"bg-zinc-100 dark:bg-zinc-700",
-											)}
-											onClick={() => {
-												form.setValue(
-													"providerId",
-													providerId as AvailableProviderId,
-												);
-												form.setValue("modelId", model.id);
-												setCurrentModelName(model.name);
-												setIsModelMenuOpen(false);
-											}}
-										>
-											<div className="flex flex-1 items-center gap-2">
-												<Brain className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
-												<span className="text-zinc-800 dark:text-zinc-200">
+					<div className="absolute top-full left-0 z-50 mt-2 w-120 overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-lg backdrop-blur-sm transition-all duration-200 dark:border-zinc-700 dark:bg-zinc-800/95">
+						<div className="flex items-center justify-between p-4">
+							<h1 className="font-medium text-sm text-zinc-800 dark:text-zinc-200">
+								模型列表
+							</h1>
+							<RefreshModelsButton />
+						</div>
+						{Object.entries(modelList).map(
+							([providerId, models], index, array) => (
+								<div
+									key={`provider-${providerId}`}
+									className={cn(
+										"px-3 py-2.5",
+										index !== array.length - 1 &&
+											"border-zinc-100 border-b dark:border-zinc-700/50",
+									)}
+								>
+									<div className="mb-1.5 px-2 font-medium text-xs text-zinc-500 uppercase tracking-wider dark:text-zinc-400">
+										{providerId.toUpperCase()}
+									</div>
+									<div className="grid grid-cols-2 gap-1.5">
+										{models.map((model) => (
+											<button
+												type="button"
+												key={`model-${model.id}`}
+												className={cn(
+													"flex items-center gap-2 rounded-md px-3 py-2.5 text-left text-sm transition-all duration-150",
+													"hover:bg-zinc-50 dark:hover:bg-zinc-700/70",
+													form.getValues("modelId") === model.id
+														? "bg-zinc-100/80 ring-1 ring-zinc-200 dark:bg-zinc-700/50 dark:ring-zinc-600"
+														: "border border-transparent",
+												)}
+												onClick={() => {
+													form.setValue(
+														"providerId",
+														providerId as AvailableProviderId,
+													);
+													form.setValue("modelId", model.id);
+													setCurrentModelName(model.name);
+													setIsModelMenuOpen(false);
+												}}
+											>
+												<span className="flex min-w-0 flex-1 items-center truncate font-medium text-zinc-800 dark:text-zinc-200">
 													{model.name}
 												</span>
-											</div>
-											<span className="rounded-md bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
-												${model.price.input.toFixed(2)}/$
-												{model.price.output.toFixed(2)}
-											</span>
-										</button>
-									))}
+
+												<span className="shrink-0 rounded-md border border-zinc-100 bg-zinc-50 px-2 py-0.5 text-xs text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800/70 dark:text-zinc-400">
+													￥
+													{Math.round(model.price.input * EXCHANGE_RATE * 10) /
+														10}{" "}
+													/ ￥
+													{Math.round(model.price.output * EXCHANGE_RATE * 10) /
+														10}
+												</span>
+											</button>
+										))}
+									</div>
 								</div>
-							</div>
-						))}
+							),
+						)}
 					</div>
 				)}
 			</div>

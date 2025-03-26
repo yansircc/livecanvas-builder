@@ -40,8 +40,6 @@ export interface Session {
 	id: number;
 	versions: Version[];
 	activeVersionId: number | null;
-	selectedProviderId: AvailableProviderId;
-	selectedModelId: AvailableModelId;
 }
 
 interface LlmSessionState {
@@ -66,18 +64,13 @@ interface LlmSessionState {
 		isLoading: boolean,
 	) => void;
 	setActiveVersion: (sessionId: number, versionId: number) => void;
-	setSessionModel: (
-		sessionId: number,
-		providerId: AvailableProviderId,
-		modelId: AvailableModelId,
-	) => void;
 	setGlobalModel: (
 		providerId: AvailableProviderId,
 		modelId: AvailableModelId,
 	) => void;
 	getPreviousConversation: (sessionId: number) => ConversationHistory | null;
-	getSelectedProvider: (sessionId: number) => AvailableProviderId;
-	getSelectedModelId: (sessionId: number) => AvailableModelId;
+	getSelectedProvider: () => AvailableProviderId;
+	getSelectedModelId: () => AvailableModelId;
 }
 
 // Default provider and model values
@@ -89,8 +82,6 @@ const defaultSession: Session = {
 	id: 1,
 	versions: [],
 	activeVersionId: null,
-	selectedProviderId: defaultProviderId,
-	selectedModelId: defaultModelId,
 };
 
 export const useLlmSessionStore = create<LlmSessionState>()(
@@ -109,8 +100,6 @@ export const useLlmSessionStore = create<LlmSessionState>()(
 						id: newSessionId,
 						versions: [],
 						activeVersionId: null,
-						selectedProviderId: state.globalSelectedProviderId,
-						selectedModelId: state.globalSelectedModelId,
 					};
 
 					return {
@@ -120,12 +109,10 @@ export const useLlmSessionStore = create<LlmSessionState>()(
 				}),
 
 			clearAllSessions: () =>
-				set((state) => ({
+				set(() => ({
 					sessions: [
 						{
 							...defaultSession,
-							selectedProviderId: state.globalSelectedProviderId,
-							selectedModelId: state.globalSelectedModelId,
 						},
 					],
 					activeSessionId: 1,
@@ -156,8 +143,8 @@ export const useLlmSessionStore = create<LlmSessionState>()(
 					// Ensure the provider and model IDs are included in the input
 					const inputWithModel = {
 						...input,
-						providerId: input.providerId || targetSession.selectedProviderId,
-						modelId: input.modelId || targetSession.selectedModelId,
+						providerId: input.providerId || state.globalSelectedProviderId,
+						modelId: input.modelId || state.globalSelectedModelId,
 					};
 
 					const newVersion: Version = {
@@ -278,32 +265,6 @@ export const useLlmSessionStore = create<LlmSessionState>()(
 					return { sessions: updatedSessions };
 				}),
 
-			setSessionModel: (sessionId, providerId, modelId) =>
-				set((state) => {
-					const sessionIndex = state.sessions.findIndex(
-						(s) => s.id === sessionId,
-					);
-					if (sessionIndex === -1) return state;
-
-					const targetSession = state.sessions[sessionIndex];
-					if (!targetSession) return state;
-
-					const updatedSession: Session = {
-						...targetSession,
-						selectedProviderId: providerId,
-						selectedModelId: modelId,
-					};
-
-					const updatedSessions = [...state.sessions];
-					updatedSessions[sessionIndex] = updatedSession;
-
-					return {
-						sessions: updatedSessions,
-						globalSelectedProviderId: providerId,
-						globalSelectedModelId: modelId,
-					};
-				}),
-
 			setGlobalModel: (providerId, modelId) =>
 				set(() => ({
 					globalSelectedProviderId: providerId,
@@ -354,26 +315,14 @@ export const useLlmSessionStore = create<LlmSessionState>()(
 				};
 			},
 
-			getSelectedProvider: (sessionId) => {
+			getSelectedProvider: () => {
 				const state = get();
-				const session = state.sessions.find((s) => s.id === sessionId);
-
-				if (!session) {
-					return state.globalSelectedProviderId;
-				}
-
-				return session.selectedProviderId;
+				return state.globalSelectedProviderId;
 			},
 
-			getSelectedModelId: (sessionId) => {
+			getSelectedModelId: () => {
 				const state = get();
-				const session = state.sessions.find((s) => s.id === sessionId);
-
-				if (!session) {
-					return state.globalSelectedModelId;
-				}
-
-				return session.selectedModelId;
+				return state.globalSelectedModelId;
 			},
 		}),
 		{
