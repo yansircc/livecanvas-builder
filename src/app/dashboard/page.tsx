@@ -39,7 +39,7 @@ async function SuspenseResultDisplay() {
 
 export default function Dashboard() {
 	return (
-		<div className="container mx-auto space-y-4 p-4">
+		<div className="container mx-auto flex flex-col gap-6 p-4">
 			<SessionTabs />
 
 			<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
