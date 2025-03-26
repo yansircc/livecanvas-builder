@@ -7,10 +7,11 @@ import type {
 } from "@/lib/models";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Session } from "next-auth";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useLlmSessionStore } from "./llm-session-store";
+import { useAdviceStore } from "./use-advice-store";
 import { useTaskPolling } from "./use-task-polling";
 
 // Define the form schema type directly in this file
@@ -50,6 +51,10 @@ export function useLlmForm({
 		getSelectedModelId,
 		setSessionModel,
 	} = useLlmSessionStore();
+
+	const setHandleAdviceClick = useAdviceStore(
+		(state) => state.setHandleAdviceClick,
+	);
 
 	// Custom loading state to handle the async submission
 	const [isLoading, setIsLoading] = useState(false);
@@ -126,6 +131,24 @@ export function useLlmForm({
 			precisionMode: false,
 		},
 	});
+
+	// Add a function to handle advice clicks
+	const handleAdviceClick = useCallback(
+		(advice: string) => {
+			const currentPrompt = form.getValues("prompt");
+			const newPrompt = `${currentPrompt}\n${advice}`;
+			form.setValue("prompt", newPrompt);
+		},
+		[form.getValues, form.setValue],
+	);
+
+	// Register the handler in the store
+	useEffect(() => {
+		setHandleAdviceClick(handleAdviceClick);
+		return () => {
+			setHandleAdviceClick(() => {});
+		};
+	}, [handleAdviceClick, setHandleAdviceClick]);
 
 	const isSubmitting = form.formState.isSubmitting;
 	const watchedModelId = form.watch("modelId");
@@ -347,5 +370,6 @@ export function useLlmForm({
 		hasBackgroundInfo,
 		isUserLoggedIn,
 		taskError,
+		handleAdviceClick,
 	};
 }

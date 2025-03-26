@@ -5,7 +5,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { ModelList } from "@/lib/models";
 import { cn } from "@/lib/utils";
 import { CodeIcon } from "lucide-react";
+import { z } from "zod";
 import { useLlmSessionStore } from "../hooks/llm-session-store";
+import { useAdviceStore } from "../hooks/use-advice-store";
+import { formSchema, useLlmForm } from "../hooks/use-llm-form";
 import { AdviceList } from "./advice-list";
 import { CopyButton } from "./copy-button";
 import { PreviewButton } from "./preview-button";
@@ -24,10 +27,12 @@ interface ResultDisplayProps {
 
 export default function ResultDisplay({ modelList }: ResultDisplayProps) {
 	const { sessions, activeSessionId } = useLlmSessionStore();
+	const handleAdviceClick = useAdviceStore((state) => state.handleAdviceClick);
 
 	const activeSession = sessions.find(
 		(session) => session.id === activeSessionId,
 	);
+
 	if (!activeSession) {
 		return <EmptyState />;
 	}
@@ -125,7 +130,7 @@ export default function ResultDisplay({ modelList }: ResultDisplayProps) {
 						</h3>
 						<AdviceList
 							advices={responseData.advices || []}
-							onAdviceClick={() => {}}
+							onAdviceClick={handleAdviceClick || (() => {})}
 						/>
 					</div>
 				)}
