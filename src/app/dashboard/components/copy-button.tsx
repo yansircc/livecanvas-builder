@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, Copy } from "lucide-react";
+import { Check, Copy } from "lucide-react";
 import { useState } from "react";
 
 export function CopyButton({ text }: { text: string }) {
@@ -24,8 +24,8 @@ export function CopyButton({ text }: { text: string }) {
 			className={cn(
 				"relative overflow-hidden transition-colors duration-150",
 				copied
-					? "border-zinc-300 bg-zinc-100 text-zinc-800 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
-					: "border-zinc-200 hover:border-zinc-300 dark:border-zinc-800 dark:hover:border-zinc-700",
+					? "cursor-not-allowed border-green-300 bg-green-100 text-green-800 dark:border-green-700 dark:bg-green-800 dark:text-green-200"
+					: "cursor-copy border-zinc-200 hover:border-zinc-300 dark:border-zinc-800 dark:hover:border-zinc-700",
 			)}
 			disabled={copied}
 			title={copied ? "已复制" : "复制代码"}
@@ -36,7 +36,7 @@ export function CopyButton({ text }: { text: string }) {
 					copied ? "opacity-100" : "opacity-0",
 				)}
 			>
-				<CheckCircle2 className="h-4 w-4" />
+				<Check className="h-4 w-4" />
 			</span>
 			<span
 				className={cn(

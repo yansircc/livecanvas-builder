@@ -64,6 +64,11 @@ function buildContextualPrompt(
 ): string {
 	let contextualPrompt = PROMPT;
 
+	// Add daisyUI tutorial if available
+	if (uiTutorial) {
+		contextualPrompt += `\n\n### DaisyUI Tutorial:\n${uiTutorial}`;
+	}
+
 	// Add user context if available
 	if (context?.trim()) {
 		contextualPrompt += `\n\n### User Context:\n${context}`;
@@ -87,13 +92,8 @@ function buildContextualPrompt(
 		contextualPrompt += "\n\n### Current Request:";
 	}
 
-	// Add daisyUI tutorial if available
-	if (uiTutorial) {
-		contextualPrompt += `\n\n### DaisyUI Tutorial:\n${uiTutorial}`;
-	}
-
 	// Add the current message
-	contextualPrompt += `\n\n Here is the command you need to execute:${prompt}`;
+	contextualPrompt += `\n\n **HERE IS THE COMMAND YOU NEED TO EXECUTE**: ${prompt}`;
 
 	return contextualPrompt;
 }

@@ -87,7 +87,7 @@ async function processLLMResponse(
 		return {
 			code: code
 				? replaceWithUnsplashImages(replaceLucideIcons(code))
-				: "<!-- No code generated -->",
+				: "<!-- 没有生成代码 -->",
 			advices: advices || [],
 			usage,
 		};
@@ -102,8 +102,8 @@ async function processLLMResponse(
 
 		if (parsedResult.error || !parsedResult.data?.code) {
 			return {
-				code: "<!-- Error: Failed to parse LLM response -->",
-				advices: ["There was an error processing the LLM response"],
+				code: "<!-- 解析LLM响应失败 -->",
+				advices: [],
 				usage,
 			};
 		}
@@ -118,8 +118,8 @@ async function processLLMResponse(
 	}
 
 	return {
-		code: "<!-- Error: Invalid LLM response format -->",
-		advices: ["Invalid LLM response format"],
+		code: "<!-- 错误: 无效的LLM响应格式 -->",
+		advices: [],
 		usage,
 	};
 }
@@ -185,8 +185,8 @@ export async function pollTaskStatus(
 			case "INTERRUPTED":
 				return {
 					response: {
-						code: `<!-- Error: Task ${data.status.toLowerCase()} -->`,
-						advices: [`Task ${data.status.toLowerCase()}`],
+						code: `<!-- 错误: 任务 ${data.status.toLowerCase()} -->`,
+						advices: [],
 					},
 					status: data.status,
 					error:
@@ -199,8 +199,8 @@ export async function pollTaskStatus(
 			case "CANCELED":
 				return {
 					response: {
-						code: "<!-- Task was canceled -->",
-						advices: ["The task was canceled"],
+						code: "<!-- 任务被取消 -->",
+						advices: [],
 					},
 					status: "CANCELED",
 					error: "任务已被取消",

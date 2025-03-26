@@ -59,8 +59,25 @@ export function useLlmForm({
 		(state) => state.setHandleAdviceClick,
 	);
 
-	// Custom loading state to handle the async submission
-	const [isLoading, setIsLoading] = useState(false);
+	// 修改：使用Map来存储每个session的loading状态
+	const [sessionLoadingStates, setSessionLoadingStates] = useState<
+		Map<number, boolean>
+	>(new Map());
+
+	// 获取当前session的loading状态
+	const isLoading = sessionLoadingStates.get(activeSessionId) || false;
+
+	// 设置特定session的loading状态
+	const setSessionLoading = useCallback(
+		(sessionId: number, loading: boolean) => {
+			setSessionLoadingStates((prev) => {
+				const newMap = new Map(prev);
+				newMap.set(sessionId, loading);
+				return newMap;
+			});
+		},
+		[],
+	);
 
 	// Ref to prevent infinite loops in useEffect
 	const isUpdatingModelRef = useRef<boolean>(false);
@@ -96,39 +113,13 @@ export function useLlmForm({
 	>(undefined);
 
 	// Use the task polling hook
-	const {
-		isLoading: isTaskLoading,
-		error: taskError,
-		status: pollingStatus,
-		taskId,
-		submitAndPollTask,
-		cancelTask,
-	} = useTaskPolling({
-		onPollingStarted: () => {
-			setTaskCompleted(false);
-			setCurrentTaskStatus(undefined);
-		},
-		onError: (error: Error) => {
-			console.error("Task polling error:", error);
-			resetVersionLoadingState();
-		},
-		onPollingCompleted: (result) => {
-			if (result.status === "COMPLETED") {
-				setTaskCompleted(true);
-			}
+	const { getSessionTaskState, taskId, submitAndPollTask, cancelTask } =
+		useTaskPolling();
 
-			// 处理错误和取消状态
-			if (
-				result.status === "FAILED" ||
-				result.status === "CRASHED" ||
-				result.status === "SYSTEM_FAILURE" ||
-				result.status === "INTERRUPTED" ||
-				result.status === "CANCELED"
-			) {
-				resetVersionLoadingState();
-			}
-		},
-	});
+	// 获取当前session的任务状态
+	const currentSessionState = getSessionTaskState(activeSessionId);
+	const taskStatus = currentSessionState.status;
+	const taskError = currentSessionState.error;
 
 	// 重置版本加载状态的辅助函数
 	const resetVersionLoadingState = () => {
@@ -283,18 +274,18 @@ export function useLlmForm({
 
 	// 添加一个 effect 来监视 pollingStatus
 	useEffect(() => {
-		if (pollingStatus) {
-			setCurrentTaskStatus(pollingStatus);
+		if (taskStatus) {
+			setCurrentTaskStatus(taskStatus);
 		}
-	}, [pollingStatus]);
+	}, [taskStatus]);
 
-	async function handleSubmit(values: FormValues) {
+	async function handleSubmit(values: FormValues & { sessionId: number }) {
 		try {
-			// Set custom loading state to true
-			setIsLoading(true);
+			// 设置当前session的loading状态
+			setSessionLoading(values.sessionId, true);
 
 			// Get previous conversation if available
-			const previousConversation = getPreviousConversation(activeSessionId);
+			const previousConversation = getPreviousConversation(values.sessionId);
 
 			// Prepare form data with history if available
 			const formData = {
@@ -307,17 +298,14 @@ export function useLlmForm({
 			};
 
 			// Create a new version with the input and history
-			const versionId = addVersion(activeSessionId, formData);
+			const versionId = addVersion(values.sessionId, formData);
 
 			try {
 				// Submit task to the API and poll for results
 				const response = await submitAndPollTask({
-					prompt: values.prompt,
-					providerId: values.providerId,
-					modelId: values.modelId,
+					...formData,
+					sessionId: values.sessionId,
 					withBackgroundInfo: values.withBackgroundInfo && hasBackgroundInfo,
-					precisionMode: values.precisionMode,
-					...(previousConversation && { history: [previousConversation] }),
 				});
 
 				// Ensure usage data is present or create a default
@@ -328,8 +316,7 @@ export function useLlmForm({
 				};
 
 				// Update the version with the API response
-				// Store the response data properly structured
-				setVersionResponse(activeSessionId, versionId, {
+				setVersionResponse(values.sessionId, versionId, {
 					content: JSON.stringify({
 						code: response.code,
 						advices: response.advices,
@@ -341,15 +328,10 @@ export function useLlmForm({
 				});
 			} catch (error) {
 				console.error("Error submitting form:", error);
-
-				// 更新任务状态 - 检测取消还是其他错误
-				// 注意：这里不需要重复设置状态，因为 useTaskPolling 中已经处理了
-
-				// 重置版本的加载状态
 				resetVersionLoadingState();
 			}
 		} finally {
-			setIsLoading(false);
+			setSessionLoading(values.sessionId, false);
 		}
 	}
 
@@ -399,7 +381,7 @@ export function useLlmForm({
 
 	return {
 		form,
-		isLoading: isLoading || isTaskLoading,
+		isLoading,
 		currentModelPrice,
 		watchedModelId,
 		watchedProviderId,
@@ -410,7 +392,7 @@ export function useLlmForm({
 		taskError,
 		handleAdviceClick,
 		extraPromptCost,
-		taskStatus: pollingStatus || currentTaskStatus,
+		taskStatus,
 		taskId,
 		cancelTask,
 	};

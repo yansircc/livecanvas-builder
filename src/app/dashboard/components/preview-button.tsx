@@ -13,7 +13,12 @@ export function PreviewButton({ sessionId, versionId }: PreviewButtonProps) {
 	};
 
 	return (
-		<Button variant="ghost" size="icon" onClick={handleClick}>
+		<Button
+			variant="ghost"
+			size="icon"
+			onClick={handleClick}
+			className="cursor-pointer"
+		>
 			<Eye className="h-4 w-4" />
 		</Button>
 	);

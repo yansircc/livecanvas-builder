@@ -71,6 +71,9 @@ interface LlmSessionState {
 	getPreviousConversation: (sessionId: number) => ConversationHistory | null;
 	getSelectedProvider: () => AvailableProviderId;
 	getSelectedModelId: () => AvailableModelId;
+	cleanupIncompleteVersions: () => void;
+	deleteVersion: (sessionId: number, versionId: number) => void;
+	deleteSession: (sessionId: number) => void;
 }
 
 // Default provider and model values
@@ -324,6 +327,107 @@ export const useLlmSessionStore = create<LlmSessionState>()(
 				const state = get();
 				return state.globalSelectedModelId;
 			},
+
+			cleanupIncompleteVersions: () =>
+				set((state) => {
+					const updatedSessions = state.sessions.map((session) => {
+						// Filter out versions that have input but no response and are still loading
+						const filteredVersions = session.versions.filter(
+							(version) =>
+								!(
+									version.input &&
+									version.response === null &&
+									version.isLoading
+								),
+						);
+
+						// Update activeVersionId if necessary
+						let activeVersionId = session.activeVersionId;
+						if (
+							activeVersionId !== null &&
+							!filteredVersions.some((v) => v.id === activeVersionId) &&
+							filteredVersions.length > 0
+						) {
+							// If the active version was removed, set the latest version as active
+							activeVersionId =
+								filteredVersions[filteredVersions.length - 1]?.id || null;
+						} else if (filteredVersions.length === 0) {
+							activeVersionId = null;
+						}
+
+						return {
+							...session,
+							versions: filteredVersions,
+							activeVersionId,
+						};
+					});
+
+					return { sessions: updatedSessions };
+				}),
+
+			deleteVersion: (sessionId, versionId) =>
+				set((state) => {
+					const sessionIndex = state.sessions.findIndex(
+						(s) => s.id === sessionId,
+					);
+					if (sessionIndex === -1) return state;
+
+					const session = state.sessions[sessionIndex];
+					if (!session) return state;
+
+					// Filter out the target version
+					const updatedVersions = session.versions.filter(
+						(v) => v.id !== versionId,
+					);
+
+					// If there are no versions left, don't change the session
+					if (updatedVersions.length === 0 && session.versions.length === 1) {
+						return state;
+					}
+
+					// Update activeVersionId if necessary
+					let activeVersionId = session.activeVersionId;
+					if (activeVersionId === versionId && updatedVersions.length > 0) {
+						// Set the latest version as active if the deleted version was active
+						const lastVersion = updatedVersions[updatedVersions.length - 1];
+						activeVersionId = lastVersion ? lastVersion.id : null;
+					} else if (updatedVersions.length === 0) {
+						activeVersionId = null;
+					}
+
+					const updatedSession = {
+						...session,
+						versions: updatedVersions,
+						activeVersionId,
+					};
+
+					const updatedSessions = [...state.sessions];
+					updatedSessions[sessionIndex] = updatedSession;
+
+					return { sessions: updatedSessions };
+				}),
+
+			deleteSession: (sessionId) =>
+				set((state) => {
+					// Don't delete if it's the only session
+					if (state.sessions.length <= 1) return state;
+
+					const updatedSessions = state.sessions.filter(
+						(s) => s.id !== sessionId,
+					);
+
+					// If the active session is deleted, set the first available session as active
+					let activeSessionId = state.activeSessionId;
+					if (activeSessionId === sessionId && updatedSessions.length > 0) {
+						const firstSession = updatedSessions[0];
+						activeSessionId = firstSession ? firstSession.id : activeSessionId;
+					}
+
+					return {
+						sessions: updatedSessions,
+						activeSessionId,
+					};
+				}),
 		}),
 		{
 			name: "llm-session-storage", // name of the item in localStorage

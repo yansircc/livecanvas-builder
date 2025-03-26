@@ -10,7 +10,7 @@ interface TaskActionButtonProps {
 	isLoading: boolean;
 	isSubmitting: boolean;
 	taskId: string | null;
-	taskStatus: TaskStatus | undefined;
+	taskStatus: TaskStatus | null;
 	cancelTask: (taskId: string) => Promise<boolean>;
 	hasContent: boolean; // 是否有内容可提交
 	onCancelingChange?: (isCanceling: boolean) => void; // 用于传递取消状态回父组件

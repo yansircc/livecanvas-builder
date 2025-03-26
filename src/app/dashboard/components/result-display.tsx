@@ -90,12 +90,8 @@ export default function ResultDisplay({ modelList }: ResultDisplayProps) {
 		<Card className="h-full border border-zinc-200 shadow-none dark:border-zinc-800">
 			<CardHeader className="flex flex-row items-center justify-between border-zinc-200 border-b pb-3 dark:border-zinc-800">
 				<CardTitle className="flex items-center font-medium text-lg text-zinc-800 dark:text-zinc-200">
-					代码
-					{activeSession.versions.length > 1 && (
-						<span className="ml-3">
-							<VersionSelector />
-						</span>
-					)}
+					{activeSession.versions.length <= 1 && "代码"}
+					{activeSession.versions.length > 1 && <VersionSelector />}
 				</CardTitle>
 				<div className="flex flex-row items-center gap-2.5">
 					{activeVersion.response.usage && (

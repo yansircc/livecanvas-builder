@@ -10,11 +10,11 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import type { ModelList } from "@/lib/models";
 import { cn } from "@/lib/utils";
-import type { TaskStatus } from "@/types/task";
 import type { Session } from "next-auth";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import type * as z from "zod";
+import { useLlmSessionStore } from "../hooks/llm-session-store";
 import { formSchema, useLlmForm } from "../hooks/use-llm-form";
 import { BackgroundCheckbox } from "./background-checkbox";
 import { ModelSelector } from "./model-selector";
@@ -42,7 +42,6 @@ export function LlmForm({ session, modelList }: LlmFormProps) {
 		hasBackgroundInfo,
 		extraPromptCost,
 		taskStatus,
-		taskError,
 		taskId,
 		cancelTask,
 	} = useLlmForm({
@@ -53,15 +52,17 @@ export function LlmForm({ session, modelList }: LlmFormProps) {
 		modelList,
 	});
 
+	// 获取当前活动的session ID
+	const activeSessionId = useLlmSessionStore((state) => state.activeSessionId);
+
 	// 添加额外调试日志
 	useEffect(() => {
-		if (isMounted && (taskStatus || taskError)) {
-			console.log("Form state updated:", {
+		if (isMounted && taskStatus) {
+			console.log("Form state updated for session", activeSessionId, {
 				taskStatus,
-				hasError: !!taskError,
 			});
 		}
-	}, [isMounted, taskStatus, taskError]);
+	}, [isMounted, taskStatus, activeSessionId]);
 
 	// Show toast notifications for task status changes
 	useEffect(() => {
@@ -72,28 +73,36 @@ export function LlmForm({ session, modelList }: LlmFormProps) {
 				toast.success("任务已完成");
 				break;
 			case "FAILED":
-				toast.error(`任务失败${taskError ? `: ${taskError.message}` : ""}`);
+				toast.error("任务失败");
 				break;
 			case "CRASHED":
-				toast.error(`任务崩溃${taskError ? `: ${taskError.message}` : ""}`);
+				toast.error("任务崩溃");
 				break;
 			case "SYSTEM_FAILURE":
-				toast.error(`系统错误${taskError ? `: ${taskError.message}` : ""}`);
+				toast.error("系统错误");
 				break;
 			case "INTERRUPTED":
-				toast.error(`任务中断${taskError ? `: ${taskError.message}` : ""}`);
+				toast.error("任务中断");
 				break;
 			case "CANCELED":
 				toast.error("任务已被取消");
 				break;
 			// 默认不显示 toast
 		}
-	}, [taskStatus, taskError, isMounted]);
+	}, [taskStatus, isMounted]);
+
+	// 扩展FormValues类型以包含sessionId
+	type ExtendedFormValues = FormValues & { sessionId: number };
 
 	const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-		if (e.key === "Enter" && !e.shiftKey) {
+		if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
 			e.preventDefault();
-			form.handleSubmit(handleSubmit)();
+			form.handleSubmit((values: FormValues) =>
+				handleSubmit({
+					...values,
+					sessionId: activeSessionId,
+				} as ExtendedFormValues),
+			)();
 		}
 	};
 
@@ -103,7 +112,12 @@ export function LlmForm({ session, modelList }: LlmFormProps) {
 	return (
 		<Form {...form}>
 			<form
-				onSubmit={form.handleSubmit(handleSubmit)}
+				onSubmit={form.handleSubmit((values: FormValues) =>
+					handleSubmit({
+						...values,
+						sessionId: activeSessionId,
+					} as ExtendedFormValues),
+				)}
 				className="relative mx-auto w-full"
 			>
 				<div className="relative flex flex-col rounded-xl border border-zinc-200 dark:border-zinc-800">
@@ -166,7 +180,7 @@ export function LlmForm({ session, modelList }: LlmFormProps) {
 							isSubmitting={isSubmitting}
 							taskId={taskId}
 							taskStatus={taskStatus}
-							cancelTask={cancelTask}
+							cancelTask={(id) => cancelTask(id, activeSessionId)}
 							hasContent={hasContent}
 							onCancelingChange={setIsCanceling}
 						/>

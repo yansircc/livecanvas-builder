@@ -26,10 +26,17 @@ export interface TaskResult {
 }
 
 export function useTaskPolling(options: TaskPollingOptions = {}) {
-	const [isLoading, setIsLoading] = useState(false);
+	const [taskStates, setTaskStates] = useState<
+		Map<
+			string,
+			{
+				isLoading: boolean;
+				error: Error | null;
+				status: TaskStatus | null;
+			}
+		>
+	>(new Map());
 	const [taskId, setTaskId] = useState<string | null>(null);
-	const [error, setError] = useState<Error | null>(null);
-	const [currentStatus, setCurrentStatus] = useState<TaskStatus | null>(null);
 
 	const submitAndPollTask = useCallback(
 		async (params: {
@@ -39,11 +46,19 @@ export function useTaskPolling(options: TaskPollingOptions = {}) {
 			modelId?: AvailableModelId;
 			withBackgroundInfo?: boolean;
 			precisionMode?: boolean;
+			sessionId: number;
 		}) => {
 			try {
-				setIsLoading(true);
-				setError(null);
-				setCurrentStatus(null);
+				// 为新的任务创建状态
+				setTaskStates((prev) => {
+					const newMap = new Map(prev);
+					newMap.set(String(params.sessionId), {
+						isLoading: true,
+						error: null,
+						status: null,
+					});
+					return newMap;
+				});
 
 				// Submit the task
 				const newTaskId = await submitChatTask(params);
@@ -62,8 +77,16 @@ export function useTaskPolling(options: TaskPollingOptions = {}) {
 				// Start polling for results
 				const result = await pollTaskStatus(newTaskId);
 
-				// Update current status
-				setCurrentStatus(result.status);
+				// Update task state
+				setTaskStates((prev) => {
+					const newMap = new Map(prev);
+					newMap.set(String(params.sessionId), {
+						isLoading: false,
+						error: null,
+						status: result.status,
+					});
+					return newMap;
+				});
 
 				// Transform the result to match TaskResult interface
 				const taskResult: TaskResult = {
@@ -81,32 +104,41 @@ export function useTaskPolling(options: TaskPollingOptions = {}) {
 			} catch (err) {
 				const errorObj = err instanceof Error ? err : new Error(String(err));
 				console.error("Task polling error:", errorObj.message);
-				setError(errorObj);
 
-				// 设置错误状态
-				if (errorObj.message.includes("取消")) {
-					setCurrentStatus("CANCELED");
-				} else {
-					setCurrentStatus("FAILED");
-				}
+				// Update error state for the specific session
+				setTaskStates((prev) => {
+					const newMap = new Map(prev);
+					newMap.set(String(params.sessionId), {
+						isLoading: false,
+						error: errorObj,
+						status: errorObj.message.includes("取消") ? "CANCELED" : "FAILED",
+					});
+					return newMap;
+				});
 
 				if (options.onError) {
 					options.onError(errorObj);
 				}
 
 				throw errorObj;
-			} finally {
-				setIsLoading(false);
 			}
 		},
 		[options],
 	);
 
-	const cancelTask = useCallback(async (id: string) => {
+	const cancelTask = useCallback(async (id: string, sessionId: number) => {
 		try {
 			const result = await apiCancelTask(id);
 			if (result.success) {
-				setCurrentStatus("CANCELED");
+				setTaskStates((prev) => {
+					const newMap = new Map(prev);
+					newMap.set(String(sessionId), {
+						isLoading: false,
+						error: null,
+						status: "CANCELED",
+					});
+					return newMap;
+				});
 				return true;
 			}
 			return false;
@@ -116,11 +148,23 @@ export function useTaskPolling(options: TaskPollingOptions = {}) {
 		}
 	}, []);
 
+	// 获取特定session的状态
+	const getSessionTaskState = useCallback(
+		(sessionId: number) => {
+			return (
+				taskStates.get(String(sessionId)) || {
+					isLoading: false,
+					error: null,
+					status: null,
+				}
+			);
+		},
+		[taskStates],
+	);
+
 	return {
-		isLoading,
+		getSessionTaskState,
 		taskId,
-		error,
-		status: currentStatus,
 		submitAndPollTask,
 		cancelTask,
 	};
