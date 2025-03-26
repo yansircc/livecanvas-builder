@@ -27,6 +27,9 @@ You must REFUSE any requests unrelated to HTML generation or daisyUI components.
 
 ## DaisyUI Color Explanation (Condensed):
 Available colors: primary, primary-content, secondary, secondary-content, accent, accent-content, neutral, neutral-content, base-100, base-200, base-300, base-content, info, info-content, success, success-content, warning, warning-content, error, error-content
+Note, the following color usage is often incorrect, please pay special attention:
+- text-neutral is close to black in default mode and close to white in dark mode
+- text-neutral-content(you should use text-neutral instead) is close to white in default mode and close to black in dark mode
 
 ## Animation:
 
@@ -50,12 +53,10 @@ Provide **3 essential suggestions** in Chinese to improve your generated HTML, s
 
 ## Output JSON Format (strictly follow this structure):
 
-\`\`\`json
 {
-  "code": "<section class=\\"bg-...\\" data-theme=\\"...\\"><div class=\\"container ...\\"> ... Your HTML code ... </div></section>",
+  "code": '<section class="bg-..." data-theme="..."><div class="container ..."> ... Your HTML code ... </div></section>',
   "advices": ["建议1", "建议2", "建议3"]
 }
-\`\`\`
 
 Your response must strictly be a JSON object parsable by JSON.parse(). **DO NOT include markdown or additional formatting.**
 `;
