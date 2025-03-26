@@ -4,14 +4,6 @@ import { unstable_cacheTag as cacheTag, revalidateTag } from "next/cache";
 import { CACHE_TAGS } from "./cache-tags";
 
 /**
- * Cache management utilities
- */
-
-interface CacheOptions {
-	revalidateTags?: string[];
-}
-
-/**
  * Add cache tags for a project and its related data
  */
 export async function addProjectCacheTags(projectId: string, userId?: string) {
@@ -33,6 +25,13 @@ export async function addUserCacheTags(userId: string) {
 	cacheTag(CACHE_TAGS.PROJECT.LIST.BY_USER(userId));
 	cacheTag(CACHE_TAGS.PROJECT.INTERACTION.LISTS.PURCHASED(userId));
 	cacheTag(CACHE_TAGS.PROJECT.INTERACTION.LISTS.FAVORITED(userId));
+}
+
+/**
+ * Add edge config cache tags
+ */
+export async function addEdgeConfigCacheTags() {
+	cacheTag(CACHE_TAGS.EDGE_CONFIG.MODEL_LIST);
 }
 
 /**
@@ -121,4 +120,11 @@ export async function addAuthCacheTags(userId: string) {
 export async function revalidateAuthCache(userId: string) {
 	revalidateTag(CACHE_TAGS.AUTH.SESSION);
 	revalidateTag(CACHE_TAGS.AUTH.USER(userId));
+}
+
+/**
+ * Revalidate edge config cache tags
+ */
+export async function revalidateEdgeConfigCache() {
+	revalidateTag(CACHE_TAGS.EDGE_CONFIG.MODEL_LIST);
 }

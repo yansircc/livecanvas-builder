@@ -18,16 +18,11 @@ export async function GET(request: Request) {
 	}
 
 	try {
-		console.log(`Fetching task status for: ${taskId}`);
-
 		// Use the Trigger.dev SDK to retrieve the run
 		const result = await runs.retrieve(taskId);
-
-		console.log("Run status response:", {
-			id: result.id,
-			status: result.status,
-			hasOutput: !!result.output,
-		});
+		console.log(
+			`${taskId} 任务状态: ${result.status}, 输出状态: ${!!result.output}`,
+		);
 
 		// Map Trigger.dev status to our application status
 		let status: TaskStatus = "processing";

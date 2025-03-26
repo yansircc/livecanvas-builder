@@ -4,7 +4,7 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { calculateCost } from "@/lib/models";
+import type { ModelList, ModelProvider } from "@/lib/models";
 import { Info } from "lucide-react";
 
 interface ShowCostProps {
@@ -15,12 +15,27 @@ interface ShowCostProps {
 				completionTokens: number;
 		  }
 		| undefined;
+	providerId: string;
 	modelId: string;
+	modelList: ModelList;
 }
 
-export default function ShowCost({ usage, modelId }: ShowCostProps) {
+export default function ShowCost({
+	usage,
+	providerId,
+	modelId,
+	modelList,
+}: ShowCostProps) {
 	if (!usage) return null;
-	const cost = calculateCost(usage, modelId);
+	const price = modelList[providerId as ModelProvider]?.find(
+		(model) => model.value === modelId,
+	)?.price;
+	if (!price) return null;
+	const exchangeRate = 7.3;
+	const cost = {
+		usd: (usage.totalTokens / 1000000) * price.input,
+		cny: (usage.totalTokens / 1000000) * price.input * exchangeRate,
+	};
 	return (
 		<TooltipProvider>
 			<Tooltip>

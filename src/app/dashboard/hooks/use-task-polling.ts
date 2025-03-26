@@ -1,5 +1,6 @@
 "use client";
 
+import type { ModelProvider } from "@/lib/models";
 import { useCallback, useState } from "react";
 import { pollTaskStatus, submitChatTask } from "../services/task-service";
 import type { TokenUsage } from "./llm-session-store";
@@ -26,6 +27,7 @@ export function useTaskPolling(options: TaskPollingOptions = {}) {
 		async (params: {
 			prompt: string;
 			history?: { prompt: string; response?: string }[];
+			providerId?: ModelProvider;
 			modelId?: string;
 			withBackgroundInfo?: boolean;
 			precisionMode?: boolean;

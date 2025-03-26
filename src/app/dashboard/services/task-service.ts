@@ -1,3 +1,4 @@
+import type { ModelProvider } from "@/lib/models";
 import { tryCatch } from "@/lib/try-catch";
 import type { ChatTaskResponse } from "@/types/chat";
 import type { TaskStatusResponse } from "@/types/task";
@@ -9,6 +10,7 @@ import type { TokenUsage } from "../hooks/llm-session-store";
 interface ChatTaskParams {
 	prompt: string;
 	history?: { prompt: string; response?: string }[];
+	providerId?: ModelProvider;
 	modelId?: string;
 	withBackgroundInfo?: boolean;
 	precisionMode?: boolean;
@@ -71,8 +73,11 @@ export async function submitChatTask(params: ChatTaskParams): Promise<string> {
 async function processLLMResponse(
 	rawResponse: RawLLMResponse,
 ): Promise<ProcessedLLMResponse> {
+	// Capture the usage data at the top level to ensure it's always available
+	const usage = rawResponse.usage;
+
 	if (rawResponse.isStructured && rawResponse.structuredOutput) {
-		const { code, advices, usage } = rawResponse.structuredOutput;
+		const { code, advices } = rawResponse.structuredOutput;
 		return {
 			code: code
 				? replaceWithUnsplashImages(replaceLucideIcons(code))
@@ -93,7 +98,7 @@ async function processLLMResponse(
 			return {
 				code: "<!-- Error: Failed to parse LLM response -->",
 				advices: ["There was an error processing the LLM response"],
-				usage: rawResponse.usage,
+				usage,
 			};
 		}
 
@@ -102,14 +107,14 @@ async function processLLMResponse(
 				replaceLucideIcons(parsedResult.data.code),
 			),
 			advices: parsedResult.data.advices || [],
-			usage: rawResponse.usage,
+			usage,
 		};
 	}
 
 	return {
 		code: "<!-- Error: Invalid LLM response format -->",
 		advices: ["Invalid LLM response format"],
-		usage: rawResponse.usage,
+		usage,
 	};
 }
 
@@ -180,6 +185,9 @@ export async function pollTaskStatus(
 					typeof data.output === "string"
 						? JSON.parse(data.output)
 						: (data.output as RawLLMResponse);
+
+				// Log the raw output to debug usage data
+				console.log("Raw LLM response:", JSON.stringify(rawOutput, null, 2));
 
 				return processLLMResponse(rawOutput);
 			}

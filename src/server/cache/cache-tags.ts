@@ -38,4 +38,9 @@ export const CACHE_TAGS = {
 	USER: {
 		PROFILE: (userId: string) => `user:${userId}:profile`,
 	},
+
+	// Edge config cache tags
+	EDGE_CONFIG: {
+		MODEL_LIST: "edge-config:model-list",
+	},
 } as const;

@@ -1,8 +1,9 @@
+import { getModelList } from "@/lib/models";
 import { auth } from "@/server/auth";
-import { addAuthCacheTags } from "@/server/cache";
+import { addAuthCacheTags, addEdgeConfigCacheTags } from "@/server/cache";
 import type { Session } from "next-auth";
 import { Suspense } from "react";
-import LlmForm from "./components/llm-form";
+import { LlmForm } from "./components/llm-form";
 import ResultDisplay from "./components/result-display";
 import SessionTabs from "./components/session-tabs";
 
@@ -13,13 +14,27 @@ async function getCachedSessionData(sessionData: Session) {
 	return sessionData;
 }
 
+async function getCachedModelList() {
+	"use cache";
+
+	addEdgeConfigCacheTags();
+	const modelList = await getModelList();
+	return modelList;
+}
+
 async function SuspenseLlmForm() {
 	const sessionData = await auth();
 	if (!sessionData) {
 		return null;
 	}
 	const session = await getCachedSessionData(sessionData);
-	return <LlmForm session={session} />;
+	const modelList = await getCachedModelList();
+	return <LlmForm session={session} modelList={modelList} />;
+}
+
+async function SuspenseResultDisplay() {
+	const modelList = await getCachedModelList();
+	return <ResultDisplay modelList={modelList} />;
 }
 
 export default function Dashboard() {
@@ -33,7 +48,9 @@ export default function Dashboard() {
 						<SuspenseLlmForm />
 					</Suspense>
 				</div>
-				<ResultDisplay />
+				<Suspense fallback={<div>Loading...</div>}>
+					<SuspenseResultDisplay />
+				</Suspense>
 			</div>
 		</div>
 	);

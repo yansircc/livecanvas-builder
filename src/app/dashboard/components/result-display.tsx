@@ -2,19 +2,25 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { ModelList } from "@/lib/models";
 import { useLlmSessionStore } from "../hooks/llm-session-store";
 import { AdviceList } from "./advice-list";
 import { CopyButton } from "./copy-button";
 import { PreviewButton } from "./preview-button";
 import ShowCost from "./show-cost";
 import VersionSelector from "./version-selector";
+
 interface ResponseData {
 	code?: string;
 	advices?: string[];
 	[key: string]: unknown;
 }
 
-export default function ResultDisplay() {
+interface ResultDisplayProps {
+	modelList: ModelList;
+}
+
+export default function ResultDisplay({ modelList }: ResultDisplayProps) {
 	const { sessions, activeSessionId } = useLlmSessionStore();
 
 	const activeSession = sessions.find(
@@ -80,6 +86,8 @@ export default function ResultDisplay() {
 						<ShowCost
 							usage={activeVersion.response.usage}
 							modelId={activeVersion.input.modelId || ""}
+							providerId={activeVersion.input.providerId || ""}
+							modelList={modelList}
 						/>
 					)}
 					<PreviewButton

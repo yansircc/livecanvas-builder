@@ -1,7 +1,8 @@
-import { LLM_LIST, parseModelId } from "@/lib/models";
+import { getModel, isValidModel } from "@/lib/models";
 import { generateObject } from "ai";
 import { PROMPT } from "./prompt";
 import { metadataSchema } from "./schema";
+
 // Allow streaming responses up to 15 seconds
 export const maxDuration = 15;
 
@@ -28,13 +29,14 @@ export async function POST(req: Request) {
 		}
 
 		// Use GPT-4o Mini as the fixed model
-		const selectedModelId = "openai/gpt-4o";
-		const { providerId, modelValue } = parseModelId(selectedModelId);
-		const provider = LLM_LIST[providerId];
+		const provider = "openai" as const;
+		const modelId = "gpt-4o";
 
-		if (!provider) {
+		// Validate the model
+		const isValid = await isValidModel(provider, modelId);
+		if (!isValid) {
 			return new Response(
-				JSON.stringify({ error: `Provider ${providerId} not found` }),
+				JSON.stringify({ error: "Invalid model configuration" }),
 				{
 					status: 500,
 					headers: { "Content-Type": "application/json" },
@@ -43,7 +45,17 @@ export async function POST(req: Request) {
 		}
 
 		// Create the model instance
-		const model = provider.model(modelValue);
+		const model = await getModel(provider, modelId);
+
+		if (!model) {
+			return new Response(
+				JSON.stringify({ error: "Failed to create model instance" }),
+				{
+					status: 500,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
+		}
 
 		// Prepare the system prompt and user message
 		const systemPrompt = PROMPT;
@@ -73,6 +85,16 @@ ${htmlContent}
 			});
 		} catch (error) {
 			console.error("Error generating structured output:", error);
+			return new Response(
+				JSON.stringify({
+					error: "Failed to generate metadata",
+					details: error instanceof Error ? error.message : String(error),
+				}),
+				{
+					status: 500,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
 		}
 	} catch (error) {
 		console.error("Request processing error:", error);

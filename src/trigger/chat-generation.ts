@@ -1,15 +1,18 @@
 import { codeSchema } from "@/app/api/chat/schema";
 import type { CodeResponse } from "@/app/api/chat/schema";
-import { LLM_LIST } from "@/lib/models";
+import {
+	type ModelProvider,
+	canModelOutputStructuredData,
+	getModel,
+} from "@/lib/models";
 import { logger, task } from "@trigger.dev/sdk/v3";
 import { generateObject, generateText } from "ai";
 import type { LanguageModel } from "ai";
 
 interface ChatInput {
 	processedPrompt: string;
-	providerId: string;
-	modelValue: string;
-	canOutputStructuredData: boolean;
+	providerId: ModelProvider;
+	modelId: string;
 }
 
 // Define the output type for the task
@@ -32,22 +35,27 @@ export const chatGenerationTask = task({
 	id: "chat-generation-task",
 	maxDuration: 300,
 	run: async (payload: ChatInput): Promise<RawLLMResponse> => {
-		const { processedPrompt, providerId, modelValue, canOutputStructuredData } =
-			payload;
-
-		// Get the provider from LLM_LIST
-		const provider = LLM_LIST[providerId];
-
-		if (!provider) {
-			throw new Error(`Provider ${providerId} not found`);
-		}
+		const { processedPrompt, providerId, modelId } = payload;
 
 		try {
+			// Get the model instance
+			const model = await getModel(providerId, modelId);
+
+			if (!model) {
+				throw new Error("Model not found");
+			}
+
+			// Check if the model can output structured data
+			const canOutputStructured = await canModelOutputStructuredData(
+				providerId,
+				modelId,
+			);
+
 			// Get raw response from LLM
 			return await generateRawResponse(
-				provider.model(modelValue),
+				model,
 				processedPrompt,
-				canOutputStructuredData,
+				canOutputStructured ?? false, // Default to false if undefined
 			);
 		} catch (error) {
 			logger.error("Generation failed", { error });
@@ -72,8 +80,6 @@ async function generateRawResponse(
 			prompt,
 		});
 
-		logger.debug("Generated structured object", { object });
-
 		return {
 			structuredOutput: object,
 			isStructured: true,
@@ -90,12 +96,8 @@ async function generateRawResponse(
 	// Use generateText for unstructured output
 	const { text, usage } = await generateText({
 		model,
-		prompt: `${prompt}
-
-Please respond with a valid JSON object containing 'code' and 'advices' fields. Format your response as a JSON object without any markdown formatting.`,
+		prompt,
 	});
-
-	logger.info("Generated raw text", { text });
 
 	return {
 		textOutput: text,

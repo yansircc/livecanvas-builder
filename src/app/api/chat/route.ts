@@ -1,8 +1,4 @@
-import {
-	LLM_LIST,
-	canModelOutputStructuredData,
-	parseModelId,
-} from "@/lib/models";
+import { type ModelProvider, isValidModel } from "@/lib/models";
 import { auth } from "@/server/auth";
 import { chatGenerationTask } from "@/trigger/chat-generation";
 import type { ChatTaskResponse } from "@/types/chat";
@@ -13,12 +9,12 @@ import { PROMPT } from "./prompt";
 export const maxDuration = 60;
 
 interface ChatRequestBody {
+	providerId: ModelProvider;
+	modelId: string;
 	prompt: string;
 	withBackgroundInfo?: boolean;
-	history?: { prompt: string; response?: string }[];
-	modelId?: string;
-	callbackUrl?: string;
 	precisionMode?: boolean;
+	history?: { prompt: string; response?: string }[];
 }
 
 /**
@@ -109,16 +105,18 @@ export async function POST(req: Request) {
 		const body = (await req.json()) as ChatRequestBody;
 
 		const {
+			providerId,
+			modelId,
 			prompt,
 			withBackgroundInfo,
-			history,
-			modelId,
-			callbackUrl,
 			precisionMode,
+			history,
 		} = body;
 
-		// Default model if none provided
-		const selectedModelId = modelId ?? "openai/gpt-4-turbo-preview";
+		const isValid = await isValidModel(providerId, modelId);
+		if (!isValid) {
+			return createErrorResponse("Invalid model", 400);
+		}
 
 		// Process user background info
 		let context: string | undefined;
@@ -142,28 +140,13 @@ export async function POST(req: Request) {
 		);
 
 		try {
-			// Parse the model ID to get provider and model value
-			const { providerId, modelValue } = parseModelId(selectedModelId);
-
-			// Get the provider from LLM_LIST to validate it exists
-			const provider = LLM_LIST[providerId];
-
-			if (!provider) {
-				return createErrorResponse(`Provider ${providerId} not found`, 400);
-			}
-
-			// Check if the selected model can output structured data
-			const canOutputStructuredData =
-				canModelOutputStructuredData(selectedModelId);
-
 			// Trigger the task with processed prompt and provider ID
 			const handle = await tasks.trigger(
 				chatGenerationTask.id,
 				{
 					processedPrompt,
 					providerId,
-					modelValue,
-					canOutputStructuredData,
+					modelId,
 				},
 				{
 					tags: [user.email],

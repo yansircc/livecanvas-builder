@@ -1,9 +1,11 @@
+import type { ModelProvider } from "@/lib/models";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export interface FormData {
 	prompt: string;
 	history?: ConversationHistory[];
+	providerId?: ModelProvider;
 	modelId?: string;
 	withBackgroundInfo?: boolean;
 	precisionMode?: boolean;
@@ -38,12 +40,14 @@ export interface Session {
 	id: number;
 	versions: Version[];
 	activeVersionId: number | null;
+	selectedProviderId: ModelProvider;
 	selectedModelId: string;
 }
 
 interface LlmSessionState {
 	sessions: Session[];
 	activeSessionId: number;
+	globalSelectedProviderId: ModelProvider;
 	globalSelectedModelId: string;
 
 	// Actions
@@ -62,20 +66,27 @@ interface LlmSessionState {
 		isLoading: boolean,
 	) => void;
 	setActiveVersion: (sessionId: number, versionId: number) => void;
-	setSessionModelId: (sessionId: number, modelId: string) => void;
-	setGlobalModelId: (modelId: string) => void;
+	setSessionModel: (
+		sessionId: number,
+		providerId: ModelProvider,
+		modelId: string,
+	) => void;
+	setGlobalModel: (providerId: ModelProvider, modelId: string) => void;
 	getPreviousConversation: (sessionId: number) => ConversationHistory | null;
+	getSelectedProvider: (sessionId: number) => ModelProvider;
 	getSelectedModelId: (sessionId: number) => string;
 }
 
-// Default model ID from the first available model
-const defaultModelId = "anthropic/claude-3.7-sonnet";
+// Default provider and model values
+const defaultProviderId: ModelProvider = "anthropic";
+const defaultModelId = "claude-3.7-sonnet";
 
 // Initial session
 const defaultSession: Session = {
 	id: 1,
 	versions: [],
 	activeVersionId: null,
+	selectedProviderId: defaultProviderId,
 	selectedModelId: defaultModelId,
 };
 
@@ -84,6 +95,7 @@ export const useLlmSessionStore = create<LlmSessionState>()(
 		(set, get) => ({
 			sessions: [defaultSession],
 			activeSessionId: 1,
+			globalSelectedProviderId: defaultProviderId,
 			globalSelectedModelId: defaultModelId,
 
 			addSession: () =>
@@ -94,6 +106,7 @@ export const useLlmSessionStore = create<LlmSessionState>()(
 						id: newSessionId,
 						versions: [],
 						activeVersionId: null,
+						selectedProviderId: state.globalSelectedProviderId,
 						selectedModelId: state.globalSelectedModelId,
 					};
 
@@ -108,6 +121,7 @@ export const useLlmSessionStore = create<LlmSessionState>()(
 					sessions: [
 						{
 							...defaultSession,
+							selectedProviderId: state.globalSelectedProviderId,
 							selectedModelId: state.globalSelectedModelId,
 						},
 					],
@@ -136,10 +150,11 @@ export const useLlmSessionStore = create<LlmSessionState>()(
 							? Math.max(...targetSession.versions.map((v) => v.id)) + 1
 							: 1;
 
-					// Ensure the model ID is included in the input
+					// Ensure the provider and model IDs are included in the input
 					const inputWithModel = {
 						...input,
-						modelId: targetSession.selectedModelId,
+						providerId: input.providerId || targetSession.selectedProviderId,
+						modelId: input.modelId || targetSession.selectedModelId,
 					};
 
 					const newVersion: Version = {
@@ -260,7 +275,7 @@ export const useLlmSessionStore = create<LlmSessionState>()(
 					return { sessions: updatedSessions };
 				}),
 
-			setSessionModelId: (sessionId, modelId) =>
+			setSessionModel: (sessionId, providerId, modelId) =>
 				set((state) => {
 					const sessionIndex = state.sessions.findIndex(
 						(s) => s.id === sessionId,
@@ -272,6 +287,7 @@ export const useLlmSessionStore = create<LlmSessionState>()(
 
 					const updatedSession: Session = {
 						...targetSession,
+						selectedProviderId: providerId,
 						selectedModelId: modelId,
 					};
 
@@ -280,12 +296,14 @@ export const useLlmSessionStore = create<LlmSessionState>()(
 
 					return {
 						sessions: updatedSessions,
+						globalSelectedProviderId: providerId,
 						globalSelectedModelId: modelId,
 					};
 				}),
 
-			setGlobalModelId: (modelId) =>
+			setGlobalModel: (providerId, modelId) =>
 				set(() => ({
+					globalSelectedProviderId: providerId,
 					globalSelectedModelId: modelId,
 				})),
 
@@ -333,6 +351,17 @@ export const useLlmSessionStore = create<LlmSessionState>()(
 				};
 			},
 
+			getSelectedProvider: (sessionId) => {
+				const state = get();
+				const session = state.sessions.find((s) => s.id === sessionId);
+
+				if (!session) {
+					return state.globalSelectedProviderId;
+				}
+
+				return session.selectedProviderId;
+			},
+
 			getSelectedModelId: (sessionId) => {
 				const state = get();
 				const session = state.sessions.find((s) => s.id === sessionId);
@@ -349,6 +378,7 @@ export const useLlmSessionStore = create<LlmSessionState>()(
 			partialize: (state) => ({
 				sessions: state.sessions,
 				activeSessionId: state.activeSessionId,
+				globalSelectedProviderId: state.globalSelectedProviderId,
 				globalSelectedModelId: state.globalSelectedModelId,
 			}),
 		},
