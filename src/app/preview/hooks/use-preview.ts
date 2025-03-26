@@ -33,7 +33,7 @@ interface StoreState {
 
 export function usePreview() {
 	const searchParams = useSearchParams();
-	const sessionId = searchParams.get("s");
+	const dialogueId = searchParams.get("d");
 	const versionId = searchParams.get("v");
 
 	const [htmlContent, setHtmlContent] = useState<string>("");
@@ -244,12 +244,14 @@ export function usePreview() {
 			const store: StoreState = JSON.parse(storeJson);
 
 			// If both session and version are provided in URL
-			if (sessionId && versionId) {
-				const sessionIdNum = Number.parseInt(sessionId, 10);
+			if (dialogueId && versionId) {
+				const dialogueIdNum = Number.parseInt(dialogueId, 10);
 				const versionIdNum = Number.parseInt(versionId, 10);
 
 				// Find the session
-				const session = store.state.sessions.find((s) => s.id === sessionIdNum);
+				const session = store.state.sessions.find(
+					(s) => s.id === dialogueIdNum,
+				);
 				if (!session) return null;
 
 				// Find the version
@@ -282,7 +284,7 @@ export function usePreview() {
 			console.error("Error getting content from store:", error);
 			return null;
 		}
-	}, [sessionId, versionId]);
+	}, [dialogueId, versionId]);
 
 	// Load content and check for custom CSS on mount
 	useEffect(() => {

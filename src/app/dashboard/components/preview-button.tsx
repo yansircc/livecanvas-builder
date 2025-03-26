@@ -8,7 +8,7 @@ interface PreviewButtonProps {
 
 export function PreviewButton({ dialogueId, versionId }: PreviewButtonProps) {
 	const handleClick = () => {
-		const url = `/preview?s=${dialogueId}&v=${versionId}`;
+		const url = `/preview?d=${dialogueId}&v=${versionId}`;
 		window.open(url, "_blank");
 	};
 
