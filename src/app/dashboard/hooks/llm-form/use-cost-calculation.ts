@@ -5,7 +5,11 @@ import type {
 } from "@/types/model";
 import { useEffect, useState } from "react";
 
-// temporary
+// Constants
+const EXCHANGE_RATE = 7.3;
+const PRECISION_MODE_TOKENS = 13000;
+
+// Interface for extra prompt cost
 interface ExtraPromptCost {
 	tokens: number;
 	usd: number;
@@ -26,24 +30,29 @@ export function useCostCalculation(
 		(model) => model.id === watchedModelId,
 	)?.price;
 
-	// Calculate extra prompt cost
+	// Calculate extra prompt cost based on the current model
 	useEffect(() => {
-		if (promptValue) {
-			// In a real implementation, you'd use calculateExtraPromptCost
-			// import { calculateExtraPromptCost } from "../../utils/calculate-cost";
-			// const cost = calculateExtraPromptCost(promptValue);
+		// Only calculate if we have a valid model price
+		if (currentModelPrice) {
+			// Calculate the cost for precision mode (13k tokens)
+			// The price is per million tokens, so divide by 1,000,000
+			const usdCost =
+				(PRECISION_MODE_TOKENS * currentModelPrice.input) / 1000000;
 
-			// This is just a placeholder for demonstration
+			// Convert to CNY using the exchange rate
+			const cnyCost = usdCost * EXCHANGE_RATE;
+
 			const cost: ExtraPromptCost = {
-				tokens: 100000000,
-				usd: 1,
-				cny: 1 * 7.3,
+				tokens: PRECISION_MODE_TOKENS,
+				usd: usdCost,
+				cny: cnyCost,
 			};
+
 			setExtraPromptCost(cost);
 		} else {
 			setExtraPromptCost(null);
 		}
-	}, [promptValue]);
+	}, [currentModelPrice]);
 
 	return { extraPromptCost, currentModelPrice };
 }

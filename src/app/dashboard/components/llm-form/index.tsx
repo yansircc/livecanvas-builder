@@ -159,7 +159,9 @@ export function LlmForm({ session, modelList }: LlmFormProps) {
 							<PrecisionCheckbox
 								form={form}
 								extraPromptCost={
-									extraPromptCost ? Number(extraPromptCost.cny.toFixed(2)) : 0
+									extraPromptCost && typeof extraPromptCost.cny === "number"
+										? Number(extraPromptCost.cny.toFixed(2))
+										: 0
 								}
 							/>
 						</div>

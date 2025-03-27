@@ -95,7 +95,10 @@ export function PrecisionCheckbox({
 				<TooltipContent side="top" className="max-w-xs">
 					<p className="text-xs">
 						精准模式会加载额外的参考文档，提供更精确的UI组件生成，但会额外消耗大约13k的token，关闭精准模式将节省
-						{extraPromptCost}元
+						{typeof extraPromptCost === "number"
+							? extraPromptCost.toFixed(2)
+							: "0.00"}
+						元
 					</p>
 				</TooltipContent>
 			</Tooltip>
