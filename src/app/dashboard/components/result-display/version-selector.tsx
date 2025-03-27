@@ -11,13 +11,14 @@ import {
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import type { Version } from "@/types/common";
 import { ChevronDown, Clock, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { useLlmDialogueStore } from "../../hooks/llm-dialogue-store";
+import { useDialogueStore } from "../../hooks";
 
 export default function VersionSelector() {
 	const { dialogues, activeDialogueId, setActiveVersion, deleteVersion } =
-		useLlmDialogueStore();
+		useDialogueStore();
 	const [isAlertOpen, setIsAlertOpen] = useState(false);
 	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 	const [versionToDelete, setVersionToDelete] = useState<number | null>(null);
@@ -72,7 +73,7 @@ export default function VersionSelector() {
 	const showDeleteButton = activeDialogue.versions.length > 1;
 	const activeVersionId = activeDialogue.activeVersionId;
 	const activeVersion = activeDialogue.versions.find(
-		(v) => v.id === activeVersionId,
+		(v: Version) => v.id === activeVersionId,
 	);
 
 	return (

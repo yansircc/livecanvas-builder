@@ -1,11 +1,11 @@
 import type { AvailableModelId, AvailableProviderId } from "@/lib/models";
 import { tryCatch } from "@/lib/try-catch";
-import type { ChatTaskResponse } from "@/types/chat";
-import type { TaskStatus, TaskStatusResponse } from "@/types/task";
+import type { TaskResult } from "@/types/common";
+import type { TaskStatus } from "@/types/common";
+import type { TaskStatusResponse } from "@/types/common";
 import { extractAndParseJSON } from "@/utils/json-parser";
 import { replaceLucideIcons } from "@/utils/replace-with-lucide-icon";
 import { replaceWithUnsplashImages } from "@/utils/replace-with-unsplash";
-import type { TokenUsage } from "../hooks/llm-dialogue-store";
 
 interface ChatTaskParams {
 	prompt: string;
@@ -17,7 +17,7 @@ interface ChatTaskParams {
 }
 
 interface RawLLMResponse {
-	structuredOutput?: ChatTaskResponse;
+	structuredOutput?: TaskResult;
 	textOutput?: string;
 	isStructured: boolean;
 	usage?: {
@@ -30,7 +30,11 @@ interface RawLLMResponse {
 interface ProcessedLLMResponse {
 	code: string;
 	advices: string[];
-	usage?: TokenUsage;
+	usage?: {
+		promptTokens: number;
+		completionTokens: number;
+		totalTokens: number;
+	};
 }
 
 interface PollTaskResult {
@@ -44,7 +48,7 @@ interface PollTaskResult {
  */
 export async function submitChatTask(params: ChatTaskParams): Promise<string> {
 	const result = await tryCatch(
-		fetch("/api/chat", {
+		fetch("/api/task/submit", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify(params),
@@ -64,7 +68,7 @@ export async function submitChatTask(params: ChatTaskParams): Promise<string> {
 		);
 	}
 
-	const data = (await result.data.json()) as ChatTaskResponse;
+	const data = (await result.data.json()) as TaskResult;
 
 	if (!data.taskId) {
 		throw new Error("No task ID returned from the server");
@@ -95,9 +99,7 @@ async function processLLMResponse(
 
 	if (!rawResponse.isStructured && rawResponse.textOutput) {
 		const parsedResult = await tryCatch(
-			Promise.resolve(
-				extractAndParseJSON<ChatTaskResponse>(rawResponse.textOutput),
-			),
+			Promise.resolve(extractAndParseJSON<TaskResult>(rawResponse.textOutput)),
 		);
 
 		if (parsedResult.error || !parsedResult.data?.code) {

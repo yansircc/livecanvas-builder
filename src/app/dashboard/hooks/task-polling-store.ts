@@ -1,45 +1,22 @@
-"use client";
-
-import type { AvailableModelId, AvailableProviderId } from "@/lib/models";
-import type { TaskStatus } from "@/types/task";
+import type { TaskParams, TaskResult } from "@/types/common";
 import { useCallback, useState } from "react";
 import {
 	cancelTask as apiCancelTask,
 	pollTaskStatus,
 	submitChatTask,
 } from "../actions/task-service";
-import type { TokenUsage } from "./llm-dialogue-store";
-import { useLlmDialogueStore } from "./llm-dialogue-store";
+import { useDialogueStore } from "./dialogue-store";
 
-interface TaskPollingOptions {
+export interface TaskPollingOptions {
 	onTaskSubmitted?: (taskId: string) => void;
 	onPollingStarted?: () => void;
 	onPollingCompleted?: (result: TaskResult) => void;
 	onError?: (error: Error) => void;
 }
 
-export interface TaskResult {
-	code: string;
-	advices: string[];
-	usage?: TokenUsage;
-	status: TaskStatus;
-	error?: string;
-}
-
-interface TaskParams {
-	prompt: string;
-	history?: { prompt: string; response?: string }[];
-	providerId?: AvailableProviderId;
-	modelId?: AvailableModelId;
-	withBackgroundInfo?: boolean;
-	precisionMode?: boolean;
-	dialogueId: number;
-	versionId: number;
-}
-
 export function useTaskPolling(options: TaskPollingOptions = {}) {
 	const [taskId, setTaskId] = useState<string | null>(null);
-	const { setVersionTaskStatus, getDialogueVersion } = useLlmDialogueStore();
+	const { setVersionTaskStatus, getDialogueVersion } = useDialogueStore();
 
 	const submitAndPollTask = useCallback(
 		async (params: TaskParams) => {
@@ -74,6 +51,7 @@ export function useTaskPolling(options: TaskPollingOptions = {}) {
 
 				// Transform the result to match TaskResult interface
 				const taskResult: TaskResult = {
+					taskId: newTaskId,
 					...result.response,
 					status: result.status,
 					error: result.error,

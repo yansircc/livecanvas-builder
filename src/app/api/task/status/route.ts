@@ -1,4 +1,4 @@
-import type { TaskStatus, TaskStatusResponse } from "@/types/task";
+import type { TaskStatus, TaskStatusResponse } from "@/types/common";
 import { runs } from "@trigger.dev/sdk/v3";
 import { NextResponse } from "next/server";
 

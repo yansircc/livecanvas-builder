@@ -32,7 +32,7 @@ export const chatGenerationTask = task({
 
 The task is integrated with our API in two places:
 
-1. **Chat API (`/api/chat/route.ts`)**: All chat requests are sent to Trigger.dev for processing
+1. **Chat API (`/api/task/submit/route.ts`)**: All chat requests are sent to Trigger.dev for processing
 2. **Task Status API (`/api/task/status/route.ts`)**: Allows clients to check the status of a task
 
 ### Client-Side Utilities
@@ -47,7 +47,7 @@ We provide client-side utilities in `src/utils/task-status.ts` to help with:
 
 To use the chat API:
 
-1. Make a request to the `/api/chat` endpoint with your message
+1. Make a request to the `/api/task/submit` endpoint with your message
 2. You'll receive a response with a `taskId` and status set to 'processing'
 3. Use the task ID to poll the `/api/task/status` endpoint until the task is complete
 4. Once complete, you'll receive the full result
@@ -56,7 +56,7 @@ To use the chat API:
 
 ```typescript
 // Make the initial request
-const response = await fetch('/api/chat', {
+const response = await fetch('/api/task/submit', {
   method: 'POST',
   body: JSON.stringify({
     message: 'Generate a landing page with a hero section',

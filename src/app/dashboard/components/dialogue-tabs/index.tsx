@@ -17,9 +17,10 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import type { Version } from "@/types/common";
 import { Plus, RotateCcw, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useLlmDialogueStore } from "../../hooks/llm-dialogue-store";
+import { useDialogueStore } from "../../hooks";
 
 export default function DialogueTabs() {
 	const {
@@ -31,7 +32,7 @@ export default function DialogueTabs() {
 		cleanupIncompleteVersions,
 		deleteDialogue,
 		clearDialogueCompleted,
-	} = useLlmDialogueStore();
+	} = useDialogueStore();
 
 	const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
 	const [isResetAlertOpen, setIsResetAlertOpen] = useState(false);
@@ -84,7 +85,7 @@ export default function DialogueTabs() {
 						{dialogues.map((dialogue, index) => {
 							// Check if this specific dialogue has any loading versions
 							const hasLoadingVersion = dialogue.versions.some(
-								(version) => version.isLoading,
+								(version: Version) => version.isLoading,
 							);
 							const isActive = dialogue.id === activeDialogueId;
 

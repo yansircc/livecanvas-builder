@@ -237,7 +237,7 @@ export function usePreview() {
 	const getContentFromStore = useCallback(() => {
 		try {
 			// Get store from localStorage
-			const storeJson = localStorage.getItem("llm-dialogue-storage");
+			const storeJson = localStorage.getItem("dialogue-storage");
 			if (!storeJson) return null;
 
 			const store: StoreState = JSON.parse(storeJson);

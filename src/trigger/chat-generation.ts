@@ -1,5 +1,5 @@
-import { codeSchema } from "@/app/api/chat/schema";
-import type { CodeResponse } from "@/app/api/chat/schema";
+import { codeSchema } from "@/app/api/task/submit/schema";
+import type { CodeResponse } from "@/app/api/task/submit/schema";
 import {
 	type AvailableModelId,
 	type AvailableProviderId,

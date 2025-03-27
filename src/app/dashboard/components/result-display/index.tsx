@@ -4,15 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ModelList } from "@/lib/models";
 import { cn } from "@/lib/utils";
+import type { Version } from "@/types/common";
 import { CodeIcon } from "lucide-react";
-import { useLlmDialogueStore } from "../../hooks/llm-dialogue-store";
-import { useAdviceStore } from "../../hooks/use-advice-store";
+import { useAdviceStore, useDialogueStore } from "../../hooks";
 import { AdviceList } from "./advice-list";
 import { CopyButton } from "./copy-button";
 import { PreviewButton } from "./preview-button";
 import ShowCost from "./show-cost";
 import VersionSelector from "./version-selector";
-
 interface ResponseData {
 	code?: string;
 	advices?: string[];
@@ -24,7 +23,7 @@ interface ResultDisplayProps {
 }
 
 export default function ResultDisplay({ modelList }: ResultDisplayProps) {
-	const { dialogues, activeDialogueId } = useLlmDialogueStore();
+	const { dialogues, activeDialogueId } = useDialogueStore();
 	const handleAdviceClick = useAdviceStore((state) => state.handleAdviceClick);
 
 	const activeDialogue = dialogues.find(
@@ -37,7 +36,7 @@ export default function ResultDisplay({ modelList }: ResultDisplayProps) {
 
 	const activeVersion = activeDialogue.activeVersionId
 		? activeDialogue.versions.find(
-				(v) => v.id === activeDialogue.activeVersionId,
+				(v: Version) => v.id === activeDialogue.activeVersionId,
 			)
 		: null;
 

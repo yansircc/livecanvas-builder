@@ -1,52 +1,17 @@
 import type { AvailableModelId, AvailableProviderId } from "@/lib/models";
-import type { TaskStatus } from "@/types/task";
+import type {
+	Dialogue,
+	DialogueHistory,
+	FormData,
+	LlmResponse,
+	TaskStatus,
+	TokenUsage,
+	Version,
+} from "@/types/common";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export interface FormData {
-	prompt: string;
-	history?: DialogueHistory[];
-	providerId?: AvailableProviderId;
-	modelId?: AvailableModelId;
-	withBackgroundInfo?: boolean;
-	precisionMode?: boolean;
-}
-
-export interface DialogueHistory {
-	prompt: string;
-	response: string;
-}
-
-export interface TokenUsage {
-	promptTokens: number;
-	completionTokens: number;
-	totalTokens: number;
-}
-
-export interface LlmResponse {
-	content: string;
-	timestamp: number;
-	usage?: TokenUsage;
-	advices?: string[];
-}
-
-export interface Version {
-	id: number;
-	input: FormData;
-	response: LlmResponse | null;
-	isLoading: boolean;
-	taskStatus?: TaskStatus;
-	taskError?: string;
-}
-
-export interface Dialogue {
-	id: number;
-	versions: Version[];
-	activeVersionId: number | null;
-	hasCompletedVersion?: boolean;
-}
-
-interface LlmDialogueState {
+interface DialogueState {
 	dialogues: Dialogue[];
 	activeDialogueId: number;
 	globalSelectedProviderId: AvailableProviderId;
@@ -59,6 +24,9 @@ interface LlmDialogueState {
 		dialogueId: number,
 		versionId: number,
 	) => Version | undefined;
+	getPreviousDialogue: (dialogueId: number) => DialogueHistory | null;
+	getSelectedProvider: () => AvailableProviderId;
+	getSelectedModelId: () => AvailableModelId;
 
 	// Actions
 	addDialogue: () => void;
@@ -86,9 +54,6 @@ interface LlmDialogueState {
 		providerId: AvailableProviderId,
 		modelId: AvailableModelId,
 	) => void;
-	getPreviousDialogue: (dialogueId: number) => DialogueHistory | null;
-	getSelectedProvider: () => AvailableProviderId;
-	getSelectedModelId: () => AvailableModelId;
 	cleanupIncompleteVersions: () => void;
 	deleteVersion: (dialogueId: number, versionId: number) => void;
 	deleteDialogue: (dialogueId: number) => void;
@@ -107,7 +72,7 @@ const defaultDialogue: Dialogue = {
 	activeVersionId: null,
 };
 
-export const useLlmDialogueStore = create<LlmDialogueState>()(
+export const useDialogueStore = create<DialogueState>()(
 	persist(
 		(set, get) => ({
 			dialogues: [defaultDialogue],
@@ -371,7 +336,7 @@ export const useLlmDialogueStore = create<LlmDialogueState>()(
 				// Get the last version that has a response
 				const versionsWithResponses = dialogue.versions
 					.filter((v) => v.response !== null)
-					.sort((a, b) => b.id - a.id); // Sort by id descending
+					.sort((a, b) => b.id - a.id);
 
 				if (versionsWithResponses.length === 0) {
 					return null;
@@ -389,6 +354,7 @@ export const useLlmDialogueStore = create<LlmDialogueState>()(
 					advices?: string[];
 					usage?: TokenUsage;
 				};
+
 				try {
 					responseContent = JSON.parse(lastVersion.response.content);
 				} catch (error) {
@@ -417,33 +383,40 @@ export const useLlmDialogueStore = create<LlmDialogueState>()(
 			cleanupIncompleteVersions: () =>
 				set((state) => {
 					const updatedDialogues = state.dialogues.map((dialogue) => {
-						// Filter out versions that have input but no response and are still loading
-						const filteredVersions = dialogue.versions.filter(
-							(version) =>
-								!(
-									version.input &&
-									version.response === null &&
-									version.isLoading
-								),
+						// Filter out versions that are loading but have no taskStatus (incomplete)
+						const updatedVersions = dialogue.versions.filter(
+							(version) => !(version.isLoading && !version.taskStatus),
 						);
 
-						// Update activeVersionId if necessary
-						let activeVersionId = dialogue.activeVersionId;
-						if (
-							activeVersionId !== null &&
-							!filteredVersions.some((v) => v.id === activeVersionId) &&
-							filteredVersions.length > 0
-						) {
-							// If the active version was removed, set the latest version as active
-							activeVersionId =
-								filteredVersions[filteredVersions.length - 1]?.id || null;
-						} else if (filteredVersions.length === 0) {
-							activeVersionId = null;
-						}
+						// If all versions were incomplete, keep at least one to avoid empty dialogue
+						const finalVersions =
+							updatedVersions.length > 0
+								? updatedVersions
+								: dialogue.versions.length > 0 && dialogue.versions[0]
+									? [
+											{
+												id: dialogue.versions[0].id,
+												input: dialogue.versions[0].input,
+												isLoading: false,
+												response: dialogue.versions[0].response || null,
+											},
+										]
+									: [];
+
+						// Reset activeVersionId if it was part of the removed versions
+						const activeVersionStillExists = finalVersions.some(
+							(v) => v.id === dialogue.activeVersionId,
+						);
+
+						const activeVersionId = activeVersionStillExists
+							? dialogue.activeVersionId
+							: finalVersions.length > 0
+								? finalVersions[finalVersions.length - 1]?.id || null
+								: null;
 
 						return {
 							...dialogue,
-							versions: filteredVersions,
+							versions: finalVersions,
 							activeVersionId,
 						};
 					});
@@ -458,31 +431,25 @@ export const useLlmDialogueStore = create<LlmDialogueState>()(
 					);
 					if (dialogueIndex === -1) return state;
 
-					const dialogue = state.dialogues[dialogueIndex];
-					if (!dialogue) return state;
+					const targetDialogue = state.dialogues[dialogueIndex];
+					if (!targetDialogue) return state;
 
-					// Filter out the target version
-					const updatedVersions = dialogue.versions.filter(
+					// Can't delete if it's the only version
+					if (targetDialogue.versions.length <= 1) return state;
+
+					const updatedVersions = targetDialogue.versions.filter(
 						(v) => v.id !== versionId,
 					);
 
-					// If there are no versions left, don't change the dialogue
-					if (updatedVersions.length === 0 && dialogue.versions.length === 1) {
-						return state;
-					}
-
-					// Update activeVersionId if necessary
-					let activeVersionId = dialogue.activeVersionId;
+					// If the active version is being deleted, set the last version as active
+					let activeVersionId = targetDialogue.activeVersionId;
 					if (activeVersionId === versionId && updatedVersions.length > 0) {
-						// Set the latest version as active if the deleted version was active
-						const lastVersion = updatedVersions[updatedVersions.length - 1];
-						activeVersionId = lastVersion ? lastVersion.id : null;
-					} else if (updatedVersions.length === 0) {
-						activeVersionId = null;
+						activeVersionId =
+							updatedVersions[updatedVersions.length - 1]?.id ?? null;
 					}
 
-					const updatedDialogue = {
-						...dialogue,
+					const updatedDialogue: Dialogue = {
+						...targetDialogue,
 						versions: updatedVersions,
 						activeVersionId,
 					};
@@ -548,7 +515,7 @@ export const useLlmDialogueStore = create<LlmDialogueState>()(
 				}),
 		}),
 		{
-			name: "llm-dialogue-storage",
+			name: "dialogue-storage",
 			partialize: (state) => ({
 				dialogues: state.dialogues,
 				activeDialogueId: state.activeDialogueId,

@@ -14,8 +14,7 @@ import type { Session } from "next-auth";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import type * as z from "zod";
-import { useLlmDialogueStore } from "../../hooks/llm-dialogue-store";
-import { formSchema, useLlmForm } from "../../hooks/use-llm-form";
+import { formSchema, useDialogueStore, useLlmForm } from "../../hooks";
 import { BackgroundCheckbox } from "./background-checkbox";
 import { ModelSelector } from "./model-selector";
 import { PrecisionCheckbox } from "./precision-checkbox";
@@ -53,21 +52,8 @@ export function LlmForm({ session, modelList }: LlmFormProps) {
 	});
 
 	// 获取当前活动的dialogue ID和version
-	const activeDialogueId = useLlmDialogueStore(
-		(state) => state.activeDialogueId,
-	);
-	const activeVersion = useLlmDialogueStore((state) =>
-		state.getActiveVersion(),
-	);
-
-	// 添加额外调试日志
-	useEffect(() => {
-		if (isMounted && taskStatus) {
-			console.log("Form state updated for dialogue", activeDialogueId, {
-				taskStatus,
-			});
-		}
-	}, [isMounted, taskStatus, activeDialogueId]);
+	const activeDialogueId = useDialogueStore((state) => state.activeDialogueId);
+	const activeVersion = useDialogueStore((state) => state.getActiveVersion());
 
 	// Show toast notifications for task status changes
 	useEffect(() => {
@@ -175,7 +161,9 @@ export function LlmForm({ session, modelList }: LlmFormProps) {
 							{/* Precision Mode Toggle */}
 							<PrecisionCheckbox
 								form={form}
-								extraPromptCost={Number(extraPromptCost?.cny.toFixed(2)) || 0}
+								extraPromptCost={
+									extraPromptCost ? Number(extraPromptCost.cny.toFixed(2)) : 0
+								}
 							/>
 						</div>
 
