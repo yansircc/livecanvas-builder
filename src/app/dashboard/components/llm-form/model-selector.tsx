@@ -5,10 +5,11 @@ import { cn } from "@/lib/utils";
 import type {
 	AvailableModelId,
 	AvailableProviderId,
+	Model,
 	ModelList,
 } from "@/types/model";
 import { Brain, ChevronDown } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import { useDialogueStore } from "../../hooks";
 import type { FormValues } from "./index";
@@ -30,32 +31,45 @@ export function ModelSelector({
 	const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
 	const [currentModelName, setCurrentModelName] = useState<string>("");
 	const menuRef = useRef<HTMLDivElement>(null);
-	const {
-		getSelectedProvider,
-		getSelectedModelId,
-		setDialogueSelectedModel,
-		activeDialogueId,
-	} = useDialogueStore();
 
-	// Update model name when values change or when active dialogue changes
-	useEffect(() => {
+	// Get necessary state from store
+	const { getSelectedProvider, getSelectedModelId, setDialogueSelectedModel } =
+		useDialogueStore();
+
+	// Use separate selectors for dialogue ID and submission ID to force updates
+	const dialogueId = useDialogueStore((state) => state.activeDialogueId);
+	const submissionId = useDialogueStore((state) => {
+		const activeDialogue = state.dialogues.find(
+			(d) => d.id === state.activeDialogueId,
+		);
+		return activeDialogue?.activeSubmissionId;
+	});
+
+	// Function to refresh model display
+	const refreshModelDisplay = useCallback(() => {
 		if (!isMounted) return;
 
-		// Get current values from the store (these will work even when no submission exists)
 		const providerId = getSelectedProvider();
 		const modelId = getSelectedModelId();
 
-		// Set the form values to match the store
 		if (providerId && modelId) {
 			form.setValue("providerId", providerId);
 			form.setValue("modelId", modelId);
 
-			const model = modelList[providerId]?.find((m) => m.id === modelId);
+			const model = modelList[providerId]?.find((m: Model) => m.id === modelId);
 			setCurrentModelName(model?.name || modelId);
 		}
-	}, [isMounted, form, modelList, getSelectedProvider, getSelectedModelId]);
+	}, [form, getSelectedModelId, getSelectedProvider, isMounted, modelList]);
 
-	// Subscribe to form value changes
+	// Update UI when component mounts or when dialogue/submission changes
+	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+	useEffect(() => {
+		if (isMounted) {
+			refreshModelDisplay();
+		}
+	}, [refreshModelDisplay, dialogueId, submissionId, isMounted]);
+
+	// Handle form value changes
 	useEffect(() => {
 		if (!isMounted) return;
 
@@ -66,12 +80,14 @@ export function ModelSelector({
 
 				if (providerId && modelId) {
 					// Update current model name for display
-					const model = modelList[providerId]?.find((m) => m.id === modelId);
+					const model = modelList[providerId]?.find(
+						(m: Model) => m.id === modelId,
+					);
 					setCurrentModelName(model?.name || modelId);
 
 					// Also update the dialogue store when form values change
 					setDialogueSelectedModel(
-						activeDialogueId,
+						dialogueId,
 						providerId,
 						modelId as AvailableModelId,
 					);
@@ -80,7 +96,7 @@ export function ModelSelector({
 		});
 
 		return () => subscription.unsubscribe();
-	}, [form, modelList, isMounted, activeDialogueId, setDialogueSelectedModel]);
+	}, [form, modelList, isMounted, dialogueId, setDialogueSelectedModel]);
 
 	// Close menu when clicking outside
 	useEffect(() => {
@@ -170,7 +186,7 @@ export function ModelSelector({
 
 													// Also update the dialogue store
 													setDialogueSelectedModel(
-														activeDialogueId,
+														dialogueId,
 														provId,
 														modelId as AvailableModelId,
 													);

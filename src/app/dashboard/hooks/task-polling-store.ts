@@ -1,11 +1,12 @@
-import type { PollTaskResult, TaskRequest } from "@/types/task";
-import { useCallback, useState } from "react";
+import type { PollTaskResult, TaskRequest, TaskStatus } from "@/types/task";
+import { useCallback, useMemo, useState } from "react";
+import { useDialogueStore } from ".";
 import {
 	cancelTask as apiCancelTask,
 	pollTaskStatus,
 	submitChatTask,
 } from "../actions/task-service";
-import { useDialogueStore } from "./dialogue-store";
+import type { DialogueState } from "./dialogue-store/types";
 
 export interface TaskPollingOptions {
 	onTaskSubmitted?: (taskId: string) => void;
@@ -14,9 +15,23 @@ export interface TaskPollingOptions {
 	onError?: (error: Error) => void;
 }
 
+export interface TaskState {
+	isLoading: boolean;
+	error: string | null;
+	status: TaskStatus | null;
+}
+
 export function useTaskPolling(options: TaskPollingOptions = {}) {
 	const [taskId, setTaskId] = useState<string | null>(null);
-	const { setSubmissionTaskStatus, getDialogueSubmission } = useDialogueStore();
+
+	// Use stable selectors to prevent unnecessary re-renders
+	const setSubmissionTaskStatus = useDialogueStore(
+		useCallback((state: DialogueState) => state.setSubmissionTaskStatus, []),
+	);
+
+	const getDialogueSubmission = useDialogueStore(
+		useCallback((state: DialogueState) => state.getDialogueSubmission, []),
+	);
 
 	const submitAndPollTask = useCallback(
 		async (params: TaskRequest) => {
@@ -112,9 +127,9 @@ export function useTaskPolling(options: TaskPollingOptions = {}) {
 		[setSubmissionTaskStatus],
 	);
 
-	// 获取特定dialogue的状态
+	// 获取特定dialogue的状态，使用memoize避免不必要的重新计算
 	const getDialogueTaskState = useCallback(
-		(dialogueId: number, submissionId: number) => {
+		(dialogueId: number, submissionId: number): TaskState => {
 			const submission = getDialogueSubmission(dialogueId, submissionId);
 			return {
 				isLoading: submission?.isLoading ?? false,
@@ -125,10 +140,14 @@ export function useTaskPolling(options: TaskPollingOptions = {}) {
 		[getDialogueSubmission],
 	);
 
-	return {
-		getDialogueTaskState,
-		taskId,
-		submitAndPollTask,
-		cancelTask,
-	};
+	// 返回稳定的对象引用，避免不必要的重新渲染
+	return useMemo(
+		() => ({
+			getDialogueTaskState,
+			taskId,
+			submitAndPollTask,
+			cancelTask,
+		}),
+		[getDialogueTaskState, taskId, submitAndPollTask, cancelTask],
+	);
 }

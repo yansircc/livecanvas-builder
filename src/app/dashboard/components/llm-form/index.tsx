@@ -11,10 +11,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import type { ModelList } from "@/types/model";
 import type { Session } from "next-auth";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { useCallback, useEffect, useState } from "react";
 import type * as z from "zod";
-import { formSchema, useDialogueStore, useLlmForm } from "../../hooks";
+import {
+	formSchema,
+	useAdviceStore,
+	useDialogueStore,
+	useLlmForm,
+} from "../../hooks";
+import type { DialogueState } from "../../hooks/dialogue-store/types";
+import { useAdviceHandler } from "../../hooks/llm-form/use-advice-handler";
 import { BackgroundCheckbox } from "./background-checkbox";
 import { ModelSelector } from "./model-selector";
 import { PrecisionCheckbox } from "./precision-checkbox";
@@ -51,10 +57,19 @@ export function LlmForm({ session, modelList }: LlmFormProps) {
 		modelList,
 	});
 
-	// 获取当前活动的dialogue ID和submission
-	const activeDialogueId = useDialogueStore((state) => state.activeDialogueId);
-	const activeSubmission = useDialogueStore((state) =>
-		state.getActiveSubmission(),
+	// Set up advice handler to update the form when advice is clicked
+	const setHandleAdviceClick = useAdviceStore(
+		(state) => state.setHandleAdviceClick,
+	);
+	useAdviceHandler(form, setHandleAdviceClick);
+
+	// 获取当前活动的dialogue ID和submission - 使用稳定的selector避免无限循环
+	const activeDialogueId = useDialogueStore(
+		useCallback((state: DialogueState) => state.activeDialogueId, []),
+	);
+
+	const activeSubmission = useDialogueStore(
+		useCallback((state: DialogueState) => state.getActiveSubmission(), []),
 	);
 
 	// Update form values when active submission changes
@@ -63,33 +78,6 @@ export function LlmForm({ session, modelList }: LlmFormProps) {
 			form.setValue("prompt", activeSubmission.input.prompt);
 		}
 	}, [activeSubmission, form]);
-
-	// Show toast notifications for task status changes
-	useEffect(() => {
-		if (!isMounted || !taskStatus) return;
-
-		switch (taskStatus) {
-			case "COMPLETED":
-				toast.success("任务已完成");
-				break;
-			case "FAILED":
-				toast.error("任务失败");
-				break;
-			case "CRASHED":
-				toast.error("任务崩溃");
-				break;
-			case "SYSTEM_FAILURE":
-				toast.error("系统错误");
-				break;
-			case "INTERRUPTED":
-				toast.error("任务中断");
-				break;
-			case "CANCELED":
-				toast.error("任务已被取消");
-				break;
-			// 默认不显示 toast
-		}
-	}, [taskStatus, isMounted]);
 
 	// 扩展FormValues类型以包含dialogueId
 	type ExtendedFormValues = FormValues & { dialogueId: number };

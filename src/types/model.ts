@@ -37,7 +37,7 @@ export type AvailableModelId =
 	| "qwen-32b"
 	| "qwen-max-0125";
 
-interface Model {
+export interface Model {
 	name: AvailableModelName;
 	id: AvailableModelId;
 	price: {

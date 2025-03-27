@@ -12,6 +12,21 @@ export function useAdviceHandler(
 			const currentPrompt = form.getValues("prompt");
 			const newPrompt = `${currentPrompt}\n${advice}`;
 			form.setValue("prompt", newPrompt);
+
+			// Focus the textarea after a small delay to allow the DOM to update
+			setTimeout(() => {
+				// Find the prompt textarea and focus it
+				const textareaElement = document.querySelector(
+					'textarea[name="prompt"]',
+				);
+				if (textareaElement instanceof HTMLTextAreaElement) {
+					textareaElement.focus();
+
+					// Place cursor at the end
+					const length = textareaElement.value.length;
+					textareaElement.setSelectionRange(length, length);
+				}
+			}, 10);
 		},
 		[form],
 	);

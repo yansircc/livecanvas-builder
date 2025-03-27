@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import type { PersistedSubmission } from "@/types/common";
+import type { Dialogue, PersistedSubmission } from "@/types/common";
 import type { ModelList } from "@/types/model";
 import { CodeIcon } from "lucide-react";
 import { useAdviceStore, useDialogueStore } from "../../hooks";
@@ -22,7 +22,7 @@ export default function ResultDisplay({ modelList }: ResultDisplayProps) {
 	const handleAdviceClick = useAdviceStore((state) => state.handleAdviceClick);
 
 	const activeDialogue = dialogues.find(
-		(dialogue) => dialogue.id === activeDialogueId,
+		(dialogue: Dialogue) => dialogue.id === activeDialogueId,
 	);
 
 	if (!activeDialogue) {

@@ -11,7 +11,7 @@ import {
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
-import type { PersistedSubmission } from "@/types/common";
+import type { Dialogue, PersistedSubmission } from "@/types/common";
 import { ChevronDown, Clock, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useDialogueStore } from "../../hooks";
@@ -28,7 +28,7 @@ export function SubmissionSelector() {
 
 	// Find active dialogue
 	const activeDialogue = dialogues.find(
-		(dialogue) => dialogue.id === activeDialogueId,
+		(dialogue: Dialogue) => dialogue.id === activeDialogueId,
 	);
 
 	// If no dialogue or no submissions, don't render anything
@@ -105,37 +105,39 @@ export function SubmissionSelector() {
 				{isDropdownOpen && (
 					<div className="absolute z-10 mt-1 w-36 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/10 ring-opacity-5 focus:outline-none dark:bg-zinc-900 dark:ring-zinc-700">
 						<div className="py-1">
-							{activeDialogue.submissions.map((submission) => (
-								<div
-									key={submission.id}
-									className={cn(
-										"group/item relative flex items-center justify-between px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800",
-										submission.id === activeSubmissionId &&
-											"bg-zinc-50 dark:bg-zinc-800",
-									)}
-								>
-									<button
-										type="button"
-										onClick={() => handleSubmissionSelect(submission.id)}
-										className="flex-1 text-sm text-zinc-700 dark:text-zinc-300"
-										disabled={submission.isLoading}
+							{activeDialogue.submissions.map(
+								(submission: PersistedSubmission) => (
+									<div
+										key={submission.id}
+										className={cn(
+											"group/item relative flex items-center justify-between px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800",
+											submission.id === activeSubmissionId &&
+												"bg-zinc-50 dark:bg-zinc-800",
+										)}
 									>
-										{submission.isLoading
-											? "加载中..."
-											: `版本 ${submission.id}`}
-									</button>
-									{showDeleteButton && !submission.isLoading && (
 										<button
 											type="button"
-											className="ml-2 flex h-4 w-4 items-center justify-center rounded-full bg-red-100 text-red-600 opacity-0 transition-opacity hover:bg-red-200 group-hover/item:opacity-100 dark:bg-red-900/40 dark:text-red-400 dark:hover:bg-red-900/60"
-											onClick={(e) => handleDeleteClick(e, submission.id)}
-											aria-label="删除版本"
+											onClick={() => handleSubmissionSelect(submission.id)}
+											className="flex-1 text-sm text-zinc-700 dark:text-zinc-300"
+											disabled={submission.isLoading}
 										>
-											<X className="h-2 w-2" />
+											{submission.isLoading
+												? "加载中..."
+												: `版本 ${submission.id}`}
 										</button>
-									)}
-								</div>
-							))}
+										{showDeleteButton && !submission.isLoading && (
+											<button
+												type="button"
+												className="ml-2 flex h-4 w-4 items-center justify-center rounded-full bg-red-100 text-red-600 opacity-0 transition-opacity hover:bg-red-200 group-hover/item:opacity-100 dark:bg-red-900/40 dark:text-red-400 dark:hover:bg-red-900/60"
+												onClick={(e) => handleDeleteClick(e, submission.id)}
+												aria-label="删除版本"
+											>
+												<X className="h-2 w-2" />
+											</button>
+										)}
+									</div>
+								),
+							)}
 						</div>
 					</div>
 				)}

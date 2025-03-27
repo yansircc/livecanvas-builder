@@ -17,7 +17,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import type { PersistedSubmission } from "@/types/common";
+import type { Dialogue, PersistedSubmission } from "@/types/common";
 import { Plus, RotateCcw, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useDialogueStore } from "../../hooks";
@@ -66,7 +66,7 @@ export default function DialogueTabs() {
 
 	const handleDialogueClick = (dialogueId: number) => {
 		// 如果点击的是已完成的dialogue，先清除完成状态
-		const dialogue = dialogues.find((s) => s.id === dialogueId);
+		const dialogue = dialogues.find((s: Dialogue) => s.id === dialogueId);
 		if (dialogue?.hasCompletedSubmission) {
 			clearDialogueCompleted(dialogueId);
 		}
@@ -81,7 +81,7 @@ export default function DialogueTabs() {
 						对话：
 					</span>
 					<div className="flex flex-wrap gap-1.5">
-						{dialogues.map((dialogue, index) => {
+						{dialogues.map((dialogue: Dialogue, index: number) => {
 							// Check if this specific dialogue has any loading submissions
 							const hasLoadingSubmission = dialogue.submissions.some(
 								(submission: PersistedSubmission) => submission.isLoading,
@@ -217,7 +217,8 @@ export default function DialogueTabs() {
 						<AlertDialogTitle>确认删除</AlertDialogTitle>
 						<AlertDialogDescription>
 							确定要删除对话{" "}
-							{dialogues.findIndex((s) => s.id === dialogueToDelete) + 1}{" "}
+							{dialogues.findIndex((s: Dialogue) => s.id === dialogueToDelete) +
+								1}{" "}
 							吗？此操作无法撤销。
 						</AlertDialogDescription>
 					</AlertDialogHeader>

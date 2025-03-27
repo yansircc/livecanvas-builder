@@ -2,10 +2,10 @@ import type { PersistedSubmission } from "@/types/common";
 import type { ModelList } from "@/types/model";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Session } from "next-auth";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
-import { useAdviceStore } from "../advice-store";
 import { useDialogueStore } from "../dialogue-store";
+import type { DialogueState } from "../dialogue-store/types";
 import { useTaskPolling } from "../task-polling-store";
 import { type FormValues, formSchema } from "./schema";
 import { useCostCalculation } from "./use-cost-calculation";
@@ -35,22 +35,49 @@ export function useLlmForm({
 		setIsMounted(true);
 	}, [setIsMounted]);
 
-	const {
-		activeDialogueId,
-		getActiveDialogue,
-		getActiveSubmission,
-		addSubmission,
-		setSubmissionResponse,
-		setSubmissionLoading,
-		getPreviousDialogue,
-		getSelectedProvider,
-		getSelectedModelId,
-		setGlobalModel,
-		markDialogueCompleted,
-	} = useDialogueStore();
+	// Use stable selectors to prevent infinite render loops
+	const activeDialogueId = useDialogueStore(
+		useCallback((state: DialogueState) => state.activeDialogueId, []),
+	);
 
-	const setHandleAdviceClick = useAdviceStore(
-		(state) => state.setHandleAdviceClick,
+	const getActiveDialogue = useDialogueStore(
+		useCallback((state: DialogueState) => state.getActiveDialogue, []),
+	);
+
+	const getActiveSubmission = useDialogueStore(
+		useCallback((state: DialogueState) => state.getActiveSubmission, []),
+	);
+
+	const addSubmission = useDialogueStore(
+		useCallback((state: DialogueState) => state.addSubmission, []),
+	);
+
+	const setSubmissionResponse = useDialogueStore(
+		useCallback((state: DialogueState) => state.setSubmissionResponse, []),
+	);
+
+	const setSubmissionLoading = useDialogueStore(
+		useCallback((state: DialogueState) => state.setSubmissionLoading, []),
+	);
+
+	const getPreviousDialogue = useDialogueStore(
+		useCallback((state: DialogueState) => state.getPreviousDialogue, []),
+	);
+
+	const getSelectedProvider = useDialogueStore(
+		useCallback((state: DialogueState) => state.getSelectedProvider, []),
+	);
+
+	const getSelectedModelId = useDialogueStore(
+		useCallback((state: DialogueState) => state.getSelectedModelId, []),
+	);
+
+	const setGlobalModel = useDialogueStore(
+		useCallback((state: DialogueState) => state.setGlobalModel, []),
+	);
+
+	const markDialogueCompleted = useDialogueStore(
+		useCallback((state: DialogueState) => state.markDialogueCompleted, []),
 	);
 
 	// Use the task polling hook
@@ -58,9 +85,11 @@ export function useLlmForm({
 
 	// Get current dialogue loading state
 	const activeDialogue = getActiveDialogue();
-	const isLoading =
-		activeDialogue?.submissions.some((v: PersistedSubmission) => v.isLoading) ||
-		false;
+	const isLoading = useMemo(() => {
+		return Boolean(
+			activeDialogue?.submissions.some((v: PersistedSubmission) => v.isLoading),
+		);
+	}, [activeDialogue]);
 
 	// Get the currently selected provider and model
 	const selectedProviderId = getSelectedProvider();
@@ -158,20 +187,37 @@ export function useLlmForm({
 		submitAndPollTask,
 	});
 
-	return {
-		form,
-		isLoading,
-		isSubmitting,
-		handleSubmit,
-		hasBackgroundInfo,
-		extraPromptCost,
-		taskStatus,
-		taskId,
-		cancelTask,
-		isUserLoggedIn,
-		currentModelPrice,
-		activeSubmission,
-		onSubmit: handleSubmit,
-		handleCancelTask: cancelTask,
-	};
+	// Return a stable object reference using useMemo
+	return useMemo(
+		() => ({
+			form,
+			isLoading,
+			isSubmitting,
+			handleSubmit,
+			hasBackgroundInfo,
+			extraPromptCost,
+			taskStatus,
+			taskId,
+			cancelTask,
+			isUserLoggedIn,
+			currentModelPrice,
+			activeSubmission,
+			onSubmit: handleSubmit,
+			handleCancelTask: cancelTask,
+		}),
+		[
+			form,
+			isLoading,
+			isSubmitting,
+			handleSubmit,
+			hasBackgroundInfo,
+			extraPromptCost,
+			taskStatus,
+			taskId,
+			cancelTask,
+			isUserLoggedIn,
+			currentModelPrice,
+			activeSubmission,
+		],
+	);
 }
