@@ -11,7 +11,7 @@ import {
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
-import type { Submission } from "@/types/common";
+import type { PersistedSubmission } from "@/types/common";
 import { ChevronDown, Clock, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useDialogueStore } from "../../hooks";
@@ -75,7 +75,7 @@ export function SubmissionSelector() {
 	const showDeleteButton = activeDialogue.submissions.length > 1;
 	const activeSubmissionId = activeDialogue.activeSubmissionId;
 	const activeSubmission = activeDialogue.submissions.find(
-		(v: Submission) => v.id === activeSubmissionId,
+		(v: PersistedSubmission) => v.id === activeSubmissionId,
 	);
 
 	return (

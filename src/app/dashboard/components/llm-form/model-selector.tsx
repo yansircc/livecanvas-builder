@@ -2,10 +2,15 @@
 
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import type { AvailableProviderId, ModelList } from "@/types/model";
+import type {
+	AvailableModelId,
+	AvailableProviderId,
+	ModelList,
+} from "@/types/model";
 import { Brain, ChevronDown } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
+import { useDialogueStore } from "../../hooks";
 import type { FormValues } from "./index";
 import { RefreshModelsButton } from "./refresh-models-button";
 
@@ -25,19 +30,30 @@ export function ModelSelector({
 	const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
 	const [currentModelName, setCurrentModelName] = useState<string>("");
 	const menuRef = useRef<HTMLDivElement>(null);
+	const {
+		getSelectedProvider,
+		getSelectedModelId,
+		setDialogueSelectedModel,
+		activeDialogueId,
+	} = useDialogueStore();
 
-	// Update model name when values change
+	// Update model name when values change or when active dialogue changes
 	useEffect(() => {
 		if (!isMounted) return;
 
-		const providerId = form.getValues("providerId");
-		const modelId = form.getValues("modelId");
+		// Get current values from the store (these will work even when no submission exists)
+		const providerId = getSelectedProvider();
+		const modelId = getSelectedModelId();
 
+		// Set the form values to match the store
 		if (providerId && modelId) {
+			form.setValue("providerId", providerId);
+			form.setValue("modelId", modelId);
+
 			const model = modelList[providerId]?.find((m) => m.id === modelId);
 			setCurrentModelName(model?.name || modelId);
 		}
-	}, [isMounted, form, modelList]);
+	}, [isMounted, form, modelList, getSelectedProvider, getSelectedModelId]);
 
 	// Subscribe to form value changes
 	useEffect(() => {
@@ -49,14 +65,22 @@ export function ModelSelector({
 				const modelId = value.modelId as string;
 
 				if (providerId && modelId) {
+					// Update current model name for display
 					const model = modelList[providerId]?.find((m) => m.id === modelId);
 					setCurrentModelName(model?.name || modelId);
+
+					// Also update the dialogue store when form values change
+					setDialogueSelectedModel(
+						activeDialogueId,
+						providerId,
+						modelId as AvailableModelId,
+					);
 				}
 			}
 		});
 
 		return () => subscription.unsubscribe();
-	}, [form, modelList, isMounted]);
+	}, [form, modelList, isMounted, activeDialogueId, setDialogueSelectedModel]);
 
 	// Close menu when clicking outside
 	useEffect(() => {
@@ -137,11 +161,21 @@ export function ModelSelector({
 														: "border border-transparent",
 												)}
 												onClick={() => {
-													form.setValue(
-														"providerId",
-														providerId as AvailableProviderId,
+													const provId = providerId as AvailableProviderId;
+													const modelId = model.id;
+
+													// Update form values
+													form.setValue("providerId", provId);
+													form.setValue("modelId", modelId);
+
+													// Also update the dialogue store
+													setDialogueSelectedModel(
+														activeDialogueId,
+														provId,
+														modelId as AvailableModelId,
 													);
-													form.setValue("modelId", model.id);
+
+													// Immediately update the display name
 													setCurrentModelName(model.name);
 													setIsModelMenuOpen(false);
 												}}

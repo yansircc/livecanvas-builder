@@ -1,4 +1,4 @@
-import type { PollTaskResult, TaskRequest } from "@/types/common";
+import type { PollTaskResult, TaskRequest } from "@/types/task";
 import { useCallback, useState } from "react";
 import {
 	cancelTask as apiCancelTask,

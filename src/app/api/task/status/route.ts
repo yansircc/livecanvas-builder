@@ -1,4 +1,4 @@
-import type { PollTaskResult, TaskStatus } from "@/types/common";
+import type { PollTaskResult, TaskStatus } from "@/types/task";
 import { runs } from "@trigger.dev/sdk/v3";
 import { NextResponse } from "next/server";
 

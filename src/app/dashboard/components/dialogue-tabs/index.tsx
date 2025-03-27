@@ -17,7 +17,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import type { Submission } from "@/types/common";
+import type { PersistedSubmission } from "@/types/common";
 import { Plus, RotateCcw, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useDialogueStore } from "../../hooks";
@@ -84,7 +84,7 @@ export default function DialogueTabs() {
 						{dialogues.map((dialogue, index) => {
 							// Check if this specific dialogue has any loading submissions
 							const hasLoadingSubmission = dialogue.submissions.some(
-								(submission: Submission) => submission.isLoading,
+								(submission: PersistedSubmission) => submission.isLoading,
 							);
 							const isActive = dialogue.id === activeDialogueId;
 

@@ -1,9 +1,9 @@
+import type { Dialogue } from "@/types/common";
 import type {
 	DialogueHistory,
 	PollTaskResult,
 	TaskRequest,
-} from "@/types/common";
-import type { Dialogue } from "@/types/common";
+} from "@/types/task";
 import { useCallback } from "react";
 import type { FormValues } from "./schema";
 

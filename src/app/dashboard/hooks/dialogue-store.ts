@@ -1,13 +1,12 @@
+import type { Dialogue, PersistedSubmission } from "@/types/common";
+import type { AvailableModelId, AvailableProviderId } from "@/types/model";
 import type {
-	Dialogue,
 	DialogueHistory,
 	PollTaskResult,
-	Submission,
 	TaskRequest,
 	TaskStatus,
 	TokenUsage,
-} from "@/types/common";
-import type { AvailableModelId, AvailableProviderId } from "@/types/model";
+} from "@/types/task";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
@@ -19,11 +18,11 @@ interface DialogueState {
 
 	// Getters
 	getActiveDialogue: () => Dialogue | undefined;
-	getActiveSubmission: () => Submission | undefined;
+	getActiveSubmission: () => PersistedSubmission | undefined;
 	getDialogueSubmission: (
 		dialogueId: number,
 		submissionId: number,
-	) => Submission | undefined;
+	) => PersistedSubmission | undefined;
 	getPreviousDialogue: (dialogueId: number) => DialogueHistory | null;
 	getSelectedProvider: () => AvailableProviderId;
 	getSelectedModelId: () => AvailableModelId;
@@ -59,6 +58,11 @@ interface DialogueState {
 	deleteDialogue: (dialogueId: number) => void;
 	markDialogueCompleted: (dialogueId: number) => void;
 	clearDialogueCompleted: (dialogueId: number) => void;
+	setDialogueSelectedModel: (
+		dialogueId: number,
+		providerId: AvailableProviderId,
+		modelId: AvailableModelId,
+	) => void;
 }
 
 // Default provider and model values
@@ -70,6 +74,8 @@ const defaultDialogue: Dialogue = {
 	id: 1,
 	submissions: [],
 	activeSubmissionId: null,
+	selectedProviderId: defaultProviderId,
+	selectedModelId: defaultModelId,
 };
 
 export const useDialogueStore = create<DialogueState>()(
@@ -104,10 +110,45 @@ export const useDialogueStore = create<DialogueState>()(
 				set((state) => {
 					const newDialogueId =
 						Math.max(...state.dialogues.map((s) => s.id), 0) + 1;
+
+					// Get the most recently used model from the active dialogue if available
+					let selectedProviderId = state.defaultProviderId;
+					let selectedModelId = state.defaultModelId;
+
+					const activeDialogue = state.dialogues.find(
+						(s) => s.id === state.activeDialogueId,
+					);
+
+					if (activeDialogue) {
+						// First try to get from the dialogue's stored selection (highest priority)
+						if (
+							activeDialogue.selectedProviderId &&
+							activeDialogue.selectedModelId
+						) {
+							selectedProviderId = activeDialogue.selectedProviderId;
+							selectedModelId = activeDialogue.selectedModelId;
+						}
+						// Then try to get from the most recent submission if available
+						else if (activeDialogue.submissions.length > 0) {
+							// Get the most recent submission with a provider and model
+							const lastSubmission = [...activeDialogue.submissions]
+								.reverse()
+								.find((sub) => sub.input.providerId && sub.input.modelId);
+
+							if (lastSubmission) {
+								selectedProviderId = lastSubmission.input.providerId;
+								selectedModelId = lastSubmission.input.modelId;
+							}
+						}
+					}
+
 					const newDialogue: Dialogue = {
 						id: newDialogueId,
 						submissions: [],
 						activeSubmissionId: null,
+						// Store the selected model info for the new dialogue
+						selectedProviderId,
+						selectedModelId,
 					};
 
 					return {
@@ -117,14 +158,23 @@ export const useDialogueStore = create<DialogueState>()(
 				}),
 
 			clearAllDialogues: () =>
-				set(() => ({
-					dialogues: [
-						{
-							...defaultDialogue,
-						},
-					],
-					activeDialogueId: 1,
-				})),
+				set(() => {
+					const resetDialogue = {
+						...defaultDialogue,
+						id: 1,
+						submissions: [],
+						activeSubmissionId: null,
+						selectedProviderId: defaultProviderId,
+						selectedModelId: defaultModelId,
+					};
+
+					return {
+						dialogues: [resetDialogue],
+						activeDialogueId: 1,
+						defaultProviderId,
+						defaultModelId,
+					};
+				}),
 
 			setActiveDialogue: (dialogueId) =>
 				set(() => ({
@@ -155,7 +205,7 @@ export const useDialogueStore = create<DialogueState>()(
 						modelId: input.modelId,
 					};
 
-					const newSubmission: Submission = {
+					const newSubmission: PersistedSubmission = {
 						id: newSubmissionId,
 						input: inputWithModel,
 						response: null,
@@ -195,7 +245,7 @@ export const useDialogueStore = create<DialogueState>()(
 					const targetSubmission = targetDialogue.submissions[submissionIndex];
 					if (!targetSubmission) return state;
 
-					const updatedSubmission: Submission = {
+					const updatedSubmission: PersistedSubmission = {
 						...targetSubmission,
 						response,
 						isLoading: false,
@@ -233,7 +283,7 @@ export const useDialogueStore = create<DialogueState>()(
 					const targetSubmission = targetDialogue.submissions[submissionIndex];
 					if (!targetSubmission) return state;
 
-					const updatedSubmission: Submission = {
+					const updatedSubmission: PersistedSubmission = {
 						...targetSubmission,
 						isLoading,
 					};
@@ -270,7 +320,7 @@ export const useDialogueStore = create<DialogueState>()(
 					const targetSubmission = targetDialogue.submissions[submissionIndex];
 					if (!targetSubmission) return state;
 
-					const updatedSubmission: Submission = {
+					const updatedSubmission: PersistedSubmission = {
 						...targetSubmission,
 						taskStatus: status,
 						taskError: error,
@@ -320,10 +370,31 @@ export const useDialogueStore = create<DialogueState>()(
 				}),
 
 			setGlobalModel: (providerId, modelId) =>
-				set(() => ({
-					defaultProviderId: providerId,
-					defaultModelId: modelId,
-				})),
+				set((state) => {
+					// Update all dialogues that were using the previous default
+					const updatedDialogues = state.dialogues.map((dialogue) => {
+						// If this dialogue was using the default, update it to the new default
+						if (
+							!dialogue.selectedProviderId ||
+							!dialogue.selectedModelId ||
+							(dialogue.selectedProviderId === state.defaultProviderId &&
+								dialogue.selectedModelId === state.defaultModelId)
+						) {
+							return {
+								...dialogue,
+								selectedProviderId: providerId,
+								selectedModelId: modelId,
+							} as Dialogue;
+						}
+						return dialogue;
+					});
+
+					return {
+						defaultProviderId: providerId,
+						defaultModelId: modelId,
+						dialogues: updatedDialogues,
+					};
+				}),
 
 			getPreviousDialogue: (dialogueId) => {
 				const state = get();
@@ -373,15 +444,29 @@ export const useDialogueStore = create<DialogueState>()(
 			getSelectedProvider: () => {
 				const state = get();
 				const activeSubmission = state.getActiveSubmission();
-				if (!activeSubmission) return state.defaultProviderId;
-				return activeSubmission.input.providerId;
+				if (activeSubmission) {
+					return activeSubmission.input.providerId;
+				}
+
+				// If no active submission, try to get from the active dialogue's stored selection
+				const activeDialogue = state.dialogues.find(
+					(s) => s.id === state.activeDialogueId,
+				);
+				return activeDialogue?.selectedProviderId || state.defaultProviderId;
 			},
 
 			getSelectedModelId: () => {
 				const state = get();
 				const activeSubmission = state.getActiveSubmission();
-				if (!activeSubmission) return state.defaultModelId;
-				return activeSubmission.input.modelId;
+				if (activeSubmission) {
+					return activeSubmission.input.modelId;
+				}
+
+				// If no active submission, try to get from the active dialogue's stored selection
+				const activeDialogue = state.dialogues.find(
+					(s) => s.id === state.activeDialogueId,
+				);
+				return activeDialogue?.selectedModelId || state.defaultModelId;
 			},
 
 			cleanupIncompleteSubmissions: () =>
@@ -498,6 +583,9 @@ export const useDialogueStore = create<DialogueState>()(
 
 			markDialogueCompleted: (dialogueId) =>
 				set((state) => {
+					// Don't mark as completed if it's the active dialogue
+					if (dialogueId === state.activeDialogueId) return state;
+
 					const dialogueIndex = state.dialogues.findIndex(
 						(s) => s.id === dialogueId,
 					);
@@ -525,6 +613,27 @@ export const useDialogueStore = create<DialogueState>()(
 
 					return { dialogues: updatedDialogues };
 				}),
+
+			setDialogueSelectedModel: (
+				dialogueId: number,
+				providerId: AvailableProviderId,
+				modelId: AvailableModelId,
+			) =>
+				set((state) => {
+					const dialogueIndex = state.dialogues.findIndex(
+						(s) => s.id === dialogueId,
+					);
+					if (dialogueIndex === -1) return state;
+
+					const updatedDialogues = [...state.dialogues];
+					updatedDialogues[dialogueIndex] = {
+						...updatedDialogues[dialogueIndex],
+						selectedProviderId: providerId,
+						selectedModelId: modelId,
+					} as Dialogue;
+
+					return { dialogues: updatedDialogues };
+				}),
 		}),
 		{
 			name: "dialogue-storage",
@@ -532,6 +641,8 @@ export const useDialogueStore = create<DialogueState>()(
 			partialize: (state) => ({
 				dialogues: state.dialogues,
 				activeDialogueId: state.activeDialogueId,
+				defaultProviderId: state.defaultProviderId,
+				defaultModelId: state.defaultModelId,
 			}),
 		},
 	),

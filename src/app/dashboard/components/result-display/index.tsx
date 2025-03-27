@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import type { Submission } from "@/types/common";
+import type { PersistedSubmission } from "@/types/common";
 import type { ModelList } from "@/types/model";
 import { CodeIcon } from "lucide-react";
 import { useAdviceStore, useDialogueStore } from "../../hooks";
@@ -31,7 +31,7 @@ export default function ResultDisplay({ modelList }: ResultDisplayProps) {
 
 	const activeSubmission = activeDialogue.activeSubmissionId
 		? activeDialogue.submissions.find(
-				(v: Submission) => v.id === activeDialogue.activeSubmissionId,
+				(v: PersistedSubmission) => v.id === activeDialogue.activeSubmissionId,
 			)
 		: null;
 

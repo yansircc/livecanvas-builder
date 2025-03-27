@@ -1,4 +1,4 @@
-import type { Submission } from "@/types/common";
+import type { PersistedSubmission } from "@/types/common";
 import type { ModelList } from "@/types/model";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Session } from "next-auth";
@@ -59,7 +59,8 @@ export function useLlmForm({
 	// Get current dialogue loading state
 	const activeDialogue = getActiveDialogue();
 	const isLoading =
-		activeDialogue?.submissions.some((v: Submission) => v.isLoading) || false;
+		activeDialogue?.submissions.some((v: PersistedSubmission) => v.isLoading) ||
+		false;
 
 	// Get the currently selected provider and model
 	const selectedProviderId = getSelectedProvider();

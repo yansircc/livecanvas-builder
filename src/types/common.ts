@@ -1,67 +1,9 @@
-import type { AvailableModelId, AvailableProviderId } from "@/types/model";
-
+import type { AvailableModelId, AvailableProviderId } from "./model";
+import type { PollTaskResult, TaskRequest, TaskStatus } from "./task";
 /**
- * Token usage information for LLM responses
+ * PersistedSubmission data structure for dialogue submissions
  */
-export interface TokenUsage {
-	promptTokens: number;
-	completionTokens: number;
-	totalTokens: number;
-}
-
-/**
- * Dialogue history for conversation context
- */
-export interface DialogueHistory {
-	prompt: string;
-	response: string;
-}
-
-/**
- * Task statuses aligned with backend service status codes
- */
-export type TaskStatus =
-	| "COMPLETED"
-	| "CANCELED"
-	| "FAILED"
-	| "CRASHED"
-	| "SYSTEM_FAILURE"
-	| "INTERRUPTED"
-	| "EXECUTING"
-	| "WAITING"
-	| "PENDING"
-	| "RUNNING";
-
-/**
- * Common parameters for LLM task requests
- */
-export interface TaskRequest {
-	prompt: string;
-	history?: { prompt: string; response?: string }[];
-	providerId: AvailableProviderId;
-	modelId: AvailableModelId;
-	withBackgroundInfo?: boolean;
-	precisionMode?: boolean;
-	dialogueId: number;
-	submissionId: number;
-}
-
-/**
- * Standard result structure from LLM task completion
- */
-export interface PollTaskResult {
-	taskId: string;
-	code: string;
-	advices: string[];
-	usage?: TokenUsage;
-	status: TaskStatus;
-	error?: string;
-}
-
-/**
- * Submission data structure for dialogue submissions
- */
-export interface Submission {
+export interface PersistedSubmission {
 	id: number;
 	input: TaskRequest;
 	response: PollTaskResult | null;
@@ -75,15 +17,9 @@ export interface Submission {
  */
 export interface Dialogue {
 	id: number;
-	submissions: Submission[];
+	submissions: PersistedSubmission[];
 	activeSubmissionId: number | null;
 	hasCompletedSubmission?: boolean;
-}
-
-/**
- * Response structure for task cancellation
- */
-export interface TaskCancellationResponse {
-	success: boolean;
-	message: string;
+	selectedProviderId?: AvailableProviderId;
+	selectedModelId?: AvailableModelId;
 }

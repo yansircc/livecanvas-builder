@@ -4,7 +4,7 @@ import type {
 	TaskCancellationResponse,
 	TaskRequest,
 	TokenUsage,
-} from "@/types/common";
+} from "@/types/task";
 import { extractAndParseJSON } from "@/utils/json-parser";
 import { replaceLucideIcons } from "@/utils/replace-with-lucide-icon";
 import { replaceWithUnsplashImages } from "@/utils/replace-with-unsplash";

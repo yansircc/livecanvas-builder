@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import type { TaskStatus } from "@/types/common";
+import type { TaskStatus } from "@/types/task";
 import { Loader2, Send } from "lucide-react";
 import { useEffect, useState } from "react";
 
