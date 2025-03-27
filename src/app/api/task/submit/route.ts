@@ -5,7 +5,7 @@ import {
 } from "@/lib/models";
 import { auth } from "@/server/auth";
 import { chatGenerationTask } from "@/trigger/chat-generation";
-import type { TaskResult } from "@/types/common";
+import type { PollTaskResult } from "@/types/common";
 import { tasks } from "@trigger.dev/sdk/v3";
 import { PROMPT } from "./prompt";
 
@@ -157,7 +157,7 @@ export async function POST(req: Request) {
 				},
 			);
 
-			const response: TaskResult = {
+			const response: PollTaskResult = {
 				taskId: handle.id,
 				status: "PENDING",
 				code: "<!-- Processing your request, please check back later -->",

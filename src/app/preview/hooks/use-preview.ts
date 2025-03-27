@@ -1,3 +1,4 @@
+import type { Dialogue } from "@/types/common";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { notFoundExample } from "../mock-htmls/404";
@@ -12,21 +13,9 @@ export const deviceConfigs = {
 	desktop: { width: "100%", height: "auto", label: "Desktop" },
 };
 
-interface Dialogue {
-	id: number;
-	versions: Array<{
-		id: number;
-		response: {
-			content: string;
-		};
-	}>;
-	activeVersionId: number;
-}
-
 interface StoreState {
 	state: {
 		dialogues: Dialogue[];
-		activeDialogueId: number;
 	};
 }
 
@@ -258,7 +247,7 @@ export function usePreview() {
 				if (!version) return null;
 
 				// Extract content from response
-				const content = version.response.content;
+				const content = version.response?.code || "";
 
 				// Handle different content formats
 				if (content.startsWith("<")) {

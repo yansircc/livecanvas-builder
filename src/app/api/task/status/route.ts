@@ -1,4 +1,4 @@
-import type { TaskStatus, TaskStatusResponse } from "@/types/common";
+import type { PollTaskResult, TaskStatus } from "@/types/common";
 import { runs } from "@trigger.dev/sdk/v3";
 import { NextResponse } from "next/server";
 
@@ -28,18 +28,17 @@ export async function GET(request: Request) {
 		const status = result.status as TaskStatus;
 
 		// Prepare the response
-		const response: TaskStatusResponse = {
+		const response: PollTaskResult = {
 			taskId: result.id,
 			status,
-			output: result.output,
-			error: status === "CANCELED" ? "任务已被取消" : result.error,
-			startedAt: result.startedAt
-				? new Date(result.startedAt).toISOString()
-				: undefined,
-			completedAt: result.finishedAt
-				? new Date(result.finishedAt).toISOString()
-				: undefined,
-			originalStatus: result.status,
+			code: result.output,
+			error:
+				status === "CANCELED"
+					? "任务已被取消"
+					: typeof result.error === "string"
+						? result.error
+						: undefined,
+			advices: [],
 		};
 
 		// Use different cache headers based on task status

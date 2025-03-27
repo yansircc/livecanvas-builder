@@ -1,52 +1,25 @@
-import type { AvailableModelId, AvailableProviderId } from "@/lib/models";
 import { tryCatch } from "@/lib/try-catch";
-import type { TaskResult } from "@/types/common";
-import type { TaskStatus } from "@/types/common";
-import type { TaskStatusResponse } from "@/types/common";
+import type {
+	PollTaskResult,
+	TaskCancellationResponse,
+	TaskRequest,
+	TokenUsage,
+} from "@/types/common";
 import { extractAndParseJSON } from "@/utils/json-parser";
 import { replaceLucideIcons } from "@/utils/replace-with-lucide-icon";
 import { replaceWithUnsplashImages } from "@/utils/replace-with-unsplash";
 
-interface ChatTaskParams {
-	prompt: string;
-	history?: { prompt: string; response?: string }[];
-	providerId?: AvailableProviderId;
-	modelId?: AvailableModelId;
-	withBackgroundInfo?: boolean;
-	precisionMode?: boolean;
-}
-
 interface RawLLMResponse {
-	structuredOutput?: TaskResult;
+	structuredOutput?: PollTaskResult;
 	textOutput?: string;
 	isStructured: boolean;
-	usage?: {
-		promptTokens: number;
-		completionTokens: number;
-		totalTokens: number;
-	};
-}
-
-interface ProcessedLLMResponse {
-	code: string;
-	advices: string[];
-	usage?: {
-		promptTokens: number;
-		completionTokens: number;
-		totalTokens: number;
-	};
-}
-
-interface PollTaskResult {
-	response: ProcessedLLMResponse;
-	status: TaskStatus;
-	error?: string;
+	usage?: TokenUsage;
 }
 
 /**
  * Submit a chat task to the API
  */
-export async function submitChatTask(params: ChatTaskParams): Promise<string> {
+export async function submitChatTask(params: TaskRequest): Promise<string> {
 	const result = await tryCatch(
 		fetch("/api/task/submit", {
 			method: "POST",
@@ -68,7 +41,7 @@ export async function submitChatTask(params: ChatTaskParams): Promise<string> {
 		);
 	}
 
-	const data = (await result.data.json()) as TaskResult;
+	const data = (await result.data.json()) as PollTaskResult;
 
 	if (!data.taskId) {
 		throw new Error("No task ID returned from the server");
@@ -80,9 +53,7 @@ export async function submitChatTask(params: ChatTaskParams): Promise<string> {
 /**
  * Process the raw LLM response into a standardized format
  */
-async function processLLMResponse(
-	rawResponse: RawLLMResponse,
-): Promise<ProcessedLLMResponse> {
+async function processLLMResponse(rawResponse: RawLLMResponse) {
 	// Capture the usage data at the top level to ensure it's always available
 	const usage = rawResponse.usage;
 
@@ -99,7 +70,9 @@ async function processLLMResponse(
 
 	if (!rawResponse.isStructured && rawResponse.textOutput) {
 		const parsedResult = await tryCatch(
-			Promise.resolve(extractAndParseJSON<TaskResult>(rawResponse.textOutput)),
+			Promise.resolve(
+				extractAndParseJSON<PollTaskResult>(rawResponse.textOutput),
+			),
 		);
 
 		if (parsedResult.error || !parsedResult.data?.code) {
@@ -168,7 +141,7 @@ export async function pollTaskStatus(
 			);
 		}
 
-		const data = (await result.data.json()) as TaskStatusResponse;
+		const data = (await result.data.json()) as PollTaskResult;
 
 		// 根据任务状态处理响应
 		switch (data.status) {
@@ -186,10 +159,9 @@ export async function pollTaskStatus(
 			case "SYSTEM_FAILURE":
 			case "INTERRUPTED":
 				return {
-					response: {
-						code: `<!-- 错误: 任务 ${data.status.toLowerCase()} -->`,
-						advices: [],
-					},
+					taskId,
+					code: `<!-- 错误: 任务 ${data.status.toLowerCase()} -->`,
+					advices: [],
 					status: data.status,
 					error:
 						typeof data.error === "string"
@@ -200,27 +172,27 @@ export async function pollTaskStatus(
 			// 取消状态 - 返回取消信息
 			case "CANCELED":
 				return {
-					response: {
-						code: "<!-- 任务被取消 -->",
-						advices: [],
-					},
+					taskId,
+					code: "<!-- 任务被取消 -->",
+					advices: [],
 					status: "CANCELED",
 					error: "任务已被取消",
 				};
 
 			// 完成状态 - 处理并返回结果
 			case "COMPLETED": {
-				if (!data.output) {
+				if (!data.code) {
 					throw new Error("Task completed but no output received");
 				}
 
 				const rawOutput: RawLLMResponse =
-					typeof data.output === "string"
-						? JSON.parse(data.output)
-						: (data.output as RawLLMResponse);
+					typeof data.code === "string"
+						? JSON.parse(data.code)
+						: (data.code as RawLLMResponse);
 
 				return {
-					response: await processLLMResponse(rawOutput),
+					...(await processLLMResponse(rawOutput)),
+					taskId,
 					status: "COMPLETED",
 				};
 			}
@@ -240,7 +212,7 @@ export async function pollTaskStatus(
  */
 export async function cancelTask(
 	taskId: string,
-): Promise<{ success: boolean; message: string }> {
+): Promise<TaskCancellationResponse> {
 	const result = await tryCatch(
 		fetch("/api/task/cancel", {
 			method: "POST",

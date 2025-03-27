@@ -2,14 +2,14 @@ import type { AvailableModelId, AvailableProviderId } from "@/lib/models";
 import type {
 	Dialogue,
 	DialogueHistory,
-	FormData,
-	LlmResponse,
+	PollTaskResult,
+	TaskRequest,
 	TaskStatus,
 	TokenUsage,
 	Version,
 } from "@/types/common";
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
 
 interface DialogueState {
 	dialogues: Dialogue[];
@@ -32,11 +32,11 @@ interface DialogueState {
 	addDialogue: () => void;
 	clearAllDialogues: () => void;
 	setActiveDialogue: (dialogueId: number) => void;
-	addVersion: (dialogueId: number, input: FormData) => number;
+	addVersion: (dialogueId: number, input: TaskRequest) => number;
 	setVersionResponse: (
 		dialogueId: number,
 		versionId: number,
-		response: LlmResponse,
+		response: PollTaskResult,
 	) => void;
 	setVersionLoading: (
 		dialogueId: number,
@@ -356,11 +356,11 @@ export const useDialogueStore = create<DialogueState>()(
 				};
 
 				try {
-					responseContent = JSON.parse(lastVersion.response.content);
+					responseContent = JSON.parse(lastVersion.response.code);
 				} catch (error) {
 					// If parsing fails, use the content directly
 					responseContent = {
-						code: lastVersion.response.content,
+						code: lastVersion.response.code,
 					};
 				}
 
@@ -516,6 +516,7 @@ export const useDialogueStore = create<DialogueState>()(
 		}),
 		{
 			name: "dialogue-storage",
+			storage: createJSONStorage(() => localStorage),
 			partialize: (state) => ({
 				dialogues: state.dialogues,
 				activeDialogueId: state.activeDialogueId,

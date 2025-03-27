@@ -3,8 +3,14 @@ import type {
 	AvailableProviderId,
 	ModelList,
 } from "@/lib/models";
-import type { ExtraPromptCost } from "@/types/common";
 import { useEffect, useState } from "react";
+
+// temporary
+interface ExtraPromptCost {
+	tokens: number;
+	usd: number;
+	cny: number;
+}
 
 export function useCostCalculation(
 	promptValue: string,

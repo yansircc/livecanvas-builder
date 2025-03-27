@@ -12,11 +12,6 @@ import { CopyButton } from "./copy-button";
 import { PreviewButton } from "./preview-button";
 import ShowCost from "./show-cost";
 import VersionSelector from "./version-selector";
-interface ResponseData {
-	code?: string;
-	advices?: string[];
-	[key: string]: unknown;
-}
 
 interface ResultDisplayProps {
 	modelList: ModelList;
@@ -52,21 +47,8 @@ export default function ResultDisplay({ modelList }: ResultDisplayProps) {
 		return <EmptyState />;
 	}
 
-	let responseData: ResponseData;
-	let codeContent: string;
-
-	try {
-		// Try to parse the response content as JSON
-		responseData = JSON.parse(activeVersion.response.content);
-		codeContent = responseData.code || "";
-	} catch (error) {
-		// If parsing fails, use the content directly as the code
-		console.warn(
-			"Response is not valid JSON, using content directly as HTML code",
-		);
-		codeContent = activeVersion.response.content;
-		responseData = { code: codeContent };
-	}
+	const responseData = activeVersion.response;
+	const codeContent = responseData.code || "";
 
 	// If no code, show an empty code state
 	if (!codeContent) {

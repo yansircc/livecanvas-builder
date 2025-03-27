@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
 
 export interface ThemeSettings {
 	borderRadius: number;
@@ -67,6 +67,7 @@ export const useThemeStore = create<ThemeStore>()(
 		}),
 		{
 			name: "theme-store",
+			storage: createJSONStorage(() => localStorage),
 		},
 	),
 );
