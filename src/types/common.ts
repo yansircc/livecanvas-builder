@@ -1,4 +1,4 @@
-import type { AvailableModelId, AvailableProviderId } from "@/lib/models";
+import type { AvailableModelId, AvailableProviderId } from "@/types/model";
 
 /**
  * Token usage information for LLM responses
@@ -38,12 +38,12 @@ export type TaskStatus =
 export interface TaskRequest {
 	prompt: string;
 	history?: { prompt: string; response?: string }[];
-	providerId?: AvailableProviderId;
-	modelId?: AvailableModelId;
+	providerId: AvailableProviderId;
+	modelId: AvailableModelId;
 	withBackgroundInfo?: boolean;
 	precisionMode?: boolean;
 	dialogueId: number;
-	versionId: number;
+	submissionId: number;
 }
 
 /**
@@ -59,9 +59,9 @@ export interface PollTaskResult {
 }
 
 /**
- * Version data structure for dialogue versions
+ * Submission data structure for dialogue submissions
  */
-export interface Version {
+export interface Submission {
 	id: number;
 	input: TaskRequest;
 	response: PollTaskResult | null;
@@ -75,9 +75,9 @@ export interface Version {
  */
 export interface Dialogue {
 	id: number;
-	versions: Version[];
-	activeVersionId: number | null;
-	hasCompletedVersion?: boolean;
+	submissions: Submission[];
+	activeSubmissionId: number | null;
+	hasCompletedSubmission?: boolean;
 }
 
 /**

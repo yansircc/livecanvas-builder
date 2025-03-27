@@ -1,11 +1,8 @@
-import {
-	type AvailableModelId,
-	type AvailableProviderId,
-	isValidModel,
-} from "@/lib/models";
+import { isValidModel } from "@/lib/models";
 import { auth } from "@/server/auth";
 import { chatGenerationTask } from "@/trigger/chat-generation";
 import type { PollTaskResult } from "@/types/common";
+import type { AvailableModelId, AvailableProviderId } from "@/types/model";
 import { tasks } from "@trigger.dev/sdk/v3";
 import { PROMPT } from "./prompt";
 

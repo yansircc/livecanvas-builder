@@ -22,7 +22,7 @@ interface StoreState {
 export function usePreview() {
 	const searchParams = useSearchParams();
 	const dialogueId = searchParams.get("d");
-	const versionId = searchParams.get("v");
+	const submissionId = searchParams.get("s");
 
 	const [htmlContent, setHtmlContent] = useState<string>("");
 	const [iframeContent, setIframeContent] = useState<string>("");
@@ -222,7 +222,7 @@ export function usePreview() {
 		[htmlContent, hasDataTheme, processHtml],
 	);
 
-	// Extract HTML content from the store based on dialogue and version IDs
+	// Extract HTML content from the store based on dialogue and submission IDs
 	const getContentFromStore = useCallback(() => {
 		try {
 			// Get store from localStorage
@@ -231,10 +231,10 @@ export function usePreview() {
 
 			const store: StoreState = JSON.parse(storeJson);
 
-			// If both dialogue and version are provided in URL
-			if (dialogueId && versionId) {
+			// If both dialogue and submission are provided in URL
+			if (dialogueId && submissionId) {
 				const dialogueIdNum = Number.parseInt(dialogueId, 10);
-				const versionIdNum = Number.parseInt(versionId, 10);
+				const submissionIdNum = Number.parseInt(submissionId, 10);
 
 				// Find the dialogue
 				const dialogue = store.state.dialogues.find(
@@ -242,12 +242,14 @@ export function usePreview() {
 				);
 				if (!dialogue) return null;
 
-				// Find the version
-				const version = dialogue.versions.find((v) => v.id === versionIdNum);
-				if (!version) return null;
+				// Find the submission
+				const submission = dialogue.submissions.find(
+					(v) => v.id === submissionIdNum,
+				);
+				if (!submission) return null;
 
 				// Extract content from response
-				const content = version.response?.code || "";
+				const content = submission.response?.code || "";
 
 				// Handle different content formats
 				if (content.startsWith("<")) {
@@ -272,11 +274,11 @@ export function usePreview() {
 			console.error("Error getting content from store:", error);
 			return null;
 		}
-	}, [dialogueId, versionId]);
+	}, [dialogueId, submissionId]);
 
 	// Load content and check for custom CSS on mount
 	useEffect(() => {
-		// Get content from the store based on dialogue and version IDs
+		// Get content from the store based on dialogue and submission IDs
 		let content = getContentFromStore();
 
 		// If no content found, use example

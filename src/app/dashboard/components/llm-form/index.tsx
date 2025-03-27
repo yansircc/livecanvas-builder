@@ -8,8 +8,8 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
-import type { ModelList } from "@/lib/models";
 import { cn } from "@/lib/utils";
+import type { ModelList } from "@/types/model";
 import type { Session } from "next-auth";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -51,9 +51,18 @@ export function LlmForm({ session, modelList }: LlmFormProps) {
 		modelList,
 	});
 
-	// 获取当前活动的dialogue ID和version
+	// 获取当前活动的dialogue ID和submission
 	const activeDialogueId = useDialogueStore((state) => state.activeDialogueId);
-	const activeVersion = useDialogueStore((state) => state.getActiveVersion());
+	const activeSubmission = useDialogueStore((state) =>
+		state.getActiveSubmission(),
+	);
+
+	// Update form values when active submission changes
+	useEffect(() => {
+		if (activeSubmission?.input.prompt) {
+			form.setValue("prompt", activeSubmission.input.prompt);
+		}
+	}, [activeSubmission, form]);
 
 	// Show toast notifications for task status changes
 	useEffect(() => {
@@ -174,11 +183,11 @@ export function LlmForm({ session, modelList }: LlmFormProps) {
 							taskId={taskId}
 							taskStatus={taskStatus}
 							cancelTask={async (id) => {
-								if (activeVersion) {
+								if (activeSubmission) {
 									return await cancelTask(
 										id,
 										activeDialogueId,
-										activeVersion.id,
+										activeSubmission.id,
 									);
 								}
 								return false;

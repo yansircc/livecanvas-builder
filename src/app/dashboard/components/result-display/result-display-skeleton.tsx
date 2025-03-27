@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export function ResultDisplaySkeleton() {
 	return (
 		<div className="relative animate-pulse rounded-xl border border-zinc-200 p-5 dark:border-zinc-800">
-			{/* Header with version selector */}
+			{/* Header with submission selector */}
 			<div className="mb-4 flex items-center justify-between">
 				<Skeleton className="h-5 w-36 rounded-md bg-zinc-200 dark:bg-zinc-700" />
 				<Skeleton className="h-8 w-24 rounded-md bg-zinc-200 dark:bg-zinc-700" />

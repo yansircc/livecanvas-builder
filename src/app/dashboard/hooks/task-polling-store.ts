@@ -16,7 +16,7 @@ export interface TaskPollingOptions {
 
 export function useTaskPolling(options: TaskPollingOptions = {}) {
 	const [taskId, setTaskId] = useState<string | null>(null);
-	const { setVersionTaskStatus, getDialogueVersion } = useDialogueStore();
+	const { setSubmissionTaskStatus, getDialogueSubmission } = useDialogueStore();
 
 	const submitAndPollTask = useCallback(
 		async (params: TaskRequest) => {
@@ -26,7 +26,11 @@ export function useTaskPolling(options: TaskPollingOptions = {}) {
 				setTaskId(newTaskId);
 
 				// 设置初始状态为 PENDING
-				setVersionTaskStatus(params.dialogueId, params.versionId, "PENDING");
+				setSubmissionTaskStatus(
+					params.dialogueId,
+					params.submissionId,
+					"PENDING",
+				);
 
 				// Notify that task was submitted
 				if (options.onTaskSubmitted) {
@@ -42,9 +46,9 @@ export function useTaskPolling(options: TaskPollingOptions = {}) {
 				const result = await pollTaskStatus(newTaskId);
 
 				// 更新任务状态
-				setVersionTaskStatus(
+				setSubmissionTaskStatus(
 					params.dialogueId,
-					params.versionId,
+					params.submissionId,
 					result.status,
 					result.error,
 				);
@@ -68,9 +72,9 @@ export function useTaskPolling(options: TaskPollingOptions = {}) {
 				console.error("Task polling error:", errorObj.message);
 
 				// 更新错误状态
-				setVersionTaskStatus(
+				setSubmissionTaskStatus(
 					params.dialogueId,
-					params.versionId,
+					params.submissionId,
 					"FAILED",
 					errorObj.message,
 				);
@@ -82,18 +86,18 @@ export function useTaskPolling(options: TaskPollingOptions = {}) {
 				throw errorObj;
 			}
 		},
-		[options, setVersionTaskStatus],
+		[options, setSubmissionTaskStatus],
 	);
 
 	const cancelTask = useCallback(
-		async (id: string, dialogueId: number, versionId: number) => {
+		async (id: string, dialogueId: number, submissionId: number) => {
 			try {
 				const result = await apiCancelTask(id);
 				if (result.success) {
 					// 更新取消状态
-					setVersionTaskStatus(
+					setSubmissionTaskStatus(
 						dialogueId,
-						versionId,
+						submissionId,
 						"CANCELED",
 						"任务已被取消",
 					);
@@ -105,20 +109,20 @@ export function useTaskPolling(options: TaskPollingOptions = {}) {
 				return false;
 			}
 		},
-		[setVersionTaskStatus],
+		[setSubmissionTaskStatus],
 	);
 
 	// 获取特定dialogue的状态
 	const getDialogueTaskState = useCallback(
-		(dialogueId: number, versionId: number) => {
-			const version = getDialogueVersion(dialogueId, versionId);
+		(dialogueId: number, submissionId: number) => {
+			const submission = getDialogueSubmission(dialogueId, submissionId);
 			return {
-				isLoading: version?.isLoading ?? false,
-				error: version?.taskError ?? null,
-				status: version?.taskStatus ?? null,
+				isLoading: submission?.isLoading ?? false,
+				error: submission?.taskError ?? null,
+				status: submission?.taskStatus ?? null,
 			};
 		},
-		[getDialogueVersion],
+		[getDialogueSubmission],
 	);
 
 	return {

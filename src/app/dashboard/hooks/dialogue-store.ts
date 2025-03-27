@@ -1,29 +1,29 @@
-import type { AvailableModelId, AvailableProviderId } from "@/lib/models";
 import type {
 	Dialogue,
 	DialogueHistory,
 	PollTaskResult,
+	Submission,
 	TaskRequest,
 	TaskStatus,
 	TokenUsage,
-	Version,
 } from "@/types/common";
+import type { AvailableModelId, AvailableProviderId } from "@/types/model";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
 interface DialogueState {
 	dialogues: Dialogue[];
 	activeDialogueId: number;
-	globalSelectedProviderId: AvailableProviderId;
-	globalSelectedModelId: AvailableModelId;
+	defaultProviderId: AvailableProviderId;
+	defaultModelId: AvailableModelId;
 
 	// Getters
 	getActiveDialogue: () => Dialogue | undefined;
-	getActiveVersion: () => Version | undefined;
-	getDialogueVersion: (
+	getActiveSubmission: () => Submission | undefined;
+	getDialogueSubmission: (
 		dialogueId: number,
-		versionId: number,
-	) => Version | undefined;
+		submissionId: number,
+	) => Submission | undefined;
 	getPreviousDialogue: (dialogueId: number) => DialogueHistory | null;
 	getSelectedProvider: () => AvailableProviderId;
 	getSelectedModelId: () => AvailableModelId;
@@ -32,30 +32,30 @@ interface DialogueState {
 	addDialogue: () => void;
 	clearAllDialogues: () => void;
 	setActiveDialogue: (dialogueId: number) => void;
-	addVersion: (dialogueId: number, input: TaskRequest) => number;
-	setVersionResponse: (
+	addSubmission: (dialogueId: number, input: TaskRequest) => number;
+	setSubmissionResponse: (
 		dialogueId: number,
-		versionId: number,
+		submissionId: number,
 		response: PollTaskResult,
 	) => void;
-	setVersionLoading: (
+	setSubmissionLoading: (
 		dialogueId: number,
-		versionId: number,
+		submissionId: number,
 		isLoading: boolean,
 	) => void;
-	setVersionTaskStatus: (
+	setSubmissionTaskStatus: (
 		dialogueId: number,
-		versionId: number,
+		submissionId: number,
 		status: TaskStatus,
 		error?: string,
 	) => void;
-	setActiveVersion: (dialogueId: number, versionId: number) => void;
+	setActiveSubmission: (dialogueId: number, submissionId: number) => void;
 	setGlobalModel: (
 		providerId: AvailableProviderId,
 		modelId: AvailableModelId,
 	) => void;
-	cleanupIncompleteVersions: () => void;
-	deleteVersion: (dialogueId: number, versionId: number) => void;
+	cleanupIncompleteSubmissions: () => void;
+	deleteSubmission: (dialogueId: number, submissionId: number) => void;
 	deleteDialogue: (dialogueId: number) => void;
 	markDialogueCompleted: (dialogueId: number) => void;
 	clearDialogueCompleted: (dialogueId: number) => void;
@@ -68,8 +68,8 @@ const defaultModelId: AvailableModelId = "claude-3-7-sonnet-20250219";
 // Initial dialogue
 const defaultDialogue: Dialogue = {
 	id: 1,
-	versions: [],
-	activeVersionId: null,
+	submissions: [],
+	activeSubmissionId: null,
 };
 
 export const useDialogueStore = create<DialogueState>()(
@@ -77,8 +77,8 @@ export const useDialogueStore = create<DialogueState>()(
 		(set, get) => ({
 			dialogues: [defaultDialogue],
 			activeDialogueId: 1,
-			globalSelectedProviderId: defaultProviderId,
-			globalSelectedModelId: defaultModelId,
+			defaultProviderId: defaultProviderId,
+			defaultModelId: defaultModelId,
 
 			// Getters
 			getActiveDialogue: () => {
@@ -86,17 +86,17 @@ export const useDialogueStore = create<DialogueState>()(
 				return state.dialogues.find((s) => s.id === state.activeDialogueId);
 			},
 
-			getActiveVersion: () => {
+			getActiveSubmission: () => {
 				const activeDialogue = get().getActiveDialogue();
-				if (!activeDialogue?.activeVersionId) return undefined;
-				return activeDialogue.versions.find(
-					(v) => v.id === activeDialogue.activeVersionId,
+				if (!activeDialogue?.activeSubmissionId) return undefined;
+				return activeDialogue.submissions.find(
+					(v) => v.id === activeDialogue.activeSubmissionId,
 				);
 			},
 
-			getDialogueVersion: (dialogueId, versionId) => {
+			getDialogueSubmission: (dialogueId, submissionId) => {
 				const dialogue = get().dialogues.find((s) => s.id === dialogueId);
-				return dialogue?.versions.find((v) => v.id === versionId);
+				return dialogue?.submissions.find((v) => v.id === submissionId);
 			},
 
 			// Actions
@@ -106,8 +106,8 @@ export const useDialogueStore = create<DialogueState>()(
 						Math.max(...state.dialogues.map((s) => s.id), 0) + 1;
 					const newDialogue: Dialogue = {
 						id: newDialogueId,
-						versions: [],
-						activeVersionId: null,
+						submissions: [],
+						activeSubmissionId: null,
 					};
 
 					return {
@@ -131,8 +131,8 @@ export const useDialogueStore = create<DialogueState>()(
 					activeDialogueId: dialogueId,
 				})),
 
-			addVersion: (dialogueId, input) => {
-				let newVersionId = 1;
+			addSubmission: (dialogueId, input) => {
+				let newSubmissionId = 1;
 
 				set((state) => {
 					const dialogueIndex = state.dialogues.findIndex(
@@ -143,20 +143,20 @@ export const useDialogueStore = create<DialogueState>()(
 					const targetDialogue = state.dialogues[dialogueIndex];
 					if (!targetDialogue) return state;
 
-					newVersionId =
-						targetDialogue.versions.length > 0
-							? Math.max(...targetDialogue.versions.map((v) => v.id)) + 1
+					newSubmissionId =
+						targetDialogue.submissions.length > 0
+							? Math.max(...targetDialogue.submissions.map((v) => v.id)) + 1
 							: 1;
 
 					// Ensure the provider and model IDs are included in the input
 					const inputWithModel = {
 						...input,
-						providerId: input.providerId || state.globalSelectedProviderId,
-						modelId: input.modelId || state.globalSelectedModelId,
+						providerId: input.providerId,
+						modelId: input.modelId,
 					};
 
-					const newVersion: Version = {
-						id: newVersionId,
+					const newSubmission: Submission = {
+						id: newSubmissionId,
 						input: inputWithModel,
 						response: null,
 						isLoading: true,
@@ -164,8 +164,8 @@ export const useDialogueStore = create<DialogueState>()(
 
 					const updatedDialogue: Dialogue = {
 						...targetDialogue,
-						versions: [...targetDialogue.versions, newVersion],
-						activeVersionId: newVersionId,
+						submissions: [...targetDialogue.submissions, newSubmission],
+						activeSubmissionId: newSubmissionId,
 					};
 
 					const updatedDialogues = [...state.dialogues];
@@ -174,10 +174,10 @@ export const useDialogueStore = create<DialogueState>()(
 					return { dialogues: updatedDialogues };
 				});
 
-				return newVersionId;
+				return newSubmissionId;
 			},
 
-			setVersionResponse: (dialogueId, versionId, response) =>
+			setSubmissionResponse: (dialogueId, submissionId, response) =>
 				set((state) => {
 					const dialogueIndex = state.dialogues.findIndex(
 						(s) => s.id === dialogueId,
@@ -187,26 +187,26 @@ export const useDialogueStore = create<DialogueState>()(
 					const targetDialogue = state.dialogues[dialogueIndex];
 					if (!targetDialogue) return state;
 
-					const versionIndex = targetDialogue.versions.findIndex(
-						(v) => v.id === versionId,
+					const submissionIndex = targetDialogue.submissions.findIndex(
+						(v) => v.id === submissionId,
 					);
-					if (versionIndex === -1) return state;
+					if (submissionIndex === -1) return state;
 
-					const targetVersion = targetDialogue.versions[versionIndex];
-					if (!targetVersion) return state;
+					const targetSubmission = targetDialogue.submissions[submissionIndex];
+					if (!targetSubmission) return state;
 
-					const updatedVersion: Version = {
-						...targetVersion,
+					const updatedSubmission: Submission = {
+						...targetSubmission,
 						response,
 						isLoading: false,
 					};
 
-					const updatedVersions = [...targetDialogue.versions];
-					updatedVersions[versionIndex] = updatedVersion;
+					const updatedSubmissions = [...targetDialogue.submissions];
+					updatedSubmissions[submissionIndex] = updatedSubmission;
 
 					const updatedDialogue: Dialogue = {
 						...targetDialogue,
-						versions: updatedVersions,
+						submissions: updatedSubmissions,
 					};
 
 					const updatedDialogues = [...state.dialogues];
@@ -215,7 +215,7 @@ export const useDialogueStore = create<DialogueState>()(
 					return { dialogues: updatedDialogues };
 				}),
 
-			setVersionLoading: (dialogueId, versionId, isLoading) =>
+			setSubmissionLoading: (dialogueId, submissionId, isLoading) =>
 				set((state) => {
 					const dialogueIndex = state.dialogues.findIndex(
 						(s) => s.id === dialogueId,
@@ -225,25 +225,25 @@ export const useDialogueStore = create<DialogueState>()(
 					const targetDialogue = state.dialogues[dialogueIndex];
 					if (!targetDialogue) return state;
 
-					const versionIndex = targetDialogue.versions.findIndex(
-						(v) => v.id === versionId,
+					const submissionIndex = targetDialogue.submissions.findIndex(
+						(v) => v.id === submissionId,
 					);
-					if (versionIndex === -1) return state;
+					if (submissionIndex === -1) return state;
 
-					const targetVersion = targetDialogue.versions[versionIndex];
-					if (!targetVersion) return state;
+					const targetSubmission = targetDialogue.submissions[submissionIndex];
+					if (!targetSubmission) return state;
 
-					const updatedVersion: Version = {
-						...targetVersion,
+					const updatedSubmission: Submission = {
+						...targetSubmission,
 						isLoading,
 					};
 
-					const updatedVersions = [...targetDialogue.versions];
-					updatedVersions[versionIndex] = updatedVersion;
+					const updatedSubmissions = [...targetDialogue.submissions];
+					updatedSubmissions[submissionIndex] = updatedSubmission;
 
 					const updatedDialogue: Dialogue = {
 						...targetDialogue,
-						versions: updatedVersions,
+						submissions: updatedSubmissions,
 					};
 
 					const updatedDialogues = [...state.dialogues];
@@ -252,7 +252,7 @@ export const useDialogueStore = create<DialogueState>()(
 					return { dialogues: updatedDialogues };
 				}),
 
-			setVersionTaskStatus: (dialogueId, versionId, status, error) =>
+			setSubmissionTaskStatus: (dialogueId, submissionId, status, error) =>
 				set((state) => {
 					const dialogueIndex = state.dialogues.findIndex(
 						(s) => s.id === dialogueId,
@@ -262,16 +262,16 @@ export const useDialogueStore = create<DialogueState>()(
 					const targetDialogue = state.dialogues[dialogueIndex];
 					if (!targetDialogue) return state;
 
-					const versionIndex = targetDialogue.versions.findIndex(
-						(v) => v.id === versionId,
+					const submissionIndex = targetDialogue.submissions.findIndex(
+						(v) => v.id === submissionId,
 					);
-					if (versionIndex === -1) return state;
+					if (submissionIndex === -1) return state;
 
-					const targetVersion = targetDialogue.versions[versionIndex];
-					if (!targetVersion) return state;
+					const targetSubmission = targetDialogue.submissions[submissionIndex];
+					if (!targetSubmission) return state;
 
-					const updatedVersion: Version = {
-						...targetVersion,
+					const updatedSubmission: Submission = {
+						...targetSubmission,
 						taskStatus: status,
 						taskError: error,
 						isLoading: ![
@@ -284,12 +284,12 @@ export const useDialogueStore = create<DialogueState>()(
 						].includes(status),
 					};
 
-					const updatedVersions = [...targetDialogue.versions];
-					updatedVersions[versionIndex] = updatedVersion;
+					const updatedSubmissions = [...targetDialogue.submissions];
+					updatedSubmissions[submissionIndex] = updatedSubmission;
 
 					const updatedDialogue: Dialogue = {
 						...targetDialogue,
-						versions: updatedVersions,
+						submissions: updatedSubmissions,
 					};
 
 					const updatedDialogues = [...state.dialogues];
@@ -298,7 +298,7 @@ export const useDialogueStore = create<DialogueState>()(
 					return { dialogues: updatedDialogues };
 				}),
 
-			setActiveVersion: (dialogueId, versionId) =>
+			setActiveSubmission: (dialogueId, submissionId) =>
 				set((state) => {
 					const dialogueIndex = state.dialogues.findIndex(
 						(s) => s.id === dialogueId,
@@ -310,7 +310,7 @@ export const useDialogueStore = create<DialogueState>()(
 
 					const updatedDialogue: Dialogue = {
 						...targetDialogue,
-						activeVersionId: versionId,
+						activeSubmissionId: submissionId,
 					};
 
 					const updatedDialogues = [...state.dialogues];
@@ -321,30 +321,30 @@ export const useDialogueStore = create<DialogueState>()(
 
 			setGlobalModel: (providerId, modelId) =>
 				set(() => ({
-					globalSelectedProviderId: providerId,
-					globalSelectedModelId: modelId,
+					defaultProviderId: providerId,
+					defaultModelId: modelId,
 				})),
 
 			getPreviousDialogue: (dialogueId) => {
 				const state = get();
 				const dialogue = state.dialogues.find((s) => s.id === dialogueId);
 
-				if (!dialogue || dialogue.versions.length === 0) {
+				if (!dialogue || dialogue.submissions.length === 0) {
 					return null;
 				}
 
-				// Get the last version that has a response
-				const versionsWithResponses = dialogue.versions
+				// Get the last submission that has a response
+				const submissionsWithResponses = dialogue.submissions
 					.filter((v) => v.response !== null)
 					.sort((a, b) => b.id - a.id);
 
-				if (versionsWithResponses.length === 0) {
+				if (submissionsWithResponses.length === 0) {
 					return null;
 				}
 
-				const lastVersion = versionsWithResponses[0];
+				const lastSubmission = submissionsWithResponses[0];
 
-				if (!lastVersion || !lastVersion.response) {
+				if (!lastSubmission || !lastSubmission.response) {
 					return null;
 				}
 
@@ -356,75 +356,79 @@ export const useDialogueStore = create<DialogueState>()(
 				};
 
 				try {
-					responseContent = JSON.parse(lastVersion.response.code);
+					responseContent = JSON.parse(lastSubmission.response.code);
 				} catch (error) {
 					// If parsing fails, use the content directly
 					responseContent = {
-						code: lastVersion.response.code,
+						code: lastSubmission.response.code,
 					};
 				}
 
 				return {
-					prompt: lastVersion.input.prompt,
+					prompt: lastSubmission.input.prompt,
 					response: responseContent.code,
 				};
 			},
 
 			getSelectedProvider: () => {
 				const state = get();
-				return state.globalSelectedProviderId;
+				const activeSubmission = state.getActiveSubmission();
+				if (!activeSubmission) return state.defaultProviderId;
+				return activeSubmission.input.providerId;
 			},
 
 			getSelectedModelId: () => {
 				const state = get();
-				return state.globalSelectedModelId;
+				const activeSubmission = state.getActiveSubmission();
+				if (!activeSubmission) return state.defaultModelId;
+				return activeSubmission.input.modelId;
 			},
 
-			cleanupIncompleteVersions: () =>
+			cleanupIncompleteSubmissions: () =>
 				set((state) => {
 					const updatedDialogues = state.dialogues.map((dialogue) => {
-						// Filter out versions that are loading but have no taskStatus (incomplete)
-						const updatedVersions = dialogue.versions.filter(
-							(version) => !(version.isLoading && !version.taskStatus),
+						// Filter out submissions that are loading but have no taskStatus (incomplete)
+						const updatedSubmissions = dialogue.submissions.filter(
+							(submission) => !(submission.isLoading && !submission.taskStatus),
 						);
 
-						// If all versions were incomplete, keep at least one to avoid empty dialogue
-						const finalVersions =
-							updatedVersions.length > 0
-								? updatedVersions
-								: dialogue.versions.length > 0 && dialogue.versions[0]
+						// If all submissions were incomplete, keep at least one to avoid empty dialogue
+						const finalSubmissions =
+							updatedSubmissions.length > 0
+								? updatedSubmissions
+								: dialogue.submissions.length > 0 && dialogue.submissions[0]
 									? [
 											{
-												id: dialogue.versions[0].id,
-												input: dialogue.versions[0].input,
+												id: dialogue.submissions[0].id,
+												input: dialogue.submissions[0].input,
 												isLoading: false,
-												response: dialogue.versions[0].response || null,
+												response: dialogue.submissions[0].response || null,
 											},
 										]
 									: [];
 
-						// Reset activeVersionId if it was part of the removed versions
-						const activeVersionStillExists = finalVersions.some(
-							(v) => v.id === dialogue.activeVersionId,
+						// Reset activeSubmissionId if it was part of the removed submissions
+						const activeSubmissionStillExists = finalSubmissions.some(
+							(v) => v.id === dialogue.activeSubmissionId,
 						);
 
-						const activeVersionId = activeVersionStillExists
-							? dialogue.activeVersionId
-							: finalVersions.length > 0
-								? finalVersions[finalVersions.length - 1]?.id || null
+						const activeSubmissionId = activeSubmissionStillExists
+							? dialogue.activeSubmissionId
+							: finalSubmissions.length > 0
+								? finalSubmissions[finalSubmissions.length - 1]?.id || null
 								: null;
 
 						return {
 							...dialogue,
-							versions: finalVersions,
-							activeVersionId,
+							submissions: finalSubmissions,
+							activeSubmissionId,
 						};
 					});
 
 					return { dialogues: updatedDialogues };
 				}),
 
-			deleteVersion: (dialogueId, versionId) =>
+			deleteSubmission: (dialogueId, submissionId) =>
 				set((state) => {
 					const dialogueIndex = state.dialogues.findIndex(
 						(s) => s.id === dialogueId,
@@ -434,24 +438,27 @@ export const useDialogueStore = create<DialogueState>()(
 					const targetDialogue = state.dialogues[dialogueIndex];
 					if (!targetDialogue) return state;
 
-					// Can't delete if it's the only version
-					if (targetDialogue.versions.length <= 1) return state;
+					// Can't delete if it's the only submission
+					if (targetDialogue.submissions.length <= 1) return state;
 
-					const updatedVersions = targetDialogue.versions.filter(
-						(v) => v.id !== versionId,
+					const updatedSubmissions = targetDialogue.submissions.filter(
+						(v) => v.id !== submissionId,
 					);
 
-					// If the active version is being deleted, set the last version as active
-					let activeVersionId = targetDialogue.activeVersionId;
-					if (activeVersionId === versionId && updatedVersions.length > 0) {
-						activeVersionId =
-							updatedVersions[updatedVersions.length - 1]?.id ?? null;
+					// If the active submission is being deleted, set the last submission as active
+					let activeSubmissionId = targetDialogue.activeSubmissionId;
+					if (
+						activeSubmissionId === submissionId &&
+						updatedSubmissions.length > 0
+					) {
+						activeSubmissionId =
+							updatedSubmissions[updatedSubmissions.length - 1]?.id ?? null;
 					}
 
 					const updatedDialogue: Dialogue = {
 						...targetDialogue,
-						versions: updatedVersions,
-						activeVersionId,
+						submissions: updatedSubmissions,
+						activeSubmissionId,
 					};
 
 					const updatedDialogues = [...state.dialogues];
@@ -462,8 +469,13 @@ export const useDialogueStore = create<DialogueState>()(
 
 			deleteDialogue: (dialogueId) =>
 				set((state) => {
-					// Don't delete if it's the only dialogue
-					if (state.dialogues.length <= 1) return state;
+					// If it's the last dialogue, reset to initial state
+					if (state.dialogues.length <= 1) {
+						return {
+							dialogues: [defaultDialogue],
+							activeDialogueId: 1,
+						};
+					}
 
 					const updatedDialogues = state.dialogues.filter(
 						(s) => s.id !== dialogueId,
@@ -493,7 +505,7 @@ export const useDialogueStore = create<DialogueState>()(
 
 					const updatedDialogues = [...state.dialogues];
 					const dialogue = { ...updatedDialogues[dialogueIndex] };
-					dialogue.hasCompletedVersion = true;
+					dialogue.hasCompletedSubmission = true;
 					updatedDialogues[dialogueIndex] = dialogue as Dialogue;
 
 					return { dialogues: updatedDialogues };
@@ -508,7 +520,7 @@ export const useDialogueStore = create<DialogueState>()(
 
 					const updatedDialogues = [...state.dialogues];
 					const dialogue = { ...updatedDialogues[dialogueIndex] };
-					dialogue.hasCompletedVersion = false;
+					dialogue.hasCompletedSubmission = false;
 					updatedDialogues[dialogueIndex] = dialogue as Dialogue;
 
 					return { dialogues: updatedDialogues };
@@ -520,8 +532,6 @@ export const useDialogueStore = create<DialogueState>()(
 			partialize: (state) => ({
 				dialogues: state.dialogues,
 				activeDialogueId: state.activeDialogueId,
-				globalSelectedProviderId: state.globalSelectedProviderId,
-				globalSelectedModelId: state.globalSelectedModelId,
 			}),
 		},
 	),

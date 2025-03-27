@@ -2,16 +2,16 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { ModelList } from "@/lib/models";
 import { cn } from "@/lib/utils";
-import type { Version } from "@/types/common";
+import type { Submission } from "@/types/common";
+import type { ModelList } from "@/types/model";
 import { CodeIcon } from "lucide-react";
 import { useAdviceStore, useDialogueStore } from "../../hooks";
 import { AdviceList } from "./advice-list";
 import { CopyButton } from "./copy-button";
 import { PreviewButton } from "./preview-button";
 import ShowCost from "./show-cost";
-import VersionSelector from "./version-selector";
+import { SubmissionSelector } from "./submission-selector";
 
 interface ResultDisplayProps {
 	modelList: ModelList;
@@ -29,25 +29,25 @@ export default function ResultDisplay({ modelList }: ResultDisplayProps) {
 		return <EmptyState />;
 	}
 
-	const activeVersion = activeDialogue.activeVersionId
-		? activeDialogue.versions.find(
-				(v: Version) => v.id === activeDialogue.activeVersionId,
+	const activeSubmission = activeDialogue.activeSubmissionId
+		? activeDialogue.submissions.find(
+				(v: Submission) => v.id === activeDialogue.activeSubmissionId,
 			)
 		: null;
 
-	if (!activeVersion) {
+	if (!activeSubmission) {
 		return <EmptyState />;
 	}
 
-	if (activeVersion.isLoading) {
+	if (activeSubmission.isLoading) {
 		return <LoadingState />;
 	}
 
-	if (!activeVersion.response) {
+	if (!activeSubmission.response) {
 		return <EmptyState />;
 	}
 
-	const responseData = activeVersion.response;
+	const responseData = activeSubmission.response;
 	const codeContent = responseData.code || "";
 
 	// If no code, show an empty code state
@@ -58,7 +58,7 @@ export default function ResultDisplay({ modelList }: ResultDisplayProps) {
 					<CardTitle className="font-medium text-lg text-zinc-800 dark:text-zinc-200">
 						AI 响应
 					</CardTitle>
-					{activeDialogue.versions.length > 0 && <VersionSelector />}
+					{activeDialogue.submissions.length > 0 && <SubmissionSelector />}
 				</CardHeader>
 				<CardContent className="flex h-full items-center justify-center p-8">
 					<p className="text-zinc-500 dark:text-zinc-400">没有代码</p>
@@ -71,21 +71,21 @@ export default function ResultDisplay({ modelList }: ResultDisplayProps) {
 		<Card className="h-full border border-zinc-200 shadow-none dark:border-zinc-800">
 			<CardHeader className="flex flex-row items-center justify-between border-zinc-200 border-b pb-3 dark:border-zinc-800">
 				<CardTitle className="flex items-center font-medium text-lg text-zinc-800 dark:text-zinc-200">
-					{activeDialogue.versions.length <= 1 && "代码"}
-					{activeDialogue.versions.length > 1 && <VersionSelector />}
+					{activeDialogue.submissions.length <= 1 && "代码"}
+					{activeDialogue.submissions.length > 1 && <SubmissionSelector />}
 				</CardTitle>
 				<div className="flex flex-row items-center gap-2.5">
-					{activeVersion.response.usage && (
+					{activeSubmission.response.usage && (
 						<ShowCost
-							usage={activeVersion.response.usage}
-							modelId={activeVersion.input.modelId}
-							providerId={activeVersion.input.providerId}
+							usage={activeSubmission.response.usage}
+							modelId={activeSubmission.input.modelId}
+							providerId={activeSubmission.input.providerId}
 							modelList={modelList}
 						/>
 					)}
 					<PreviewButton
 						dialogueId={activeDialogue.id}
-						versionId={activeVersion.id}
+						submissionId={activeSubmission.id}
 					/>
 					<CopyButton text={codeContent} />
 				</div>

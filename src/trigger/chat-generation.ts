@@ -1,11 +1,7 @@
 import { codeSchema } from "@/app/api/task/submit/schema";
 import type { CodeResponse } from "@/app/api/task/submit/schema";
-import {
-	type AvailableModelId,
-	type AvailableProviderId,
-	canModelOutputStructuredData,
-	getModel,
-} from "@/lib/models";
+import { canModelOutputStructuredData, getModel } from "@/lib/models";
+import type { AvailableModelId, AvailableProviderId } from "@/types/model";
 import { logger, task } from "@trigger.dev/sdk/v3";
 import { generateObject, generateText } from "ai";
 import type { LanguageModel } from "ai";

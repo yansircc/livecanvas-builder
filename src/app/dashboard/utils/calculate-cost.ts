@@ -2,7 +2,7 @@ import type {
 	AvailableModelId,
 	AvailableProviderId,
 	ModelList,
-} from "@/lib/models";
+} from "@/types/model";
 
 const EXCHANGE_RATE = 7.3;
 

@@ -2,7 +2,7 @@ import type {
 	AvailableModelId,
 	AvailableProviderId,
 	ModelList,
-} from "@/lib/models";
+} from "@/types/model";
 import { useEffect, useState } from "react";
 
 // temporary

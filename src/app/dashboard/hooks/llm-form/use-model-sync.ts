@@ -1,4 +1,4 @@
-import type { AvailableModelId, AvailableProviderId } from "@/lib/models";
+import type { AvailableModelId, AvailableProviderId } from "@/types/model";
 import { useEffect } from "react";
 import type { RefObject } from "react";
 

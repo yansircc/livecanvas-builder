@@ -1,4 +1,4 @@
-import type { AvailableModelId, AvailableProviderId } from "@/lib/models";
+import type { AvailableModelId, AvailableProviderId } from "@/types/model";
 import { useEffect, useRef } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import type { FormValues } from "./schema";

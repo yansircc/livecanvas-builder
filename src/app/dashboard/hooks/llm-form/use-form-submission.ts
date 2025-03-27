@@ -10,26 +10,26 @@ import type { FormValues } from "./schema";
 export interface UseFormSubmissionProps {
 	activeDialogueId: number;
 	getPreviousDialogue: (dialogueId: number) => DialogueHistory | null;
-	addVersion: (dialogueId: number, input: TaskRequest) => number;
+	addSubmission: (dialogueId: number, input: TaskRequest) => number;
 	submitAndPollTask: (params: TaskRequest) => Promise<PollTaskResult>;
-	setVersionResponse: (
+	setSubmissionResponse: (
 		dialogueId: number,
-		versionId: number,
+		submissionId: number,
 		response: PollTaskResult,
 	) => void;
 	markDialogueCompleted: (dialogueId: number) => void;
-	resetVersionLoadingState: () => void;
+	resetSubmissionLoadingState: () => void;
 	activeDialogue: Dialogue | null | undefined;
 }
 
 export function useFormSubmission({
 	activeDialogueId,
 	activeDialogue,
-	addVersion,
+	addSubmission,
 	getPreviousDialogue,
 	markDialogueCompleted,
-	resetVersionLoadingState,
-	setVersionResponse,
+	resetSubmissionLoadingState,
+	setSubmissionResponse,
 	submitAndPollTask,
 }: UseFormSubmissionProps) {
 	// Submit form handler
@@ -43,18 +43,18 @@ export function useFormSubmission({
 			try {
 				const history = getPreviousDialogue(dialogueId);
 
-				// addVersion函数会生成versionId，内部添加到TaskParams中
-				const versionId = addVersion(dialogueId, {
+				// addSubmission函数会生成submissionId，内部添加到TaskParams中
+				const submissionId = addSubmission(dialogueId, {
 					...values,
 					dialogueId,
-					versionId: 0, // 这个值会被addVersion内部重写
+					submissionId: 0, // 这个值会被addSubmission内部重写
 				});
 
 				// Submit task and start polling
 				const taskResult = await submitAndPollTask({
 					...values,
 					dialogueId,
-					versionId,
+					submissionId,
 					history: history
 						? [{ prompt: history.prompt, response: history.response }]
 						: undefined,
@@ -69,12 +69,12 @@ export function useFormSubmission({
 					error: taskResult.error,
 				};
 
-				setVersionResponse(dialogueId, versionId, response);
+				setSubmissionResponse(dialogueId, submissionId, response);
 				markDialogueCompleted(dialogueId);
 
 				return taskResult;
 			} catch (error) {
-				resetVersionLoadingState();
+				resetSubmissionLoadingState();
 				console.error("Error submitting form:", error);
 				throw error;
 			}
@@ -82,11 +82,11 @@ export function useFormSubmission({
 		[
 			activeDialogueId,
 			activeDialogue,
-			addVersion,
+			addSubmission,
 			getPreviousDialogue,
 			markDialogueCompleted,
-			resetVersionLoadingState,
-			setVersionResponse,
+			resetSubmissionLoadingState,
+			setSubmissionResponse,
 			submitAndPollTask,
 		],
 	);

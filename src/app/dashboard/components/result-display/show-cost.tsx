@@ -8,7 +8,7 @@ import type {
 	AvailableModelId,
 	AvailableProviderId,
 	ModelList,
-} from "@/lib/models";
+} from "@/types/model";
 import { Info } from "lucide-react";
 import { calculateCost } from "../../utils/calculate-cost";
 

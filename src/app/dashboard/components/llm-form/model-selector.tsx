@@ -1,8 +1,8 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import type { AvailableProviderId, ModelList } from "@/lib/models";
 import { cn } from "@/lib/utils";
+import type { AvailableProviderId, ModelList } from "@/types/model";
 import { Brain, ChevronDown } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { UseFormReturn } from "react-hook-form";

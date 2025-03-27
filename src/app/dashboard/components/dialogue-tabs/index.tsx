@@ -17,7 +17,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import type { Version } from "@/types/common";
+import type { Submission } from "@/types/common";
 import { Plus, RotateCcw, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useDialogueStore } from "../../hooks";
@@ -29,7 +29,7 @@ export default function DialogueTabs() {
 		setActiveDialogue,
 		addDialogue,
 		clearAllDialogues,
-		cleanupIncompleteVersions,
+		cleanupIncompleteSubmissions,
 		deleteDialogue,
 		clearDialogueCompleted,
 	} = useDialogueStore();
@@ -38,14 +38,13 @@ export default function DialogueTabs() {
 	const [isResetAlertOpen, setIsResetAlertOpen] = useState(false);
 	const [dialogueToDelete, setDialogueToDelete] = useState<number | null>(null);
 
-	// Clean up incomplete versions on component mount
+	// Clean up incomplete submissions on component mount
 	useEffect(() => {
-		cleanupIncompleteVersions();
-	}, [cleanupIncompleteVersions]);
+		cleanupIncompleteSubmissions();
+	}, [cleanupIncompleteSubmissions]);
 
 	const handleDeleteClick = (e: React.MouseEvent, dialogueId: number) => {
 		e.stopPropagation();
-		if (dialogues.length <= 1) return;
 		setDialogueToDelete(dialogueId);
 		setIsDeleteAlertOpen(true);
 	};
@@ -68,7 +67,7 @@ export default function DialogueTabs() {
 	const handleDialogueClick = (dialogueId: number) => {
 		// 如果点击的是已完成的dialogue，先清除完成状态
 		const dialogue = dialogues.find((s) => s.id === dialogueId);
-		if (dialogue?.hasCompletedVersion) {
+		if (dialogue?.hasCompletedSubmission) {
 			clearDialogueCompleted(dialogueId);
 		}
 		setActiveDialogue(dialogueId);
@@ -83,9 +82,9 @@ export default function DialogueTabs() {
 					</span>
 					<div className="flex flex-wrap gap-1.5">
 						{dialogues.map((dialogue, index) => {
-							// Check if this specific dialogue has any loading versions
-							const hasLoadingVersion = dialogue.versions.some(
-								(version: Version) => version.isLoading,
+							// Check if this specific dialogue has any loading submissions
+							const hasLoadingSubmission = dialogue.submissions.some(
+								(submission: Submission) => submission.isLoading,
 							);
 							const isActive = dialogue.id === activeDialogueId;
 
@@ -94,10 +93,10 @@ export default function DialogueTabs() {
 								? "bg-primary/10 text-primary border border-primary/30"
 								: "bg-muted/20 text-muted-foreground hover:bg-muted/30";
 
-							if (hasLoadingVersion) {
+							if (hasLoadingSubmission) {
 								statusStyle =
 									"animate-pulse border-sky-400 bg-sky-500/15 text-sky-500 ring-1 ring-sky-400/30";
-							} else if (dialogue.hasCompletedVersion) {
+							} else if (dialogue.hasCompletedSubmission) {
 								statusStyle =
 									"animate-pulse border-emerald-400 bg-emerald-500/15 text-emerald-500 ring-1 ring-emerald-400/30";
 							}
@@ -121,33 +120,32 @@ export default function DialogueTabs() {
 													}}
 												>
 													{index + 1}
-													{hasLoadingVersion && (
+													{hasLoadingSubmission && (
 														<span className="-top-1 -right-1 absolute flex h-2 w-2">
 															<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sky-400 opacity-75" />
 															<span className="relative inline-flex h-2 w-2 rounded-full bg-sky-500" />
 														</span>
 													)}
 												</button>
-												{dialogues.length > 1 && (
-													<button
-														type="button"
-														className="-top-1 -right-1 absolute flex h-3 w-3 items-center justify-center rounded-full bg-red-100 text-red-600 opacity-0 transition-opacity hover:bg-red-200 group-hover:opacity-100 dark:bg-red-900/40 dark:text-red-400 dark:hover:bg-red-900/60"
-														onClick={(e) => handleDeleteClick(e, dialogue.id)}
-														aria-label="删除会话"
-													>
-														<X className="h-2 w-2" />
-													</button>
-												)}
+
+												<button
+													type="button"
+													className="-top-1 -right-1 absolute flex h-3 w-3 items-center justify-center rounded-full bg-red-100 text-red-600 opacity-0 transition-opacity hover:bg-red-200 group-hover:opacity-100 dark:bg-red-900/40 dark:text-red-400 dark:hover:bg-red-900/60"
+													onClick={(e) => handleDeleteClick(e, dialogue.id)}
+													aria-label="删除会话"
+												>
+													<X className="h-2 w-2" />
+												</button>
 											</div>
 										</TooltipTrigger>
-										{hasLoadingVersion && (
+										{hasLoadingSubmission && (
 											<TooltipContent>
 												<p className="mt-1 text-sky-500 text-xs">
 													生成中...您可以切换到其他对话
 												</p>
 											</TooltipContent>
 										)}
-										{dialogue.hasCompletedVersion && (
+										{dialogue.hasCompletedSubmission && (
 											<TooltipContent>
 												<p className="mt-1 text-emerald-500 text-xs">
 													任务已完成，点击查看
@@ -194,7 +192,6 @@ export default function DialogueTabs() {
 								type="button"
 								className="flex h-6 items-center gap-1 rounded-sm px-1.5 text-muted-foreground text-xs hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30 dark:hover:text-red-400"
 								onClick={handleResetClick}
-								disabled={dialogues.length <= 1}
 								aria-label="重置所有会话"
 							>
 								<RotateCcw className="h-3 w-3" />

@@ -1,64 +1,17 @@
 "use server";
 
 import { env } from "@/env";
+import type {
+	AvailableModelId,
+	AvailableProviderId,
+	ModelList,
+} from "@/types/model";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createDeepSeek } from "@ai-sdk/deepseek";
 import { createOpenAI } from "@ai-sdk/openai";
 import { get, has } from "@vercel/edge-config";
 import type { LanguageModelV1 } from "ai";
 import { createQwen } from "qwen-ai-provider";
-
-export type AvailableProviderId =
-	| "anthropic"
-	| "openai"
-	| "deepseek"
-	| "qwen"
-	| "google";
-
-export type AvailableModelName =
-	| "3.7 Sonnet"
-	| "3.5 Sonnet"
-	| "3.5 Haiku"
-	| "4o"
-	| "4o-mini"
-	| "o1"
-	| "o3-mini"
-	| "2.0 flash"
-	| "2.0 flash lite"
-	| "R1"
-	| "V3"
-	| "V3-0324"
-	| "32B"
-	| "Max-0125";
-
-export type AvailableModelId =
-	| "claude-3-7-sonnet-20250219"
-	| "claude-3-5-sonnet-20241022"
-	| "claude-3-5-haiku-20241022"
-	| "gpt-4o"
-	| "gpt-4o-mini"
-	| "o1"
-	| "o3-mini"
-	| "gemini-2.0-flash"
-	| "gemini-2.0-flash-lite"
-	| "deepseek-r1"
-	| "deepseek-v3"
-	| "deepseek-v3-0324"
-	| "qwen-32b"
-	| "qwen-max-0125";
-
-interface Model {
-	name: AvailableModelName;
-	id: AvailableModelId;
-	price: {
-		input: number;
-		output: number;
-	};
-	canOutputStructuredData: boolean;
-}
-
-export type ModelList = Record<AvailableProviderId, Model[]>;
-
 const AHM_CONFIG = {
 	apiKey: env.AI_HUB_MIX_API_KEY,
 	baseURL: "https://aihubmix.com/v1",

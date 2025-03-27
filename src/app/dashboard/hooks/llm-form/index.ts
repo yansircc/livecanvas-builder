@@ -1,5 +1,5 @@
-import type { ModelList } from "@/lib/models";
-import type { Version } from "@/types/common";
+import type { Submission } from "@/types/common";
+import type { ModelList } from "@/types/model";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Session } from "next-auth";
 import { useCallback, useEffect } from "react";
@@ -8,7 +8,6 @@ import { useAdviceStore } from "../advice-store";
 import { useDialogueStore } from "../dialogue-store";
 import { useTaskPolling } from "../task-polling-store";
 import { type FormValues, formSchema } from "./schema";
-import { useAdviceHandler } from "./use-advice-handler";
 import { useCostCalculation } from "./use-cost-calculation";
 import { useFormInitialization } from "./use-form-initialization";
 import { useFormSubmission } from "./use-form-submission";
@@ -39,10 +38,10 @@ export function useLlmForm({
 	const {
 		activeDialogueId,
 		getActiveDialogue,
-		getActiveVersion,
-		addVersion,
-		setVersionResponse,
-		setVersionLoading,
+		getActiveSubmission,
+		addSubmission,
+		setSubmissionResponse,
+		setSubmissionLoading,
 		getPreviousDialogue,
 		getSelectedProvider,
 		getSelectedModelId,
@@ -60,7 +59,7 @@ export function useLlmForm({
 	// Get current dialogue loading state
 	const activeDialogue = getActiveDialogue();
 	const isLoading =
-		activeDialogue?.versions.some((v: Version) => v.isLoading) || false;
+		activeDialogue?.submissions.some((v: Submission) => v.isLoading) || false;
 
 	// Get the currently selected provider and model
 	const selectedProviderId = getSelectedProvider();
@@ -76,19 +75,19 @@ export function useLlmForm({
 	const isUserLoggedIn = Boolean(session?.user);
 
 	// Get current dialogue task status
-	const activeVersion = getActiveVersion();
-	const taskStatus = activeVersion?.taskStatus ?? null;
+	const activeSubmission = getActiveSubmission();
+	const taskStatus = activeSubmission?.taskStatus ?? null;
 
-	// Reset version loading state helper function
-	const resetVersionLoadingState = useCallback(() => {
-		if (activeDialogue?.activeVersionId) {
-			setVersionLoading(
+	// Reset submission loading state helper function
+	const resetSubmissionLoadingState = useCallback(() => {
+		if (activeDialogue?.activeSubmissionId) {
+			setSubmissionLoading(
 				activeDialogueId,
-				activeDialogue.activeVersionId,
+				activeDialogue.activeSubmissionId,
 				false,
 			);
 		}
-	}, [activeDialogue, activeDialogueId, setVersionLoading]);
+	}, [activeDialogue, activeDialogueId, setSubmissionLoading]);
 
 	// Initialize form with default values
 	const form = useForm<FormValues>({
@@ -117,9 +116,6 @@ export function useLlmForm({
 		getSelectedProvider,
 		getSelectedModelId,
 	);
-
-	// Use advice handler hook
-	const { handleAdviceClick } = useAdviceHandler(form, setHandleAdviceClick);
 
 	// Watch form values
 	const isSubmitting = form.formState.isSubmitting;
@@ -153,11 +149,11 @@ export function useLlmForm({
 	const { handleSubmit } = useFormSubmission({
 		activeDialogueId,
 		activeDialogue,
-		addVersion,
+		addSubmission,
 		getPreviousDialogue,
 		markDialogueCompleted,
-		resetVersionLoadingState,
-		setVersionResponse,
+		resetSubmissionLoadingState,
+		setSubmissionResponse,
 		submitAndPollTask,
 	});
 
@@ -173,7 +169,7 @@ export function useLlmForm({
 		cancelTask,
 		isUserLoggedIn,
 		currentModelPrice,
-		activeVersion,
+		activeSubmission,
 		onSubmit: handleSubmit,
 		handleCancelTask: cancelTask,
 	};
