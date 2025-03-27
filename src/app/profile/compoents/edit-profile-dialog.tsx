@@ -113,7 +113,7 @@ export function EditProfileDialog({ session }: EditProfileDialogProps) {
 				<form action={handleSubmit}>
 					<DialogHeader>
 						<DialogTitle>编辑个人资料</DialogTitle>
-						<DialogDescription>更新您的个人信息和背景资料。</DialogDescription>
+						<DialogDescription>更新你的个人信息和背景资料。</DialogDescription>
 					</DialogHeader>
 					<div className="grid gap-4 py-4">
 						{/* Name field */}
@@ -208,13 +208,13 @@ export function EditProfileDialog({ session }: EditProfileDialogProps) {
 										value={formData.backgroundInfo || ""}
 										onChange={handleInputChange}
 										className="h-[240px] resize-none overflow-auto"
-										placeholder="添加您的背景信息，以便AI更好地理解您的需求"
+										placeholder="添加你的背景信息，以便AI更好地理解你的需求"
 										rows={10}
 										maxLength={MAX_BACKGROUND_LENGTH}
 									/>
 									<div className="mt-1 flex justify-between">
 										<p className="text-xs text-zinc-500 dark:text-zinc-400">
-											此信息将用于AI生成时的上下文，帮助AI更好地理解您的需求
+											此信息将用于AI生成时的上下文，帮助AI更好地理解你的需求
 										</p>
 										<span
 											className={`text-xs ${

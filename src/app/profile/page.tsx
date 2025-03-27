@@ -72,7 +72,7 @@ async function SuspenseUserBackgroundInfo() {
 	if (!session?.user?.backgroundInfo) {
 		return (
 			<p className="mt-1 font-medium text-zinc-500 dark:text-zinc-100">
-				尚未添加背景信息。点击&quot;编辑资料&quot;按钮添加您的背景信息，以便AI更好地理解您的需求。
+				尚未添加背景信息。点击&quot;编辑资料&quot;按钮添加你的背景信息，以便AI更好地理解你的需求。
 			</p>
 		);
 	}
@@ -90,7 +90,7 @@ export default async function ProfilePage() {
 			<CardHeader className="flex flex-row items-center justify-between">
 				<div>
 					<CardTitle>个人信息</CardTitle>
-					<CardDescription>查看和管理您的个人信息</CardDescription>
+					<CardDescription>查看和管理你的个人信息</CardDescription>
 				</div>
 				<Suspense fallback={<Skeleton className="h-10 w-24 rounded-md" />}>
 					<SusppenseEditProfileDialog />

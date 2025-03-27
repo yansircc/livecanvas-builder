@@ -100,7 +100,7 @@ export default function SignIn() {
 
 				<CardFooter className="px-8 pt-2 pb-10">
 					<div className="text-center text-sm text-zinc-500 dark:text-zinc-400">
-						登录即表示您同意我们的{" "}
+						登录即表示你同意我们的{" "}
 						<a
 							href="/terms-of-service"
 							className="font-medium text-zinc-800 underline decoration-zinc-200 underline-offset-4 transition-colors hover:text-zinc-600 dark:text-white dark:decoration-zinc-700 dark:hover:text-zinc-200"

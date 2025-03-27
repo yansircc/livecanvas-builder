@@ -141,7 +141,7 @@ export default function DialogueTabs() {
 										{hasLoadingSubmission && (
 											<TooltipContent>
 												<p className="mt-1 text-sky-500 text-xs">
-													生成中...您可以切换到其他对话
+													生成中...你可以切换到其他对话
 												</p>
 											</TooltipContent>
 										)}

@@ -46,7 +46,7 @@ export default function SignOut() {
 							退出登录
 						</CardTitle>
 						<CardDescription className="text-base text-zinc-500 dark:text-zinc-400">
-							正在为您安全退出...
+							正在为你安全退出...
 						</CardDescription>
 					</div>
 				</CardHeader>
@@ -78,7 +78,7 @@ export default function SignOut() {
 
 				<CardFooter className="px-8 pt-2 pb-10">
 					<div className="text-center text-sm text-zinc-500 dark:text-zinc-400">
-						感谢您的使用，期待您的再次登录
+						感谢你的使用，期待你的再次登录
 					</div>
 				</CardFooter>
 			</Card>
