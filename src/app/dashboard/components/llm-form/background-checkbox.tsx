@@ -9,7 +9,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { CircleFadingPlus, InfoIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
-import type { FormValues } from "./llm-form";
+import type { FormValues } from "../llm-form";
 
 interface BackgroundCheckboxProps {
 	form: UseFormReturn<FormValues>;

@@ -9,7 +9,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Atom } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
-import type { FormValues } from "./llm-form";
+import type { FormValues } from "./index";
 
 interface PrecisionCheckboxProps {
 	form: UseFormReturn<FormValues>;

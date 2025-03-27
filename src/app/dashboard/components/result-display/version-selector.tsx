@@ -13,7 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ChevronDown, Clock, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { useLlmDialogueStore } from "../hooks/llm-dialogue-store";
+import { useLlmDialogueStore } from "../../hooks/llm-dialogue-store";
 
 export default function VersionSelector() {
 	const { dialogues, activeDialogueId, setActiveVersion, deleteVersion } =

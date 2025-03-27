@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { RotateCw } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { refreshModels } from "../actions/refresh-models";
+import { refreshModels } from "../../actions/refresh-models";
 
 export const RefreshModelsButton = () => {
 	const [isRefreshing, setIsRefreshing] = useState(false);

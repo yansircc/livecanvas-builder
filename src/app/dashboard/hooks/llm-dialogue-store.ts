@@ -5,14 +5,14 @@ import { persist } from "zustand/middleware";
 
 export interface FormData {
 	prompt: string;
-	history?: ConversationHistory[];
+	history?: DialogueHistory[];
 	providerId?: AvailableProviderId;
 	modelId?: AvailableModelId;
 	withBackgroundInfo?: boolean;
 	precisionMode?: boolean;
 }
 
-export interface ConversationHistory {
+export interface DialogueHistory {
 	prompt: string;
 	response: string;
 }
@@ -86,7 +86,7 @@ interface LlmDialogueState {
 		providerId: AvailableProviderId,
 		modelId: AvailableModelId,
 	) => void;
-	getPreviousConversation: (dialogueId: number) => ConversationHistory | null;
+	getPreviousDialogue: (dialogueId: number) => DialogueHistory | null;
 	getSelectedProvider: () => AvailableProviderId;
 	getSelectedModelId: () => AvailableModelId;
 	cleanupIncompleteVersions: () => void;
@@ -360,7 +360,7 @@ export const useLlmDialogueStore = create<LlmDialogueState>()(
 					globalSelectedModelId: modelId,
 				})),
 
-			getPreviousConversation: (dialogueId) => {
+			getPreviousDialogue: (dialogueId) => {
 				const state = get();
 				const dialogue = state.dialogues.find((s) => s.id === dialogueId);
 

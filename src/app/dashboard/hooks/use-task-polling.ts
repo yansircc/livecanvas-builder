@@ -7,7 +7,7 @@ import {
 	cancelTask as apiCancelTask,
 	pollTaskStatus,
 	submitChatTask,
-} from "../services/task-service";
+} from "../actions/task-service";
 import type { TokenUsage } from "./llm-dialogue-store";
 import { useLlmDialogueStore } from "./llm-dialogue-store";
 

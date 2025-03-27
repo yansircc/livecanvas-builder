@@ -5,15 +5,21 @@ import type { Session } from "next-auth";
 import { Suspense } from "react";
 import DialogueTabs from "./components/dialogue-tabs";
 import { LlmForm } from "./components/llm-form";
-import { LlmFormSkeleton } from "./components/llm-form-skeleton";
+import { LlmFormSkeleton } from "./components/llm-form/llm-form-skeleton";
 import ResultDisplay from "./components/result-display";
-import { ResultDisplaySkeleton } from "./components/result-display-skeleton";
+import { ResultDisplaySkeleton } from "./components/result-display/result-display-skeleton";
 
-async function getCachedSessionData(sessionData: Session) {
+async function getCachedFormData(sessionData: Session) {
 	"use cache";
 
 	addAuthCacheTags(sessionData.user.id);
-	return sessionData;
+	addEdgeConfigCacheTags();
+
+	const modelList = await getModelList();
+	return {
+		sessionData,
+		modelList,
+	};
 }
 
 async function getCachedModelList() {
@@ -25,13 +31,12 @@ async function getCachedModelList() {
 }
 
 async function SuspenseLlmForm() {
-	const sessionData = await auth();
-	if (!sessionData) {
+	const session = await auth();
+	if (!session) {
 		return null;
 	}
-	const session = await getCachedSessionData(sessionData);
-	const modelList = await getCachedModelList();
-	return <LlmForm session={session} modelList={modelList} />;
+	const { sessionData, modelList } = await getCachedFormData(session);
+	return <LlmForm session={sessionData} modelList={modelList} />;
 }
 
 async function SuspenseResultDisplay() {

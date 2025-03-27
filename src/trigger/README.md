@@ -12,7 +12,7 @@ Vercel serverless functions have a maximum execution time of 60 seconds. For AI-
 
 The main task is defined in `chat-generation.ts`. This task:
 
-1. Takes a message, context, and conversation history as input
+1. Takes a message, context, and dialogue history as input
 2. Processes the input using an AI model (e.g., Claude or GPT-4)
 3. Returns the generated HTML code and advice
 

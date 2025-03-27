@@ -48,7 +48,7 @@ export function useLlmForm({
 		addVersion,
 		setVersionResponse,
 		setVersionLoading,
-		getPreviousConversation,
+		getPreviousDialogue,
 		getSelectedProvider,
 		getSelectedModelId,
 		setGlobalModel,
@@ -249,8 +249,8 @@ export function useLlmForm({
 
 	async function handleSubmit(values: FormValues & { dialogueId: number }) {
 		try {
-			// Get previous conversation if available
-			const previousConversation = getPreviousConversation(values.dialogueId);
+			// Get previous dialogue if available
+			const previousDialogue = getPreviousDialogue(values.dialogueId);
 
 			// Prepare form data with history if available
 			const formData = {
@@ -259,7 +259,7 @@ export function useLlmForm({
 				modelId: values.modelId,
 				withBackgroundInfo: values.withBackgroundInfo,
 				precisionMode: values.precisionMode,
-				...(previousConversation && { history: [previousConversation] }),
+				...(previousDialogue && { history: [previousDialogue] }),
 			};
 
 			// Create a new version with the input and history

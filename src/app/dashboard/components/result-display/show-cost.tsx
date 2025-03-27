@@ -10,7 +10,7 @@ import type {
 	ModelList,
 } from "@/lib/models";
 import { Info } from "lucide-react";
-import { calculateCost } from "../utils/calculate-cost";
+import { calculateCost } from "../../utils/calculate-cost";
 
 interface ShowCostProps {
 	usage:

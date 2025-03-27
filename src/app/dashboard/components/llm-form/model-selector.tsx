@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { Brain, ChevronDown } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
-import type { FormValues } from "./llm-form";
+import type { FormValues } from "./index";
 import { RefreshModelsButton } from "./refresh-models-button";
 
 const EXCHANGE_RATE = 7.3;

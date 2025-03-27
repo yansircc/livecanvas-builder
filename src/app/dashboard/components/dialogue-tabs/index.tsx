@@ -10,7 +10,6 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
 import {
 	Tooltip,
 	TooltipContent,
@@ -20,7 +19,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Plus, RotateCcw, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useLlmDialogueStore } from "../hooks/llm-dialogue-store";
+import { useLlmDialogueStore } from "../../hooks/llm-dialogue-store";
 
 export default function DialogueTabs() {
 	const {

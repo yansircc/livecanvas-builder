@@ -74,9 +74,9 @@ function buildContextualPrompt(
 		contextualPrompt += `\n\n### User Context:\n${context}`;
 	}
 
-	// Add conversation history if available
+	// Add dialogue history if available
 	if (history && history.length > 0) {
-		contextualPrompt += "\n\n### Previous Conversation Context:";
+		contextualPrompt += "\n\n### Previous Dialogue Context:";
 		history.forEach(
 			(item: { prompt: string; response?: string }, index: number) => {
 				contextualPrompt += `\n\nUser Request ${index + 1}: ${item.prompt}`;
