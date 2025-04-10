@@ -4,8 +4,20 @@ import type { Project } from "@/types/project";
 import { useState } from "react";
 import { favoriteProject, purchaseProject } from "../actions";
 import { GalleryHeader } from "./gallery-header";
+import { GalleryLoading } from "./gallery-loading";
+import { useGalleryLoading } from "./gallery-loading-provider";
+import { GalleryPagination } from "./gallery-pagination";
 import { GalleryProjectCard } from "./gallery-project-card";
 import { ProjectModal } from "./project-modal";
+
+interface PaginationData {
+	page: number;
+	pageSize: number;
+	totalCount: number;
+	totalPages: number;
+	hasNextPage: boolean;
+	hasPrevPage: boolean;
+}
 
 interface ClientGalleryProps {
 	initialProjects: Project[];
@@ -15,6 +27,9 @@ interface ClientGalleryProps {
 	>;
 	userId?: string;
 	isAuthenticated: boolean;
+	pagination: PaginationData;
+	selectedTags?: string[];
+	allAvailableTags: string[];
 }
 
 export function ClientGallery({
@@ -22,33 +37,15 @@ export function ClientGallery({
 	initialInteractions,
 	userId,
 	isAuthenticated,
+	pagination,
+	selectedTags: initialSelectedTags = [],
+	allAvailableTags,
 }: ClientGalleryProps) {
-	const [selectedTags, setSelectedTags] = useState<string[]>([]);
+	const [selectedTags, setSelectedTags] =
+		useState<string[]>(initialSelectedTags);
 	const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 	const [interactions, setInteractions] = useState(initialInteractions);
-
-	// Extract all available tags from projects
-	const availableTags = initialProjects
-		.flatMap((project) =>
-			project.tags ? project.tags.split(",").map((tag) => tag.trim()) : [],
-		)
-		.filter((tag, index, self) => tag && self.indexOf(tag) === index)
-		.sort();
-
-	// Filter projects based on tags
-	const filteredProjects = initialProjects.filter((project) => {
-		// Skip filtering if no filters are applied
-		if (selectedTags.length === 0) return true;
-
-		// Filter by tags - project must contain ALL selected tags (intersection)
-		if (selectedTags.length > 0) {
-			if (!project.tags) return false;
-			const projectTags = project.tags.split(",").map((tag) => tag.trim());
-			return selectedTags.every((tag) => projectTags.includes(tag));
-		}
-
-		return true;
-	});
+	const { isNavigating } = useGalleryLoading();
 
 	// Handle interactions
 	const handleInteraction = async (
@@ -98,30 +95,38 @@ export function ClientGallery({
 			<GalleryHeader
 				selectedTags={selectedTags}
 				setSelectedTags={setSelectedTags}
-				availableTags={availableTags}
+				availableTags={allAvailableTags}
 			/>
 
-			<div className="mt-6">
+			<div className="relative mt-6">
+				{isNavigating && (
+					<div className="absolute inset-0 z-10 flex items-center justify-center bg-white/50 dark:bg-black/50">
+						<GalleryLoading />
+					</div>
+				)}
 				<div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-					{filteredProjects.map((project) => (
-						<GalleryProjectCard
-							key={project.id}
-							project={project}
-							onSelect={setSelectedProject}
-							hasPurchased={interactions[project.id]?.hasPurchased || false}
-							hasFavorited={interactions[project.id]?.hasFavorited || false}
-							onPurchase={handlepurchase}
-							onFavorite={handleFavorite}
-						/>
-					))}
-
-					{filteredProjects.length === 0 && (
+					{initialProjects.length > 0 ? (
+						initialProjects.map((project) => (
+							<GalleryProjectCard
+								key={project.id}
+								project={project}
+								onSelect={setSelectedProject}
+								hasPurchased={interactions[project.id]?.hasPurchased || false}
+								hasFavorited={interactions[project.id]?.hasFavorited || false}
+								onPurchase={handlepurchase}
+								onFavorite={handleFavorite}
+							/>
+						))
+					) : (
 						<div className="col-span-full flex h-32 items-center justify-center text-zinc-500">
 							No projects found
 						</div>
 					)}
 				</div>
 			</div>
+
+			{/* Pagination Component */}
+			<GalleryPagination pagination={pagination} />
 
 			{selectedProject && (
 				<ProjectModal

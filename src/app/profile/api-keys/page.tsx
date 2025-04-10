@@ -48,7 +48,7 @@ export default function ApiKeys() {
 		<Card className="border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
 			<CardHeader>
 				<CardTitle>API密钥</CardTitle>
-				<CardDescription>管理你的OpenRouter API密钥以生成内容</CardDescription>
+				<CardDescription>管理你的 AIHubMix API密钥以生成内容</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-6">
 				<div className="space-y-2">
@@ -56,7 +56,7 @@ export default function ApiKeys() {
 						htmlFor="api-key"
 						className="font-medium text-sm text-zinc-900 dark:text-zinc-100"
 					>
-						OpenRouter API密钥
+						AIHubMix API密钥
 					</Label>
 					<div className="flex space-x-2">
 						<div className="relative flex-1">
@@ -65,7 +65,7 @@ export default function ApiKeys() {
 								type={showKey ? "text" : "password"}
 								value={key}
 								onChange={(e) => setKey(e.target.value)}
-								placeholder="输入你的OpenRouter API密钥"
+								placeholder="输入你的AIHubMix API密钥"
 								className="border-zinc-200 bg-white pr-10 dark:border-zinc-700 dark:bg-zinc-800"
 							/>
 							<Button
@@ -111,12 +111,12 @@ export default function ApiKeys() {
 						<li>
 							注册一个账户在{" "}
 							<a
-								href="https://openrouter.ai"
+								href="https://aihubmix.com?aff=P6qM"
 								target="_blank"
 								rel="noopener noreferrer"
 								className="underline hover:text-amber-900 dark:hover:text-amber-200"
 							>
-								OpenRouter
+								AIHubMix
 							</a>
 						</li>
 						<li>导航到你的账户设置</li>
@@ -127,7 +127,7 @@ export default function ApiKeys() {
 			</CardContent>
 			<CardFooter className="border-zinc-200 border-t bg-zinc-50 px-6 py-4 dark:border-zinc-800 dark:bg-zinc-900/50">
 				<p className="text-xs text-zinc-500 dark:text-zinc-400">
-					API密钥用于验证对OpenRouter API的请求
+					API密钥用于验证对 AIHubMix API的请求
 				</p>
 			</CardFooter>
 		</Card>

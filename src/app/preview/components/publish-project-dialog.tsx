@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useApiKeyStore } from "@/store/use-apikey-store";
 import { Loader2 } from "lucide-react";
 import { nanoid } from "nanoid";
 import { useRouter } from "next/navigation";
@@ -54,11 +55,26 @@ export function PublishProjectDialog({
 	const [description, setDescription] = useState("");
 	const [tags, setTags] = useState<string[]>([]);
 
+	// Get API key from the store
+	const apiKey = useApiKeyStore((state) => state.apiKey);
+
 	// Function to generate metadata from the API
 	const generateMetadata = useCallback(
 		async (regenerate = false) => {
 			if (!htmlContent) {
 				toast.error("HTML content is required");
+				return;
+			}
+
+			// Check if API key exists
+			if (!apiKey) {
+				toast.error("缺少API密钥", {
+					description: "请先在个人资料页面添加您的 AIHubMix API 密钥才能继续。",
+					action: {
+						label: "前往设置",
+						onClick: () => router.push("/profile/api-keys"),
+					},
+				});
 				return;
 			}
 
@@ -73,6 +89,7 @@ export function PublishProjectDialog({
 					body: JSON.stringify({
 						htmlContent,
 						regenerate,
+						apiKey, // Include the API key in the request body
 					}),
 				});
 
@@ -101,7 +118,7 @@ export function PublishProjectDialog({
 				setIsGeneratingMetadata(false);
 			}
 		},
-		[htmlContent],
+		[htmlContent, apiKey, router], // Add apiKey to dependency array
 	);
 
 	// Fetch metadata when dialog opens

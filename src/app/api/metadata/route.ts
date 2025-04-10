@@ -9,14 +9,22 @@ export const maxDuration = 15;
 interface MetadataRequestBody {
 	htmlContent: string;
 	regenerate?: boolean;
+	apiKey: string;
 }
 
 export async function POST(req: Request) {
 	try {
 		const body = (await req.json()) as MetadataRequestBody;
 
-		// Extract HTML content and regenerate flag from the request
-		const { htmlContent, regenerate = false } = body;
+		// Extract HTML content, regenerate flag, and API key from the request
+		const { htmlContent, regenerate = false, apiKey } = body;
+
+		if (!apiKey) {
+			return new Response(JSON.stringify({ error: "API Key is required" }), {
+				status: 400,
+				headers: { "Content-Type": "application/json" },
+			});
+		}
 
 		if (!htmlContent || typeof htmlContent !== "string") {
 			return new Response(
@@ -44,8 +52,8 @@ export async function POST(req: Request) {
 			);
 		}
 
-		// Create the model instance
-		const model = await getModel(provider, modelId);
+		// Create the model instance using the provided API key
+		const model = await getModel(provider, modelId, apiKey);
 
 		if (!model) {
 			return new Response(

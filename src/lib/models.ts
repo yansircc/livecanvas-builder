@@ -9,12 +9,14 @@ import type {
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createDeepSeek } from "@ai-sdk/deepseek";
 import { createOpenAI } from "@ai-sdk/openai";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { get, has } from "@vercel/edge-config";
 import type { LanguageModelV1 } from "ai";
 import { createQwen } from "qwen-ai-provider";
-const AHM_CONFIG = {
-	apiKey: env.AI_HUB_MIX_API_KEY,
-	baseURL: "https://aihubmix.com/v1",
+
+const OPENROUTER_CONFIG = {
+	apiKey: env.OPENROUTER_API_KEY,
+	// baseURL: "https://openrouter.ai/api/v1",
 };
 
 const getModelList = async () => {
@@ -56,27 +58,48 @@ const getModelList = async () => {
 const getModel = async (
 	providerId: AvailableProviderId,
 	modelId: AvailableModelId,
+	apiKey: string,
 ) => {
+	// Create a dynamic config object
+	const config = {
+		apiKey,
+		baseURL: "https://aihubmix.com/v1",
+	};
+
+	// Ensure an API key is available
+	if (!config.apiKey) {
+		console.error(
+			"API key is missing. Provide it either via user settings or environment variable.",
+		);
+		// Optionally throw an error or return a specific status
+		// throw new Error("API key is required.");
+		return null; // Or handle as appropriate
+	}
+
 	try {
 		switch (providerId) {
 			case "anthropic": {
-				const anthropic = createAnthropic(AHM_CONFIG);
+				const anthropic = createAnthropic(config); // Use dynamic config
 				return anthropic(modelId) as LanguageModelV1;
 			}
 			case "openai": {
-				const openai = createOpenAI(AHM_CONFIG);
+				const openai = createOpenAI(config); // Use dynamic config
+				const quasar = createOpenRouter(OPENROUTER_CONFIG);
+				if (modelId === "openrouter/quasar-alpha") {
+					return quasar(modelId) as LanguageModelV1;
+				}
 				return openai(modelId) as LanguageModelV1;
 			}
 			case "deepseek": {
-				const deepseek = createDeepSeek(AHM_CONFIG);
+				const deepseek = createDeepSeek(config); // Use dynamic config
 				return deepseek(modelId) as LanguageModelV1;
 			}
 			case "qwen": {
-				const qwen = createQwen(AHM_CONFIG);
+				const qwen = createQwen(config); // Use dynamic config
 				return qwen(modelId) as LanguageModelV1;
 			}
 			case "google": {
-				const google = createOpenAI(AHM_CONFIG);
+				const google = createOpenAI(config); // Use dynamic config
 				return google(modelId) as LanguageModelV1;
 			}
 			default: {

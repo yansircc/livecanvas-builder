@@ -31,6 +31,7 @@ export interface TaskRequest {
 	history?: DialogueHistory[];
 	providerId: AvailableProviderId;
 	modelId: AvailableModelId;
+	apiKey: string;
 	withBackgroundInfo?: boolean;
 	precisionMode?: boolean;
 	dialogueId: number;

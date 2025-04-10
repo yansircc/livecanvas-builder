@@ -12,19 +12,60 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
 // Get all published projects with caching
-export const getPublishedProjects = async () => {
+export const getPublishedProjects = async (
+	page = 1,
+	pageSize = 12,
+	tagFilters: string[] = [],
+) => {
 	"use cache";
 
 	addProjectCacheTags("list");
+	addProjectCacheTags(`page-${page}`);
+
+	// Add cache tags for tag filters
+	if (tagFilters.length > 0) {
+		for (const tag of tagFilters) {
+			addProjectCacheTags(`tag-${tag}`);
+		}
+	}
 
 	const result = await tryCatch(
 		(async () => {
-			// Use a simpler query without relations
+			// Start with base condition for published projects
+			const conditions = [eq(project.isPublished, true)];
+
+			// Apply tag filtering if needed
+			if (tagFilters.length > 0) {
+				for (const tag of tagFilters) {
+					// Create a LIKE condition for each tag
+					const tagPattern = `%${tag}%`;
+					conditions.push(sql`${project.tags} LIKE ${tagPattern}`);
+				}
+			}
+
+			// Combine all conditions with AND
+			const whereCondition = and(...conditions);
+
+			// Get total count with filters applied
+			const totalCountResult = await db
+				.select({ count: sql`count(*)` })
+				.from(project)
+				.where(whereCondition);
+
+			const totalCount = Number(totalCountResult[0]?.count || 0);
+			const totalPages = Math.ceil(totalCount / pageSize);
+
+			// Calculate offset for pagination
+			const offset = (page - 1) * pageSize;
+
+			// Execute the main query with the same filters
 			const projects = await db
 				.select()
 				.from(project)
-				.where(eq(project.isPublished, true))
-				.orderBy(desc(project.createdAt));
+				.where(whereCondition)
+				.orderBy(desc(project.createdAt))
+				.limit(pageSize)
+				.offset(offset);
 
 			// Add cache tags for each project
 			for (const p of projects) {
@@ -52,7 +93,17 @@ export const getPublishedProjects = async () => {
 				}),
 			);
 
-			return projectsWithData;
+			return {
+				projects: projectsWithData,
+				pagination: {
+					page,
+					pageSize,
+					totalCount,
+					totalPages,
+					hasNextPage: page < totalPages,
+					hasPrevPage: page > 1,
+				},
+			};
 		})(),
 	);
 
@@ -358,6 +409,49 @@ export const getAllUserInteractions = async (userId: string) => {
 	if (result.error) {
 		console.error("Failed to get all user interactions:", result.error);
 		return { success: false, error: "Failed to get all user interactions" };
+	}
+
+	return { success: true, data: result.data };
+};
+
+// Get all available tags with caching
+export const getAllTags = async () => {
+	"use cache";
+
+	addProjectCacheTags("tags");
+
+	const result = await tryCatch(
+		(async () => {
+			// Get all published projects to collect tags from
+			const projects = await db
+				.select({
+					tags: project.tags,
+				})
+				.from(project)
+				.where(eq(project.isPublished, true));
+
+			// Extract and normalize tags
+			const allTags = new Set<string>();
+
+			for (const p of projects) {
+				if (p.tags) {
+					const projectTags = p.tags.split(",").map((tag) => tag.trim());
+					for (const tag of projectTags) {
+						if (tag) {
+							allTags.add(tag);
+						}
+					}
+				}
+			}
+
+			// Convert to array and sort
+			return Array.from(allTags).sort();
+		})(),
+	);
+
+	if (result.error) {
+		console.error("Failed to get all tags:", result.error);
+		return { success: false, error: "Failed to get all tags" };
 	}
 
 	return { success: true, data: result.data };

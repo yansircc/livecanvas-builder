@@ -13,7 +13,7 @@ export const useApiKeyStore = create<ApiKeyStore>()(
 			setApiKey: (apiKey) => set({ apiKey }),
 		}),
 		{
-			name: "openrouter_api_key",
+			name: "aihubmix_api_key",
 		},
 	),
 );

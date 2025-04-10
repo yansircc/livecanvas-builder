@@ -13,6 +13,7 @@ interface ChatRequestBody {
 	providerId: AvailableProviderId;
 	modelId: AvailableModelId;
 	prompt: string;
+	apiKey: string;
 	withBackgroundInfo?: boolean;
 	precisionMode?: boolean;
 	history?: { prompt: string; response?: string }[];
@@ -109,10 +110,16 @@ export async function POST(req: Request) {
 			providerId,
 			modelId,
 			prompt,
+			apiKey,
 			withBackgroundInfo,
 			precisionMode,
 			history,
 		} = body;
+
+		// Add a check for the API key
+		if (!apiKey) {
+			return createErrorResponse("API Key is required", 400);
+		}
 
 		const isValid = await isValidModel(providerId, modelId);
 		if (!isValid) {
@@ -148,6 +155,7 @@ export async function POST(req: Request) {
 					processedPrompt,
 					providerId,
 					modelId,
+					apiKey,
 				},
 				{
 					tags: [user.email],

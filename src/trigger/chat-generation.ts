@@ -10,6 +10,7 @@ interface ChatInput {
 	processedPrompt: string;
 	providerId: AvailableProviderId;
 	modelId: AvailableModelId;
+	apiKey: string;
 }
 
 // Define the output type for the task
@@ -32,14 +33,14 @@ export const chatGenerationTask = task({
 	id: "chat-generation-task",
 	maxDuration: 300,
 	run: async (payload: ChatInput): Promise<RawLLMResponse> => {
-		const { processedPrompt, providerId, modelId } = payload;
+		const { processedPrompt, providerId, modelId, apiKey } = payload;
 
 		try {
-			// Get the model instance
-			const model = await getModel(providerId, modelId);
+			// Get the model instance, passing the user's API key
+			const model = await getModel(providerId, modelId, apiKey);
 
 			if (!model) {
-				throw new Error("Model not found");
+				throw new Error("Model not found or API key invalid");
 			}
 
 			// Check if the model can output structured data
