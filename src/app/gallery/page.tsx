@@ -1,5 +1,3 @@
-"use server";
-
 import { auth } from "@/server/auth";
 import { addAuthCacheTags } from "@/server/cache";
 import type { Project } from "@/types/project";
@@ -31,11 +29,11 @@ async function getCachedSessionData(sessionData: Session) {
 }
 
 interface GalleryContentProps {
-	searchParams: {
+	searchParams: Promise<{
 		page?: string;
 		pageSize?: string;
 		tag?: string | string[];
-	};
+	}>;
 }
 
 // This is the client boundary component that will be wrapped in Suspense
@@ -45,7 +43,7 @@ async function GalleryContent({ searchParams }: GalleryContentProps) {
 		return null;
 	}
 
-	// Extract and await searchParams
+	// Get the resolved searchParams
 	const params = await searchParams;
 
 	// Extract pagination params from URL
@@ -148,7 +146,11 @@ async function GalleryContent({ searchParams }: GalleryContentProps) {
 export default async function GalleryPage({
 	searchParams,
 }: {
-	searchParams: { page?: string; pageSize?: string; tag?: string | string[] };
+	searchParams: Promise<{
+		page?: string;
+		pageSize?: string;
+		tag?: string | string[];
+	}>;
 }) {
 	return (
 		<Suspense fallback={<GalleryLoading />}>
