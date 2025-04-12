@@ -87,6 +87,12 @@ export function generateThemeCSS(props: ThemeGenerationProps): string {
   --animation-accordion-up: accordion-up 0.2s ease-out;
 }
 
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
 @layer components {
   h1, h2, h3, h4, h5, h6 {
     @apply font-heading;
