@@ -91,8 +91,92 @@ export function generateThemeCSS(props: ThemeGenerationProps): string {
   html {
     scroll-behavior: smooth;
   }
-}
 
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading text-base-content font-bold;
+  }
+
+  h1 {
+    @apply text-4xl leading-tight mb-4 mt-8;
+  }
+
+  h2 {
+    @apply text-3xl leading-snug mb-4 mt-6;
+  }
+
+  h3 {
+    @apply text-2xl leading-snug mb-3 mt-5;
+  }
+
+  h4 {
+    @apply text-xl mb-2 mt-4;
+  }
+
+  h5 {
+    @apply text-lg mb-1 mt-3;
+  }
+
+  h6 {
+    @apply text-base mb-1 mt-2;
+  }
+
+  p {
+    @apply font-body text-base-content text-base leading-relaxed mb-4;
+  }
+
+  a {
+    @apply font-body text-primary hover:underline;
+  }
+
+  ul, ol {
+    @apply list-inside mb-4 ml-5;
+  }
+
+  ul {
+    @apply list-disc;
+  }
+
+  ol {
+    @apply list-decimal;
+  }
+
+  li {
+    @apply font-body text-base-content mb-1;
+  }
+
+  blockquote {
+    @apply border-l-4 border-base-300 pl-4 italic text-base-content/80 mb-4;
+  }
+
+  code {
+    @apply font-mono bg-base-200 px-1 py-0.5 rounded text-sm;
+  }
+
+  pre {
+    @apply font-mono bg-base-200 p-4 rounded text-sm overflow-x-auto mb-4;
+  }
+
+  hr {
+    @apply my-8 border-base-300;
+  }
+
+  img {
+    @apply rounded-lg my-4;
+  }
+
+  table {
+    @apply w-full border-collapse my-6 text-left text-base-content;
+  }
+
+  th {
+    @apply border-b border-base-300 px-4 py-2 font-semibold;
+  }
+
+  td {
+    @apply border-b border-base-200 px-4 py-2;
+  }
+}
+  
 @layer components {
   h1, h2, h3, h4, h5, h6 {
     @apply font-heading;
