@@ -320,6 +320,18 @@ export function generateContentColor(backgroundColor: string): string {
 	// 限制色度，保证颜色和背景稍微相关，但不过分饱和
 	const contentChroma = Math.min(chroma, 0.03) + 0.02;
 
+	// Special handling for neutral colors (very low chroma)
+	if (chroma < 0.05) {
+		// For neutral colors, we want to ensure good contrast
+		if (lightness < THRESHOLD) {
+			// Dark neutral background: generate light content
+			return `oklch(97% ${contentChroma.toFixed(3)} ${hue.toFixed(3)})`;
+		}
+		// Light neutral background: generate dark content
+		return `oklch(3% ${contentChroma.toFixed(3)} ${hue.toFixed(3)})`;
+	}
+
+	// Standard handling for colored backgrounds
 	if (lightness > THRESHOLD) {
 		// 背景较亮：生成接近黑色的内容色（极深）
 		return `oklch(3% ${contentChroma.toFixed(3)} ${hue.toFixed(3)})`;
