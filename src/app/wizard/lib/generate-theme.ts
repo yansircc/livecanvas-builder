@@ -124,26 +124,6 @@ export function generateThemeCSS(props: ThemeGenerationProps): string {
     @apply font-body text-base-content text-base leading-relaxed mb-4;
   }
 
-  a {
-    @apply font-body text-primary hover:underline;
-  }
-
-  ul, ol {
-    @apply list-inside mb-4 ml-5;
-  }
-
-  ul {
-    @apply list-disc;
-  }
-
-  ol {
-    @apply list-decimal;
-  }
-
-  li {
-    @apply font-body text-base-content mb-1;
-  }
-
   blockquote {
     @apply border-l-4 border-base-300 pl-4 italic text-base-content/80 mb-4;
   }
@@ -158,10 +138,6 @@ export function generateThemeCSS(props: ThemeGenerationProps): string {
 
   hr {
     @apply my-8 border-base-300;
-  }
-
-  img {
-    @apply rounded-lg my-4;
   }
 
   table {
