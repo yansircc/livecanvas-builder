@@ -164,7 +164,7 @@ export function generateThemeCSS(props: ThemeGenerationProps): string {
 }
 
 @layer utilities {
-  .header-container {
+  .header-container, .footer-container {
     @apply w-full max-w-screen-xl mx-auto px-4 sm:px-6;
   }
 
