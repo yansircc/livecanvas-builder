@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { GalleryHorizontal, Home, Palette } from "lucide-react";
+import { GalleryHorizontal, Home, MessageSquare, Palette } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -41,6 +41,16 @@ export function NavItems() {
 				>
 					<Palette className="h-4 w-4" />
 					<span>调样式</span>
+				</Button>
+			</Link>
+			<Link href="/chat">
+				<Button
+					variant={isActive("/chat") ? "default" : "ghost"}
+					className="flex items-center gap-2"
+					size="sm"
+				>
+					<MessageSquare className="h-4 w-4" />
+					<span>小工具</span>
 				</Button>
 			</Link>
 		</div>
