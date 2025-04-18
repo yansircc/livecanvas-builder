@@ -1,9 +1,4 @@
-import { createAnthropic } from "@ai-sdk/anthropic";
-import { tool } from "ai";
-import { generateObject } from "ai";
-import { z } from "zod";
-
-const LNL_GUIDE = `
+export const LNL_GUIDE = `
 # Loops & Logic 极简指南 (供 LLM 使用) (vFinal - 重构版)
 
 Loops & Logic (L&L) 是一种标记语言，它通过动态标签扩展了 HTML，可以直接在模板中与 WordPress 数据进行交互。
@@ -264,67 +259,3 @@ Loops & Logic (L&L) 是一种标记语言，它通过动态标签扩展了 HTML�
 </tangible>
 \`\`\`
 `;
-
-const simplifiedFieldSchema = z.object({
-	type: z.string(),
-	name: z.string(),
-});
-
-interface LNLGeneratorResult {
-	code: string;
-}
-
-export const generateLNLCodeTool = tool({
-	description:
-		"生成基于acf字段的动态LNL(tangible loop & logic, 它是一个增强的html，带有用于wordpress数据的动态标签)代码。",
-	parameters: z.object({
-		fields: z.array(simplifiedFieldSchema),
-		apiKey: z.string().describe("The api key for AI"),
-		instruction: z.string().describe("The detailed instruction for AI"),
-	}),
-	execute: async ({
-		fields,
-		apiKey,
-		instruction,
-	}): Promise<LNLGeneratorResult> => {
-		const anthropic = createAnthropic({
-			apiKey: apiKey,
-			baseURL: "https://aihubmix.com/v1",
-		});
-
-		console.log(`instruction: ${instruction}`);
-
-		const { object } = await generateObject({
-			model: anthropic("claude-3-7-sonnet-20250219"),
-			schema: z.object({
-				code: z
-					.string()
-					.describe(
-						"LNL(tangible loop & logic) HTML template code snippets. The template should only include one piece of LNL HTML code snippet to demonstrate the dynamic template, without any CSS or JavaScript.",
-					),
-			}),
-			system: `
-			你是 LNL(tangible loop & logic) 代码的专家。
-			你的任务是根据用户提供的 ACF 字段，协助用户设计一个极简的演示 LNL 模板。
-			请参考以下 LNL 指南：
-			${LNL_GUIDE}
-      请注意：
-      不管你得到的 ACF 字段中是否包含标题、内容、特色图片和链接字段，它们都是默认存在的，你可以随时调用。
-      如果你要创建Archive页面，在涉及到图像显示时，请遵循以下优先级：
-      1. 使用 WordPress 默认的特色图像字段，例如：<img src="{Field image_url size=medium}">
-      2. 如果可用，使用 ACF 中定义的图像字段，例如：<img src="{Field acf_image=project_image field=url size=medium}">
-      如果创建的是单页，尽可能展示所有字段，但如果创建的是Archive 页面，在设计前要询问用户希望展示哪些字段。
-			`,
-			prompt: `
-			下面是用户提供的 ACF 字段：
-			${JSON.stringify(fields, null, 2)}
-      请注意，标题<Field title />、内容<Field content />、特色图片<img src="{Field image_url}">和链接<a href="{Field url}">{Field title}</a>字段是默认存在，你可以随时调用。
-      输出的代码请务必包裹在<tangible>标签中。
-      请严格遵照以下命令来输出代码：
-      ${instruction}
-			`,
-			maxRetries: 3,
-		});
-		return object;
-	},
-});

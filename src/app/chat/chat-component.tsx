@@ -1,9 +1,11 @@
 "use client";
 
+import { useApiKeyStore } from "@/store/use-apikey-store";
 import { useChat } from "@ai-sdk/react";
 import { Loader2, MessageSquare } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
+import { toast } from "sonner";
 import { CopyLNLButton } from "./copy-lnl-button";
 import { DownloadJsonButton } from "./download-json-button";
 
@@ -50,18 +52,123 @@ interface LnlGenerationInfo {
 	messageId: string;
 }
 
+// 定义错误响应的接口
+interface ErrorResponse {
+	error: string;
+}
+
 export default function ChatComponent() {
-	const { messages, input, handleInputChange, handleSubmit, status } = useChat({
-		api: "/api/chat",
-		maxSteps: 3,
-	});
+	const apiKey = useApiKeyStore((state) => state.apiKey);
+
+	const { messages, input, handleInputChange, handleSubmit, status, error } =
+		useChat({
+			api: "/api/chat",
+			maxSteps: 10,
+			body: {
+				apiKey,
+			},
+			onError: (
+				error: Error & { response?: { json?: () => Promise<unknown> } },
+			) => {
+				// 检查是否包含自定义错误消息
+				const errorResponse = error?.response?.json?.();
+				if (errorResponse) {
+					errorResponse
+						.then((data: unknown) => {
+							const errorData = data as ErrorResponse;
+							if (errorData?.error) {
+								toast.error(errorData.error);
+							} else {
+								toast.error("AI聊天请求失败");
+							}
+						})
+						.catch(() => {
+							toast.error(error.message || "AI聊天请求失败");
+						});
+				} else {
+					toast.error(error.message || "AI聊天请求失败");
+				}
+			},
+		});
 	const [acfGenerations, setAcfGenerations] = useState<AcfGenerationInfo[]>([]);
 	const [lnlGenerations, setLnlGenerations] = useState<LnlGenerationInfo[]>([]);
 
 	const isLoading = status === "submitted" || status === "streaming";
 	const hasMessages = messages.length > 0;
 
+	useEffect(() => {
+		const newAcfGenerations: AcfGenerationInfo[] = [];
+		const newLnlGenerations: LnlGenerationInfo[] = [];
+
+		// Process all messages to find new generations
+		for (const message of messages) {
+			for (let i = 0; i < message.parts.length; i++) {
+				const part = message.parts[i];
+				if (!part) continue;
+				if (
+					part.type === "tool-invocation" &&
+					"toolInvocation" in part &&
+					part.toolInvocation &&
+					typeof part.toolInvocation === "object" &&
+					"toolName" in part.toolInvocation &&
+					"result" in part.toolInvocation
+				) {
+					// Check for ACF generation
+					if (part.toolInvocation.toolName === "generateACFFields") {
+						const acfGenerationId = `${message.id}-acf-${i}`;
+						const acfJson = JSON.stringify(part.toolInvocation.result, null, 2);
+
+						// Only add if not already in state
+						if (!acfGenerations.some((gen) => gen.id === acfGenerationId)) {
+							newAcfGenerations.push({
+								id: acfGenerationId,
+								json: acfJson,
+								messageId: message.id,
+							});
+						}
+					}
+
+					// Check for LNL code generation
+					if (part.toolInvocation.toolName === "generateLNLCode") {
+						const lnlGenerationId = `${message.id}-lnl-${i}`;
+						const lnlCode = part.toolInvocation.result.code;
+
+						// Only add if not already in state
+						if (!lnlGenerations.some((gen) => gen.id === lnlGenerationId)) {
+							newLnlGenerations.push({
+								id: lnlGenerationId,
+								code: lnlCode,
+								messageId: message.id,
+							});
+						}
+					}
+				}
+			}
+		}
+
+		// Update state if we have new generations
+		if (newAcfGenerations.length > 0) {
+			setAcfGenerations((prev) => [...prev, ...newAcfGenerations]);
+		}
+
+		if (newLnlGenerations.length > 0) {
+			setLnlGenerations((prev) => [...prev, ...newLnlGenerations]);
+		}
+	}, [messages, acfGenerations, lnlGenerations]);
+
+	// 检查API密钥是否设置
+	useEffect(() => {
+		if (!apiKey && hasMessages) {
+			toast.warning("请先在设置中填写API密钥");
+		}
+	}, [apiKey, hasMessages]);
+
 	const handleFormSubmit = (e: React.FormEvent) => {
+		if (!apiKey) {
+			e.preventDefault();
+			toast.warning("请先在设置中填写API密钥");
+			return;
+		}
 		handleSubmit(e);
 	};
 
@@ -75,14 +182,10 @@ export default function ChatComponent() {
 						<>
 							{messages.map((message) => {
 								// 检查此消息是否包含ACF生成结果
-								let hasAcfGeneration = false;
-								let acfGenerationId = "";
-								let acfJson = "";
+								const acfResults: { id: string; json: string }[] = [];
 
 								// 检查此消息是否包含LNL代码生成结果
-								let hasLnlGeneration = false;
-								let lnlGenerationId = "";
-								let lnlCode = "";
+								const lnlResults: { id: string; code: string }[] = [];
 
 								// 处理消息部分并检查生成
 								message.parts.forEach((part, i) => {
@@ -95,50 +198,26 @@ export default function ChatComponent() {
 									) {
 										// 检查ACF生成
 										if (part.toolInvocation.toolName === "generateACFFields") {
-											hasAcfGeneration = true;
-											acfJson = JSON.stringify(
+											const acfJson = JSON.stringify(
 												part.toolInvocation.result,
 												null,
 												2,
 											);
-											acfGenerationId = `${message.id}-acf-${i}`;
-
-											// 将此生成添加到状态中
-											const existingIndex = acfGenerations.findIndex(
-												(gen) => gen.id === acfGenerationId,
-											);
-											if (existingIndex === -1) {
-												setAcfGenerations((prev) => [
-													...prev,
-													{
-														id: acfGenerationId,
-														json: acfJson,
-														messageId: message.id,
-													},
-												]);
-											}
+											const acfGenerationId = `${message.id}-acf-${i}`;
+											acfResults.push({
+												id: acfGenerationId,
+												json: acfJson,
+											});
 										}
 
 										// 检查LNL代码生成
 										if (part.toolInvocation.toolName === "generateLNLCode") {
-											hasLnlGeneration = true;
-											lnlCode = part.toolInvocation.result.code;
-											lnlGenerationId = `${message.id}-lnl-${i}`;
-
-											// 将此生成添加到状态中
-											const existingIndex = lnlGenerations.findIndex(
-												(gen) => gen.id === lnlGenerationId,
-											);
-											if (existingIndex === -1) {
-												setLnlGenerations((prev) => [
-													...prev,
-													{
-														id: lnlGenerationId,
-														code: lnlCode,
-														messageId: message.id,
-													},
-												]);
-											}
+											const lnlCode = part.toolInvocation.result.code;
+											const lnlGenerationId = `${message.id}-lnl-${i}`;
+											lnlResults.push({
+												id: lnlGenerationId,
+												code: lnlCode,
+											});
 										}
 									}
 								});
@@ -172,33 +251,42 @@ export default function ChatComponent() {
 												return null; // 不显示工具调用的JSON
 											})}
 
-											{/* 如果此消息包含ACF生成，显示下载按钮 */}
-											{hasAcfGeneration && (
-												<div className="mt-3 rounded-md border border-zinc-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
+											{/* 显示所有ACF生成结果 */}
+											{acfResults.map((result) => (
+												<div
+													key={result.id}
+													className="mt-3 rounded-md border border-zinc-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900"
+												>
 													<div className="flex items-center justify-between">
 														<span className="text-green-600 text-sm dark:text-green-400">
 															✅ ACF 字段已生成
 														</span>
 														<DownloadJsonButton
-															json={acfJson}
+															json={result.json}
 															filename={`acf-fields-${Date.now()}.json`}
 															isLoading={false}
 														/>
 													</div>
 												</div>
-											)}
+											))}
 
-											{/* 如果此消息包含LNL代码生成，显示复制按钮 */}
-											{hasLnlGeneration && (
-												<div className="mt-3 rounded-md border border-zinc-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
+											{/* 显示所有LNL代码生成结果 */}
+											{lnlResults.map((result) => (
+												<div
+													key={result.id}
+													className="mt-3 rounded-md border border-zinc-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900"
+												>
 													<div className="flex items-center justify-between">
 														<span className="text-emerald-600 text-sm dark:text-emerald-400">
 															✅ LNL 代码已生成
 														</span>
-														<CopyLNLButton code={lnlCode} isLoading={false} />
+														<CopyLNLButton
+															code={result.code}
+															isLoading={false}
+														/>
 													</div>
 												</div>
-											)}
+											))}
 										</div>
 									</div>
 								);

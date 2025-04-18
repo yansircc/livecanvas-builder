@@ -36,6 +36,11 @@ Available colors: primary, primary-content, secondary, secondary-content, accent
 - Stagger animation delays for smoother UX.
 - Optionally use Tailwind built-in animations when appropriate and necessary.
 
+## LNL template:
+- If the code is wrapped in the <tangible> tag, it is a LNL (tangible loop & logic, it is an enhanced html with dynamic tags for wordpress data);
+- In the output, use the tangible tag to wrap the code block, rather than the <section> tag;
+- If there is a <loop> tag, it is a loop code block, please add class directly in the <loop> tag, such as flex or grid to control the layout of the loop;
+
 ## When provided with reference code:
 
 - Convert provided reference code into HTML that utilizes daisyUI components and Tailwind CSS correctly.
