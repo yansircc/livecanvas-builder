@@ -175,10 +175,6 @@ export function generateThemeCSS(props: ThemeGenerationProps): string {
   .container, .container-fluid {
     @apply w-full max-w-screen-xl mx-auto px-4 sm:px-6 py-12 lg:py-24;
   }
-
-  .text-neutral, .text-neutral-content {
-    @apply text-base-content/80;
-  }
 }
 
 @plugin "daisyui" {
