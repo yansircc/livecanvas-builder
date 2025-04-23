@@ -261,5 +261,5 @@ Loops & Logic (L&L) 是一种标记语言，它通过动态标签扩展了 HTML�
 
 注意，以下问题经常出错：
 **错误示范**： <If field="acf_url=book_buy_link" exists>
-**正确示范**： <If field="acf_url" exists>
+**正确示范**： <If field="book_buy_link" exists>
 `;
