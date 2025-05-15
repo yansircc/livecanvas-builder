@@ -345,8 +345,10 @@ export function generateBaseColors(primaryColor: string): {
 
 	// For light theme, base colors should be very light
 	// but slightly influenced by the primary color
-	const base100 = `oklch(98% ${(chroma * 0.06).toFixed(3)} ${hue.toFixed(3)})`;
-	const base200 = `oklch(96% ${(chroma * 0.12).toFixed(3)} ${hue.toFixed(3)})`;
+	// const base100 = `oklch(98% ${(chroma * 0.06).toFixed(3)} ${hue.toFixed(3)})`;
+	// const base200 = `oklch(96% ${(chroma * 0.12).toFixed(3)} ${hue.toFixed(3)})`;
+	const base100 = `oklch(100% 0 ${hue.toFixed(3)})`;
+	const base200 = `oklch(98% ${(chroma * 0.06).toFixed(3)} ${hue.toFixed(3)})`;
 	const base300 = `oklch(94% ${(chroma * 0.18).toFixed(3)} ${hue.toFixed(3)})`;
 
 	// Content should be dark for good contrast with light backgrounds

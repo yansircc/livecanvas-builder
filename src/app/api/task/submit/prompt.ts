@@ -31,7 +31,7 @@ Available colors: primary, primary-content, secondary, secondary-content, accent
 ## Animation:
 
 - Use "taos" animations like:
-  \`<div class="duration-[500ms] delay-[200ms] ease-out taos:translate-y-[30%] taos:opacity-0" data-taos-offset="200"><p>...</p></div>\`
+  \`<div class="duration-[500ms] delay-[0ms] ease-out taos:translate-y-[30%] taos:opacity-0" data-taos-offset="200"><p>...</p></div>\`
   - Always wrap the element that needs animation in a **SEPARATE div(very important)**, and do not add animation classes directly to the element
 - Stagger animation delays for smoother UX.
 - Optionally use Tailwind built-in animations when appropriate and necessary.
