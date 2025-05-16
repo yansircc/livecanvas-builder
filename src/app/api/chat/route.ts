@@ -1,5 +1,5 @@
 import { auth } from "@/server/auth";
-import { createOpenAI } from "@ai-sdk/openai";
+import { createAnthropic } from "@ai-sdk/anthropic";
 import { streamText } from "ai";
 import { LNL_GUIDE } from "./lnl-guide";
 import { generateACFFieldsTool } from "./tools/acf";
@@ -20,14 +20,14 @@ export async function POST(req: Request) {
 		return Response.json({ error: "请先填写API密钥" }, { status: 401 });
 	}
 
-	const openai = createOpenAI({
-		apiKey: apiKey,
+	const anthropic = createAnthropic({
+		apiKey,
 		baseURL: "https://aihubmix.com/v1",
 	});
 
 	try {
 		const result = streamText({
-			model: openai("gpt-4.1"),
+			model: anthropic("claude-3-7-sonnet-20250219"),
 			messages,
 			tools: {
 				generateACFFields: generateACFFieldsTool,
