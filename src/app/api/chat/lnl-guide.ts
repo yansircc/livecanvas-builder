@@ -262,4 +262,73 @@ Loops & Logic (L&L) 是一种标记语言，它通过动态标签扩展了 HTML�
 注意，以下问题经常出错：
 **错误示范**： <If field="acf_url=book_buy_link" exists>
 **正确示范**： <If field="book_buy_link" exists>
+
+## 分类页面示例
+
+\`\`\`html
+<tangible>
+  <!-- 分类页面模板 - 显示当前分类及其产品 -->
+  <div class="category-page">
+    <!-- 获取当前分类信息 -->
+    <Loop type=taxonomy_term taxonomy=product-category terms=current>
+      <header class="category-header">
+        <h1><Field title /></h1>
+        
+        <!-- 如果有分类描述则显示 -->
+        <If field=description exists>
+          <div class="category-description"><Field description /></div>
+        </If>
+      </header>
+    </Loop>
+    
+    <!-- 产品列表 - 获取当前分类下的产品 -->
+    <div class="products-grid">
+      <Loop type=post post_type=product status=publish 
+            taxonomy=product-category term_id="{Field taxonomy_term_id}"
+            orderby=date order=desc paged=12>
+        <article class="product-card">
+          <!-- 产品图片 -->
+          <If field=image exists>
+            <a href="{Field url}" class="product-image">
+              <img src="{Field image_url size=medium}" alt="{Field title}">
+            </a>
+          <Else />
+            <!-- 无图片时显示占位图 -->
+            <a href="{Field url}" class="product-image">
+              <img src="/path/to/placeholder.jpg" alt="{Field title}">
+            </a>
+          </If>
+
+          <div class="product-details">
+            <!-- 产品标题 -->
+            <h2>
+              <a href="{Field url}"><Field title /></a>
+            </h2>
+
+            <!-- 产品价格 -->
+            <div class="product-price">
+              $<Format number decimals=2><Field acf_number=product_price /></Format>
+            </div>
+
+            <!-- 产品分类标签 -->
+            <div class="product-categories">
+              <Loop type=taxonomy_term taxonomy=product_category post=current>
+                <span class="category-tag"><Field title /></span>
+              </Loop>
+            </div>
+
+            <!-- 查看详情按钮 -->
+            <a href="{Field url}" class="view-button">了解更多</a>
+          </div>
+        </article>
+      </Loop>
+    </div>
+
+    <!-- 分页控件 -->
+    <div class="pagination">
+      <PaginateButtons />
+    </div>
+  </div>
+</tangible>
+\`\`\`
 `;
