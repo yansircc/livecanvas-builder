@@ -332,6 +332,64 @@ Loops & Logic (L&L) 是一种标记语言，它通过动态标签扩展了 HTML�
     </div>
   </div>
 </tangible>
+
+## 产品分类页示例
+
+\`\`\`html
+<tangible>
+  <!-- 产品分类页面示例：获取当前分类并显示相关产品 -->
+  <div class="category-container">
+    <!-- 获取当前分类信息 (使用 terms="current" 获取当前查看的分类) -->
+    <Loop type="taxonomy_term" taxonomy="product-category" terms="current">
+      <h1 class="category-title"><Field title /></h1>
+      
+      <!-- 如果存在分类描述则显示 -->
+      <If field="description" exists>
+        <div class="category-description"><Field description /></div>
+      </If>
+      
+      <!-- 保存当前分类ID到变量，以便在产品循环中使用 -->
+      <Set current_term_id><Field id /></Set>
+    </Loop>
+    
+    <!-- 使用变量过滤产品列表，仅显示属于当前分类的产品 -->
+    <div class="products-grid">
+      <!-- 使用 {Get current_term_id} 从变量中获取分类ID -->
+      <Loop type="post" post_type="product" status="publish" 
+            taxonomy="product-category" terms="{Get current_term_id}" 
+            orderby="date" order="desc" paged="9">
+        <article class="product-card">
+          <!-- 产品图片 -->
+          <If field="image" exists>
+            <a href="{Field url}" class="product-image">
+              <img src="{Field image_url size=medium}" alt="{Field title}">
+            </a>
+          </If>
+          
+          <!-- 产品信息 -->
+          <div class="product-info">
+            <h2><a href="{Field url}"><Field title /></a></h2>
+            
+            <!-- 产品价格 -->
+            <div class="product-price">
+              ¥<Format number decimals="2"><Field acf_number=product_price /></Format>
+            </div>
+            
+            <!-- 显示产品所有分类标签 -->
+            <div class="product-categories">
+              <Loop type="taxonomy_term" taxonomy="product-category" post="current">
+                <span class="category-tag"><Field title /></span>
+              </Loop>
+            </div>
+          </div>
+        </article>
+      </Loop>
+    </div>
+    
+    <!-- 分页控件 -->
+    <PaginateButtons />
+  </div>
+</tangible>
 \`\`\`
 `;
 

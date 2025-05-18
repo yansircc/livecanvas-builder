@@ -259,76 +259,66 @@ Loops & Logic (L&L) 是一种标记语言，它通过动态标签扩展了 HTML�
 </tangible>
 \`\`\`
 
-注意，以下问题经常出错：
-**错误示范**： <If field="acf_url=book_buy_link" exists>
-**正确示范**： <If field="book_buy_link" exists>
-
-## 分类页面示例
+## 产品分类页示例
 
 \`\`\`html
 <tangible>
-  <!-- 分类页面模板 - 显示当前分类及其产品 -->
-  <div class="category-page">
-    <!-- 获取当前分类信息 -->
-    <Loop type=taxonomy_term taxonomy=product-category terms=current>
-      <header class="category-header">
-        <h1><Field title /></h1>
-        
-        <!-- 如果有分类描述则显示 -->
-        <If field=description exists>
-          <div class="category-description"><Field description /></div>
-        </If>
-      </header>
+  <!-- 产品分类页面示例：获取当前分类并显示相关产品 -->
+  <div class="category-container">
+    <!-- 获取当前分类信息 (使用 terms="current" 获取当前查看的分类) -->
+    <Loop type="taxonomy_term" taxonomy="product-category" terms="current">
+      <h1 class="category-title"><Field title /></h1>
+      
+      <!-- 如果存在分类描述则显示 -->
+      <If field="description" exists>
+        <div class="category-description"><Field description /></div>
+      </If>
+      
+      <!-- 保存当前分类ID到变量，以便在产品循环中使用 -->
+      <Set current_term_id><Field id /></Set>
     </Loop>
     
-    <!-- 产品列表 - 获取当前分类下的产品 -->
+    <!-- 使用变量过滤产品列表，仅显示属于当前分类的产品 -->
     <div class="products-grid">
-      <Loop type=post post_type=product status=publish 
-            taxonomy=product-category term_id="{Field taxonomy_term_id}"
-            orderby=date order=desc paged=12>
+      <!-- 使用 {Get current_term_id} 从变量中获取分类ID -->
+      <Loop type="post" post_type="product" status="publish" 
+            taxonomy="product-category" terms="{Get current_term_id}" 
+            orderby="date" order="desc" paged="9">
         <article class="product-card">
           <!-- 产品图片 -->
-          <If field=image exists>
+          <If field="image" exists>
             <a href="{Field url}" class="product-image">
               <img src="{Field image_url size=medium}" alt="{Field title}">
             </a>
-          <Else />
-            <!-- 无图片时显示占位图 -->
-            <a href="{Field url}" class="product-image">
-              <img src="/path/to/placeholder.jpg" alt="{Field title}">
-            </a>
           </If>
-
-          <div class="product-details">
-            <!-- 产品标题 -->
-            <h2>
-              <a href="{Field url}"><Field title /></a>
-            </h2>
-
+          
+          <!-- 产品信息 -->
+          <div class="product-info">
+            <h2><a href="{Field url}"><Field title /></a></h2>
+            
             <!-- 产品价格 -->
             <div class="product-price">
-              $<Format number decimals=2><Field acf_number=product_price /></Format>
+              ¥<Format number decimals="2"><Field acf_number=product_price /></Format>
             </div>
-
-            <!-- 产品分类标签 -->
+            
+            <!-- 显示产品所有分类标签 -->
             <div class="product-categories">
-              <Loop type=taxonomy_term taxonomy=product_category post=current>
+              <Loop type="taxonomy_term" taxonomy="product-category" post="current">
                 <span class="category-tag"><Field title /></span>
               </Loop>
             </div>
-
-            <!-- 查看详情按钮 -->
-            <a href="{Field url}" class="view-button">了解更多</a>
           </div>
         </article>
       </Loop>
     </div>
-
+    
     <!-- 分页控件 -->
-    <div class="pagination">
-      <PaginateButtons />
-    </div>
+    <PaginateButtons />
   </div>
 </tangible>
 \`\`\`
+
+注意，以下问题经常出错：
+**错误示范**： <If field="acf_url=book_buy_link" exists>
+**正确示范**： <If field="book_buy_link" exists>
 `;
