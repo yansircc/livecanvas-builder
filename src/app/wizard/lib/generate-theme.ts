@@ -45,11 +45,11 @@ export function generateThemeCSS(props: ThemeGenerationProps): string {
 	const errorContent = generateContentColor(error);
 
 	// Generate neutral colors for light theme
-	const neutral = "oklch(20.5% 0 0)"; // Neutral/gray color for light theme
+	const neutral = "oklch(75% 0 0)"; // Neutral/gray color for light theme
 	const neutralContent = generateContentColor(neutral);
 
 	// Generate neutral colors for dark theme
-	const darkNeutral = "oklch(97% 0 0)"; // Lighter neutral/gray color for dark theme
+	const darkNeutral = "oklch(25% 0 0)"; // Darker neutral/gray color for dark theme
 	const darkNeutralContent = generateContentColor(darkNeutral);
 
 	// Generate base colors based on primary
@@ -64,7 +64,16 @@ export function generateThemeCSS(props: ThemeGenerationProps): string {
  * Generated DaisyUI Theme for Tailwind CSS v4
  * Created with DaisyUI Theme Generator
  */
-@import url('https://fonts.googleapis.com/css2?family=${fonts.heading.replace(/ /g, "+")}:wght@400;700&family=${fonts.body.replace(/ /g, "+")}:wght@400;700&family=${fonts.mono.replace(/ /g, "+")}:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=${fonts.heading.replace(
+		/ /g,
+		"+",
+	)}:wght@400;700&family=${fonts.body.replace(
+		/ /g,
+		"+",
+	)}:wght@400;700&family=${fonts.mono.replace(
+		/ /g,
+		"+",
+	)}:wght@400;700&display=swap');
 @import 'tailwindcss';
 
 @theme {
